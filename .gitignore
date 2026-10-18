@@ -64,3 +64,4 @@ node_modules
 !/docs/aws-phase-d/D1e-minimum-grant-manifest.json
 !/docs/aws-phase-d/D1e-source-duplicate_product.sql
 *.log
+!/docs/aws-phase-d/ADMIN-UAT-HOST-SETUP.md
