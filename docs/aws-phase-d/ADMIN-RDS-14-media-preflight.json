@@ -1,0 +1,553 @@
+{
+  "database": "hod_staging",
+  "schema_present": false,
+  "policy_present": false,
+  "admissions_present": false,
+  "audit_present": false,
+  "owner_can_create_schema": true,
+  "runtime_owner_membership": false,
+  "runtime_can_set_owner": false,
+  "runtime_public_usage": true,
+  "roles": [
+    {
+      "name": "hod_admin_app",
+      "login": false,
+      "inherit": false,
+      "superuser": false,
+      "create_database": false,
+      "create_role": false,
+      "replication": false,
+      "bypass_rls": false
+    },
+    {
+      "name": "hod_admin_login_uat",
+      "login": true,
+      "inherit": false,
+      "superuser": false,
+      "create_database": false,
+      "create_role": false,
+      "replication": false,
+      "bypass_rls": false
+    },
+    {
+      "name": "hod_dev_migration",
+      "login": true,
+      "inherit": false,
+      "superuser": false,
+      "create_database": false,
+      "create_role": false,
+      "replication": false,
+      "bypass_rls": false
+    },
+    {
+      "name": "hod_migration",
+      "login": true,
+      "inherit": true,
+      "superuser": false,
+      "create_database": false,
+      "create_role": false,
+      "replication": false,
+      "bypass_rls": false
+    }
+  ],
+  "defaults": [],
+  "tables": [
+    {
+      "name": "public.admin_identities",
+      "snapshot": {
+        "acl": [
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "MAINTAIN"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRIGGER"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRUNCATE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          }
+        ],
+        "rls": true,
+        "kind": "r",
+        "force": false,
+        "owner": "hod_migration",
+        "columns": [
+          {
+            "acl": [],
+            "name": "issuer",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "subject",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "profile_id",
+            "type": "uuid",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "enabled",
+            "type": "boolean",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "68934a3e9455fa72420237eb05902327"
+          },
+          {
+            "acl": [],
+            "name": "revoked_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          }
+        ],
+        "policies": [],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "admin_identities_created_at_not_null",
+            "definition": "NOT NULL created_at"
+          },
+          {
+            "name": "admin_identities_enabled_not_null",
+            "definition": "NOT NULL enabled"
+          },
+          {
+            "name": "admin_identities_issuer_check",
+            "definition": "CHECK (((length(issuer) >= 1) AND (length(issuer) <= 2048)))"
+          },
+          {
+            "name": "admin_identities_issuer_not_null",
+            "definition": "NOT NULL issuer"
+          },
+          {
+            "name": "admin_identities_pkey",
+            "definition": "PRIMARY KEY (issuer, subject)"
+          },
+          {
+            "name": "admin_identities_profile_id_fkey",
+            "definition": "FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE RESTRICT"
+          },
+          {
+            "name": "admin_identities_profile_id_not_null",
+            "definition": "NOT NULL profile_id"
+          },
+          {
+            "name": "admin_identities_subject_check",
+            "definition": "CHECK (((length(subject) >= 1) AND (length(subject) <= 512)))"
+          },
+          {
+            "name": "admin_identities_subject_not_null",
+            "definition": "NOT NULL subject"
+          }
+        ]
+      },
+      "fingerprint": "400755f0312e93f7dbd85f8a17b2ca4d"
+    },
+    {
+      "name": "public.profiles",
+      "snapshot": {
+        "acl": [
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "MAINTAIN"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRIGGER"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRUNCATE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          }
+        ],
+        "rls": true,
+        "kind": "r",
+        "force": false,
+        "owner": "hod_migration",
+        "columns": [
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "id",
+            "type": "uuid",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "email",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "role",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "ebe5151db32cb9795191097a4f9511a9"
+          },
+          {
+            "acl": [],
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          },
+          {
+            "acl": [],
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          },
+          {
+            "acl": [],
+            "name": "first_name",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "last_name",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "phone",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "country",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "state",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "city",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "postal_code",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "address_line_1",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "address_line_2",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "birth_date",
+            "type": "date",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "anniversary_date",
+            "type": "date",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "district",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          }
+        ],
+        "policies": [
+          {
+            "name": "hod_admin_content10_select",
+            "check": null,
+            "roles": [
+              "28137"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true
+          },
+          {
+            "name": "profiles admin write",
+            "check": "is_admin()",
+            "roles": [
+              "0"
+            ],
+            "using": "is_admin()",
+            "command": "*",
+            "permissive": true
+          },
+          {
+            "name": "profiles self read",
+            "check": null,
+            "roles": [
+              "0"
+            ],
+            "using": "((auth.uid() = id) OR is_admin())",
+            "command": "r",
+            "permissive": true
+          },
+          {
+            "name": "profiles self update",
+            "check": "(auth.uid() = id)",
+            "roles": [
+              "20430"
+            ],
+            "using": "(auth.uid() = id)",
+            "command": "w",
+            "permissive": true
+          }
+        ],
+        "triggers": [
+          {
+            "name": "trg_profiles_updated_at",
+            "enabled": "O",
+            "function": "8de7ae383447503e8949149bfb3f0efb",
+            "definition": "b75e3c0eaeb20364480a456a8f75ce7f"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "profiles_created_at_not_null",
+            "definition": "NOT NULL created_at"
+          },
+          {
+            "name": "profiles_email_key",
+            "definition": "UNIQUE (email)"
+          },
+          {
+            "name": "profiles_id_fkey",
+            "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+          },
+          {
+            "name": "profiles_id_not_null",
+            "definition": "NOT NULL id"
+          },
+          {
+            "name": "profiles_pkey",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "profiles_role_check",
+            "definition": "CHECK ((role = ANY (ARRAY['admin'::text, 'editor'::text, 'viewer'::text])))"
+          },
+          {
+            "name": "profiles_role_not_null",
+            "definition": "NOT NULL role"
+          },
+          {
+            "name": "profiles_updated_at_not_null",
+            "definition": "NOT NULL updated_at"
+          }
+        ]
+      },
+      "fingerprint": "bfd124193706eeffda3f6a0e0cb04f47"
+    }
+  ],
+  "read_only": true,
+  "business_rows_read": false,
+  "providers_changed": false,
+  "server_started": false
+}

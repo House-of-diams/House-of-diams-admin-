@@ -1,0 +1,55 @@
+{
+  "scope": [
+    {
+      "name": "public.admin_identities",
+      "fingerprint": "400755f0312e93f7dbd85f8a17b2ca4d"
+    },
+    {
+      "name": "public.catalog_categories",
+      "fingerprint": "4b9b6a9a939f3efe1b615d500babdbf1"
+    },
+    {
+      "name": "public.catalog_options",
+      "fingerprint": "587d9bf02227a15a765315ab5ed22bf7"
+    },
+    {
+      "name": "public.catalog_subcategories",
+      "fingerprint": "633678d059813e1acdca093d415f9680"
+    },
+    {
+      "name": "public.inventory_adjustments",
+      "fingerprint": "1c6d0ae65624437d8e335ca58d3b50ac"
+    },
+    {
+      "name": "public.inventory_reservations",
+      "fingerprint": "769ff7869e8626fc26b5f3c81a47f56c"
+    },
+    {
+      "name": "public.order_items",
+      "fingerprint": "215e78211f3c1b7b259d7ba4e1ddf8e8"
+    },
+    {
+      "name": "public.orders",
+      "fingerprint": "6056b68ee3e1cb5b2ed2e3cb61c8079e"
+    },
+    {
+      "name": "public.order_status_history",
+      "fingerprint": "2666faf6ebe26d914a22dfc97ce2ae25"
+    },
+    {
+      "name": "public.product_content_rules",
+      "fingerprint": "707e134376cd742d2736ecd375eaaf19"
+    },
+    {
+      "name": "public.products",
+      "fingerprint": "4e1df9cba8c0e21ec3d241b36d352eef"
+    },
+    {
+      "name": "public.profiles",
+      "fingerprint": "bfd124193706eeffda3f6a0e0cb04f47"
+    }
+  ],
+  "body_sha256": "0f170a012d0fa8168b99d3521121bd4ad195a2e907320aee062ab07e2b8a86b4",
+  "sql_sha256": "76f45e905d1b050db2b6815c78f2f2aa8076da91c38621a1e0799fdc4cfeb182",
+  "inverse_sha256": "f684964442b5e6f72fda7d126b20413197b4e6dbd9ff7ff11410cee567c18b23"
+}

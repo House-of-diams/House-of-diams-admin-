@@ -1,0 +1,10 @@
+{
+  "status": "static source/definition reconciliation only; SQL not executed",
+  "saved_definition_sha256": "b25201dd0605279eb2ee67c81f33d2c8d96cd152d96b906f1f388a32cbd2c29d",
+  "saved_definition": "public.catalog_delete_master_v1",
+  "saved_definition_line": 35,
+  "jsonb_type_evidence": "      select count(*) into v_count from public.products x where coalesce(x.certificate_ids,'[]'::jsonb) @> jsonb_build_array(p_id::text); v_usage:=jsonb_build_object('products',v_count); v_total:=v_count;",
+  "query_file": "lib/db/admin-repositories/product-list.ts",
+  "query_line": 42,
+  "query": "    ARRAY(SELECT ce.name FROM public.catalog_certificates ce WHERE ce.id=ANY(p.certificate_ids)),"
+}

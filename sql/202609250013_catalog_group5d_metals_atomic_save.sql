@@ -1,0 +1,60 @@
+begin;
+
+create or replace function public.catalog_metal_row_v1(p_id uuid)
+returns jsonb language plpgsql security definer set search_path=public stable as $$
+declare v_parent jsonb;v_parts jsonb;v_revision text;
+begin
+  select to_jsonb(x)-'created_at'-'updated_at' into v_parent from public.catalog_metals x where x.id=p_id;
+  if v_parent is null then return jsonb_build_object('item',null,'revision',md5('null'));end if;
+  select coalesce(jsonb_agg(to_jsonb(x)-'created_at'-'metal_id' order by x.sort_order,x.id),'[]'::jsonb) into v_parts from public.metal_composition_parts x where x.metal_id=p_id;
+  v_revision:=md5(jsonb_build_object('metal',v_parent,'parts',v_parts)::text);
+  return jsonb_build_object('item',v_parent||jsonb_build_object('composition_parts',v_parts,'_revision',v_revision),'revision',v_revision);
+end $$;
+
+create or replace function public.catalog_metal_list_v1()
+returns jsonb language sql security definer set search_path=public stable as $$
+  select coalesce(jsonb_agg((public.catalog_metal_row_v1(x.id)->'item') order by x.display_order,x.name,x.id),'[]'::jsonb) from public.catalog_metals x
+$$;
+
+create or replace function public.catalog_metal_save_v1(p_actor_id uuid,p_request_id uuid,p_expected_revision text,p_id uuid,p_metal jsonb,p_parts jsonb,p_deleted_part_ids bigint[] default '{}'::bigint[])
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_before jsonb;v_result jsonb;v_receipt public.cms_save_receipts%rowtype;v_hash text:=md5(jsonb_build_object('id',p_id,'revision',p_expected_revision,'metal',p_metal,'parts',p_parts,'deleted',p_deleted_part_ids)::text);v_id uuid;v_part jsonb;v_part_id bigint;v_existing_ids bigint[];v_received_ids bigint[];v_missing_ids bigint[];v_name text:=trim(coalesce(p_metal->>'name',''));v_slug text:=lower(regexp_replace(regexp_replace(trim(coalesce(p_metal->>'slug','')),'[^a-zA-Z0-9]+','-','g'),'(^-|-$)','','g'));v_status text:=coalesce(p_metal->>'status','active');v_order int;
+begin
+  if not exists(select 1 from public.profiles p where p.id=p_actor_id and p.role='admin') then raise exception 'Administrator access is required.' using errcode='42501';end if;
+  if p_request_id is null or p_metal is null or jsonb_typeof(p_metal)<>'object' or p_parts is null or jsonb_typeof(p_parts)<>'array' then raise exception 'Invalid metal save request.' using errcode='22023';end if;
+  perform pg_advisory_xact_lock(hashtextextended('catalog-request:'||p_actor_id||':'||p_request_id,0));select * into v_receipt from public.cms_save_receipts r where r.actor_id=p_actor_id and r.request_id=p_request_id;
+  if found then if v_receipt.operation<>'catalog-metal-save' or v_receipt.payload_hash<>v_hash then raise exception 'This request ID was already used for a different save.' using errcode='22023';end if;return v_receipt.result;end if;
+  perform pg_advisory_xact_lock(hashtextextended('catalog-metal:'||coalesce(p_id::text,'new'),0));
+  if p_id is null then if p_expected_revision is not null then raise exception 'New metals cannot include an existing revision.' using errcode='22023';end if;else v_before:=public.catalog_metal_row_v1(p_id);if v_before->'item'='null'::jsonb then raise exception 'Metal not found.' using errcode='P0002';end if;if p_expected_revision is null or v_before->>'revision'<>p_expected_revision then raise exception 'This metal changed since you opened it. Reload before saving.' using errcode='40001';end if;end if;
+  if exists(select 1 from jsonb_object_keys(p_metal) k where k<>all(array['name','slug','purity_label','base_metal_name','display_label','is_combined_option','color_hex','composition_description','display_order','status'])) then raise exception 'Metal payload contains unsupported fields.' using errcode='22023';end if;
+  begin v_order:=coalesce((p_metal->>'display_order')::int,0);exception when others then raise exception 'Display order must be a whole number.' using errcode='22023';end;
+  if v_name='' or v_slug='' or v_status not in('active','hidden') or v_order<0 or v_order>1000000 then raise exception 'Invalid metal name, slug, status, or display order.' using errcode='22023';end if;
+  if exists(select 1 from public.catalog_metals x where (lower(x.name)=lower(v_name) or x.slug=v_slug) and (p_id is null or x.id<>p_id)) then raise exception 'A metal with this name or slug already exists.' using errcode='23505';end if;
+  if exists(select 1 from jsonb_array_elements(p_parts) x where jsonb_typeof(x)<>'object' or exists(select 1 from jsonb_object_keys(x) k where k<>all(array['id','part_name','percentage','color_hex','sort_order']))) then raise exception 'Composition payload contains unsupported fields.' using errcode='22023';end if;
+  if exists(select 1 from jsonb_array_elements(p_parts) x where trim(coalesce(x->>'part_name',''))='' or (x->>'percentage') is null or (x->>'percentage')::numeric<0 or (x->>'percentage')::numeric>100 or coalesce((x->>'sort_order')::int,0)<0) then raise exception 'Each composition value needs a name, percentage from 0 to 100, and valid order.' using errcode='22023';end if;
+  if exists(select 1 from jsonb_array_elements(p_parts) x group by lower(trim(x->>'part_name')) having count(*)>1) then raise exception 'Composition value names must be unique within a metal.' using errcode='23505';end if;
+  select coalesce(array_agg(x.id order by x.id),'{}'::bigint[]) into v_existing_ids from public.metal_composition_parts x where x.metal_id=p_id;
+  begin select coalesce(array_agg((x->>'id')::bigint order by (x->>'id')::bigint),'{}'::bigint[]) into v_received_ids from jsonb_array_elements(p_parts) x where x?'id';exception when others then raise exception 'Composition IDs must be valid numbers.' using errcode='22023';end;
+  if cardinality(v_received_ids)<>cardinality(array(select distinct unnest(v_received_ids))) or cardinality(p_deleted_part_ids)<>cardinality(array(select distinct unnest(p_deleted_part_ids))) then raise exception 'Composition IDs must be unique.' using errcode='22023';end if;
+  if exists(select 1 from unnest(v_received_ids) x where not(x=any(v_existing_ids))) or exists(select 1 from unnest(p_deleted_part_ids) x where not(x=any(v_existing_ids))) then raise exception 'A composition value does not belong to this metal.' using errcode='22023';end if;
+  if exists(select 1 from unnest(v_received_ids) x where x=any(p_deleted_part_ids)) then raise exception 'A composition value cannot be retained and deleted.' using errcode='22023';end if;
+  select coalesce(array_agg(x),'{}'::bigint[]) into v_missing_ids from unnest(v_existing_ids) x where not(x=any(v_received_ids)) and not(x=any(p_deleted_part_ids));if cardinality(v_missing_ids)>0 then raise exception 'Existing composition values may only be removed explicitly.' using errcode='22023';end if;
+  if p_id is null then insert into public.catalog_metals(name,slug,purity_label,base_metal_name,display_label,is_combined_option,color_hex,composition_description,display_order,status) values(v_name,v_slug,nullif(trim(p_metal->>'purity_label'),''),nullif(trim(p_metal->>'base_metal_name'),''),nullif(trim(p_metal->>'display_label'),''),coalesce((p_metal->>'is_combined_option')::boolean,false),nullif(trim(p_metal->>'color_hex'),''),nullif(trim(p_metal->>'composition_description'),''),v_order,v_status::public.catalog_status) returning id into v_id;else update public.catalog_metals x set name=v_name,slug=v_slug,purity_label=nullif(trim(p_metal->>'purity_label'),''),base_metal_name=nullif(trim(p_metal->>'base_metal_name'),''),display_label=nullif(trim(p_metal->>'display_label'),''),is_combined_option=coalesce((p_metal->>'is_combined_option')::boolean,false),color_hex=nullif(trim(p_metal->>'color_hex'),''),composition_description=nullif(trim(p_metal->>'composition_description'),''),display_order=v_order,status=v_status::public.catalog_status,updated_at=now() where x.id=p_id;v_id:=p_id;end if;
+  foreach v_part_id in array p_deleted_part_ids loop delete from public.metal_composition_parts x where x.id=v_part_id and x.metal_id=v_id;end loop;
+  for v_part in select * from jsonb_array_elements(p_parts) loop if v_part?'id' then update public.metal_composition_parts x set part_name=trim(v_part->>'part_name'),percentage=(v_part->>'percentage')::numeric,color_hex=nullif(trim(v_part->>'color_hex'),''),sort_order=coalesce((v_part->>'sort_order')::int,0) where x.id=(v_part->>'id')::bigint and x.metal_id=v_id;else insert into public.metal_composition_parts(metal_id,part_name,percentage,color_hex,sort_order) values(v_id,trim(v_part->>'part_name'),(v_part->>'percentage')::numeric,nullif(trim(v_part->>'color_hex'),''),coalesce((v_part->>'sort_order')::int,0));end if;end loop;
+  v_result:=public.catalog_metal_row_v1(v_id);insert into public.cms_save_receipts(actor_id,request_id,operation,payload_hash,result) values(p_actor_id,p_request_id,'catalog-metal-save',v_hash,v_result);return v_result;
+exception when unique_violation then raise exception 'A metal or composition value with this name or slug already exists.' using errcode='23505';end $$;
+
+create or replace function public.catalog_metal_delete_v1(p_actor_id uuid,p_request_id uuid,p_expected_revision text,p_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_before jsonb;v_receipt public.cms_save_receipts%rowtype;v_hash text:=md5(jsonb_build_object('id',p_id,'revision',p_expected_revision)::text);v_usage int;v_result jsonb;
+begin
+  if not exists(select 1 from public.profiles p where p.id=p_actor_id and p.role='admin') then raise exception 'Administrator access is required.' using errcode='42501';end if;if p_request_id is null or p_expected_revision is null or p_id is null then raise exception 'Invalid metal delete request.' using errcode='22023';end if;
+  perform pg_advisory_xact_lock(hashtextextended('catalog-request:'||p_actor_id||':'||p_request_id,0));select * into v_receipt from public.cms_save_receipts r where r.actor_id=p_actor_id and r.request_id=p_request_id;if found then if v_receipt.operation<>'catalog-metal-delete' or v_receipt.payload_hash<>v_hash then raise exception 'This request ID was already used.' using errcode='22023';end if;return v_receipt.result;end if;
+  perform pg_advisory_xact_lock(hashtextextended('catalog-metal:'||p_id,0));v_before:=public.catalog_metal_row_v1(p_id);if v_before->'item'='null'::jsonb then raise exception 'Metal not found.' using errcode='P0002';end if;if v_before->>'revision'<>p_expected_revision then raise exception 'This metal changed since you opened it. Reload before deleting.' using errcode='40001';end if;
+  select (select count(*) from public.product_metal_selections where metal_id=p_id)+(select count(*) from public.product_metal_variants where metal_id=p_id)+(select count(*) from public.product_metal_media where metal_id=p_id) into v_usage;if v_usage>0 then raise exception 'This metal is used in % product record(s). Hide it instead of deleting it.',v_usage using errcode='P0001';end if;
+  delete from public.metal_composition_parts where metal_id=p_id;delete from public.catalog_metals where id=p_id;v_result:=jsonb_build_object('ok',true,'id',p_id);insert into public.cms_save_receipts(actor_id,request_id,operation,payload_hash,result) values(p_actor_id,p_request_id,'catalog-metal-delete',v_hash,v_result);return v_result;
+end $$;
+
+revoke all on function public.catalog_metal_row_v1(uuid) from public,anon,authenticated;revoke all on function public.catalog_metal_list_v1() from public,anon,authenticated;revoke all on function public.catalog_metal_save_v1(uuid,uuid,text,uuid,jsonb,jsonb,bigint[]) from public,anon,authenticated;revoke all on function public.catalog_metal_delete_v1(uuid,uuid,text,uuid) from public,anon,authenticated;
+grant execute on function public.catalog_metal_row_v1(uuid) to service_role;grant execute on function public.catalog_metal_list_v1() to service_role;grant execute on function public.catalog_metal_save_v1(uuid,uuid,text,uuid,jsonb,jsonb,bigint[]) to service_role;grant execute on function public.catalog_metal_delete_v1(uuid,uuid,text,uuid) to service_role;notify pgrst,'reload schema';commit;

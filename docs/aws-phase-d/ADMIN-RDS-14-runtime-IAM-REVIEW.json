@@ -1,0 +1,82 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Listhouseofdiams",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::house-of-diams",
+      "Condition": {
+        "StringEquals": {
+          "s3:prefix": [
+            "products/videos/",
+            "hiphop/videos/",
+            "bespoke/videos/",
+            "about/hero/video/"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "Headhouseofdiams",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::house-of-diams/products/videos/*",
+        "arn:aws:s3:::house-of-diams/hiphop/videos/*",
+        "arn:aws:s3:::house-of-diams/bespoke/videos/*",
+        "arn:aws:s3:::house-of-diams/about/hero/video/*"
+      ]
+    },
+    {
+      "Sid": "Createhouseofdiams",
+      "Effect": "Allow",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::house-of-diams/products/videos/*",
+        "arn:aws:s3:::house-of-diams/hiphop/videos/*",
+        "arn:aws:s3:::house-of-diams/bespoke/videos/*",
+        "arn:aws:s3:::house-of-diams/about/hero/video/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "s3:if-none-match": "*"
+        }
+      }
+    },
+    {
+      "Sid": "Listhouseofdiamshod",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::house-of-diams-hod",
+      "Condition": {
+        "StringEquals": {
+          "s3:prefix": [
+            "about/hero/video/"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "Headhouseofdiamshod",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": [
+        "arn:aws:s3:::house-of-diams-hod/about/hero/video/*"
+      ]
+    },
+    {
+      "Sid": "Createhouseofdiamshod",
+      "Effect": "Allow",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::house-of-diams-hod/about/hero/video/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "s3:if-none-match": "*"
+        }
+      }
+    }
+  ]
+}

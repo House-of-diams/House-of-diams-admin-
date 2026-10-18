@@ -1,0 +1,56 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "HodVideo14RequireConditionalCreate",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::house-of-diams/products/videos/*",
+        "arn:aws:s3:::house-of-diams/hiphop/videos/*",
+        "arn:aws:s3:::house-of-diams/bespoke/videos/*",
+        "arn:aws:s3:::house-of-diams/about/hero/video/*"
+      ],
+      "Condition": {
+        "Null": {
+          "s3:if-none-match": "true"
+        }
+      }
+    },
+    {
+      "Sid": "HodVideo14RejectReplacementCondition",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::house-of-diams/products/videos/*",
+        "arn:aws:s3:::house-of-diams/hiphop/videos/*",
+        "arn:aws:s3:::house-of-diams/bespoke/videos/*",
+        "arn:aws:s3:::house-of-diams/about/hero/video/*"
+      ],
+      "Condition": {
+        "StringNotEquals": {
+          "s3:if-none-match": "*"
+        }
+      }
+    },
+    {
+      "Sid": "HodVideo14RetainCanonicalBytes",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": [
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+        "s3:ReplicateObject",
+        "s3:ReplicateDelete"
+      ],
+      "Resource": [
+        "arn:aws:s3:::house-of-diams/products/videos/*",
+        "arn:aws:s3:::house-of-diams/hiphop/videos/*",
+        "arn:aws:s3:::house-of-diams/bespoke/videos/*",
+        "arn:aws:s3:::house-of-diams/about/hero/video/*"
+      ]
+    }
+  ]
+}

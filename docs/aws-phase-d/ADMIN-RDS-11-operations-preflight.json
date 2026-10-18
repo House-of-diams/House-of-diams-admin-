@@ -1,0 +1,1972 @@
+{
+  "database": "hod_staging",
+  "read_only": true,
+  "business_rows_read": false,
+  "providers_changed": false,
+  "server_started": false,
+  "tables": [
+    {
+      "name": "public.admin_notification_reads",
+      "snapshot": {
+        "acl": [
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "MAINTAIN"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRIGGER"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRUNCATE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          }
+        ],
+        "rls": true,
+        "kind": "r",
+        "force": false,
+        "owner": "hod_migration",
+        "columns": [
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "admin_user_id",
+            "type": "uuid",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "notification_key",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "read_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          }
+        ],
+        "policies": [
+          {
+            "name": "hod_admin_feature_read_v1",
+            "check": null,
+            "roles": [
+              "28137"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "admin_notification_reads_admin_user_id_fkey",
+            "definition": "FOREIGN KEY (admin_user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+          },
+          {
+            "name": "admin_notification_reads_admin_user_id_not_null",
+            "definition": "NOT NULL admin_user_id"
+          },
+          {
+            "name": "admin_notification_reads_notification_key_not_null",
+            "definition": "NOT NULL notification_key"
+          },
+          {
+            "name": "admin_notification_reads_pkey",
+            "definition": "PRIMARY KEY (admin_user_id, notification_key)"
+          },
+          {
+            "name": "admin_notification_reads_read_at_not_null",
+            "definition": "NOT NULL read_at"
+          }
+        ]
+      },
+      "fingerprint": "c6a4479253965e722b29b35447be108b",
+      "preserved": "dc4a646d0eb711a5ace5a0db0a94a475",
+      "select_all": false,
+      "select_columns": [
+        "admin_user_id",
+        "notification_key"
+      ],
+      "writes": false,
+      "column_writes": false,
+      "sequences": []
+    },
+    {
+      "name": "public.coupons",
+      "snapshot": {
+        "acl": [
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "MAINTAIN"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRIGGER"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRUNCATE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          }
+        ],
+        "rls": true,
+        "kind": "r",
+        "force": false,
+        "owner": "hod_migration",
+        "columns": [
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "id",
+            "type": "bigint",
+            "identity": "d",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "code",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "title",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "86e751880b3791dd7c2efae188915799"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "discount_type",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "discount_value",
+            "type": "numeric(12,2)",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "usage_limit",
+            "type": "integer",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "usage_count",
+            "type": "integer",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "cfcd208495d565ef66e7dff9f98764da"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "is_active",
+            "type": "boolean",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "b326b5062b2f0e69046810717534cb09"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          },
+          {
+            "acl": [],
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "reward_type",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "ba0d92134381a279d6b0730a8d5a28d7"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "minimum_order_amount",
+            "type": "numeric(14,2)",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "cfcd208495d565ef66e7dff9f98764da"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "gift_product_id",
+            "type": "uuid",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "gift_variant_data",
+            "type": "jsonb",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "f3db357cf4f4a03883484fa3281a056c"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "gift_banner_image_url",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "banner_enabled",
+            "type": "boolean",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "68934a3e9455fa72420237eb05902327"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "banner_title",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "banner_description",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "starts_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "ends_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "featured_priority",
+            "type": "integer",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "cfcd208495d565ef66e7dff9f98764da"
+          }
+        ],
+        "policies": [
+          {
+            "name": "coupons admin write",
+            "check": "is_admin()",
+            "roles": [
+              "20430"
+            ],
+            "using": "is_admin()",
+            "command": "*",
+            "permissive": true
+          },
+          {
+            "name": "coupons public read",
+            "check": null,
+            "roles": [
+              "0"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true
+          },
+          {
+            "name": "hod_admin_feature_read_v1",
+            "check": null,
+            "roles": [
+              "28137"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true
+          }
+        ],
+        "triggers": [
+          {
+            "name": "trg_coupons_updated_at",
+            "enabled": "O",
+            "function": "8de7ae383447503e8949149bfb3f0efb",
+            "definition": "fb5c9c42dcef2f6e45e57717825075dc"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "coupons_banner_enabled_not_null",
+            "definition": "NOT NULL banner_enabled"
+          },
+          {
+            "name": "coupons_code_key",
+            "definition": "UNIQUE (code)"
+          },
+          {
+            "name": "coupons_code_not_null",
+            "definition": "NOT NULL code"
+          },
+          {
+            "name": "coupons_created_at_not_null",
+            "definition": "NOT NULL created_at"
+          },
+          {
+            "name": "coupons_discount_has_no_gift_check",
+            "definition": "CHECK (((reward_type = 'free_gift'::text) OR (gift_product_id IS NULL)))"
+          },
+          {
+            "name": "coupons_discount_type_check",
+            "definition": "CHECK ((discount_type = ANY (ARRAY['percentage'::text, 'fixed'::text])))"
+          },
+          {
+            "name": "coupons_discount_type_not_null",
+            "definition": "NOT NULL discount_type"
+          },
+          {
+            "name": "coupons_discount_value_check",
+            "definition": "CHECK ((discount_value >= (0)::numeric))"
+          },
+          {
+            "name": "coupons_discount_value_not_null",
+            "definition": "NOT NULL discount_value"
+          },
+          {
+            "name": "coupons_featured_priority_check",
+            "definition": "CHECK ((featured_priority >= 0))"
+          },
+          {
+            "name": "coupons_featured_priority_not_null",
+            "definition": "NOT NULL featured_priority"
+          },
+          {
+            "name": "coupons_fixed_value_check",
+            "definition": "CHECK (((reward_type <> 'fixed'::text) OR (discount_value >= (0)::numeric)))"
+          },
+          {
+            "name": "coupons_free_gift_configuration_check",
+            "definition": "CHECK (((reward_type <> 'free_gift'::text) OR ((gift_product_id IS NOT NULL) AND (minimum_order_amount > (0)::numeric) AND (discount_value = (0)::numeric))))"
+          },
+          {
+            "name": "coupons_gift_product_id_fkey",
+            "definition": "FOREIGN KEY (gift_product_id) REFERENCES products(id) ON UPDATE CASCADE ON DELETE RESTRICT"
+          },
+          {
+            "name": "coupons_gift_variant_data_not_null",
+            "definition": "NOT NULL gift_variant_data"
+          },
+          {
+            "name": "coupons_id_not_null",
+            "definition": "NOT NULL id"
+          },
+          {
+            "name": "coupons_is_active_not_null",
+            "definition": "NOT NULL is_active"
+          },
+          {
+            "name": "coupons_minimum_order_amount_check",
+            "definition": "CHECK ((minimum_order_amount >= (0)::numeric))"
+          },
+          {
+            "name": "coupons_minimum_order_amount_not_null",
+            "definition": "NOT NULL minimum_order_amount"
+          },
+          {
+            "name": "coupons_percentage_value_check",
+            "definition": "CHECK (((reward_type <> 'percentage'::text) OR ((discount_value >= (0)::numeric) AND (discount_value <= (100)::numeric))))"
+          },
+          {
+            "name": "coupons_pkey",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "coupons_reward_type_check",
+            "definition": "CHECK ((reward_type = ANY (ARRAY['percentage'::text, 'fixed'::text, 'free_gift'::text])))"
+          },
+          {
+            "name": "coupons_reward_type_not_null",
+            "definition": "NOT NULL reward_type"
+          },
+          {
+            "name": "coupons_title_not_null",
+            "definition": "NOT NULL title"
+          },
+          {
+            "name": "coupons_updated_at_not_null",
+            "definition": "NOT NULL updated_at"
+          },
+          {
+            "name": "coupons_usage_count_check",
+            "definition": "CHECK ((usage_count >= 0))"
+          },
+          {
+            "name": "coupons_usage_count_not_null",
+            "definition": "NOT NULL usage_count"
+          },
+          {
+            "name": "coupons_usage_limit_check",
+            "definition": "CHECK (((usage_limit IS NULL) OR (usage_limit >= 1)))"
+          },
+          {
+            "name": "coupons_valid_date_range_check",
+            "definition": "CHECK (((starts_at IS NULL) OR (ends_at IS NULL) OR (ends_at > starts_at)))"
+          }
+        ]
+      },
+      "fingerprint": "ca35c5fc3c722c677a68d21a20efd0bb",
+      "preserved": "1583ba9e99819d4a046749e328798a71",
+      "select_all": false,
+      "select_columns": [
+        "id",
+        "code",
+        "title",
+        "discount_type",
+        "discount_value",
+        "usage_limit",
+        "usage_count",
+        "is_active",
+        "created_at",
+        "reward_type",
+        "minimum_order_amount",
+        "gift_product_id",
+        "gift_variant_data",
+        "gift_banner_image_url",
+        "banner_enabled",
+        "banner_title",
+        "banner_description",
+        "starts_at",
+        "ends_at",
+        "featured_priority"
+      ],
+      "writes": false,
+      "column_writes": false,
+      "sequences": [
+        {
+          "column": "id",
+          "identity": "d",
+          "sequence": "public.coupons_id_seq"
+        }
+      ]
+    },
+    {
+      "name": "public.orders",
+      "snapshot": {
+        "acl": [
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "MAINTAIN"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRIGGER"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRUNCATE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          },
+          {
+            "grantee": "28137",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          }
+        ],
+        "rls": true,
+        "kind": "r",
+        "force": false,
+        "owner": "hod_migration",
+        "columns": [
+          {
+            "acl": [],
+            "name": "id",
+            "type": "uuid",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "f3b72bb359a50b640590970a2ab8e514"
+          },
+          {
+            "acl": [],
+            "name": "order_number",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "fd2b0982801550c59691fd4f49867cb1"
+          },
+          {
+            "acl": [],
+            "name": "user_id",
+            "type": "uuid",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "customer_email",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "customer_first_name",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "customer_last_name",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "customer_phone",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipping_country",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipping_state",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipping_city",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipping_postal_code",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipping_address_line_1",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipping_address_line_2",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "currency",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "4675c94f96cabfc75e38fbf746eb84ae"
+          },
+          {
+            "acl": [],
+            "name": "subtotal_amount",
+            "type": "numeric(12,2)",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "cfcd208495d565ef66e7dff9f98764da"
+          },
+          {
+            "acl": [],
+            "name": "shipping_amount",
+            "type": "numeric(12,2)",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "cfcd208495d565ef66e7dff9f98764da"
+          },
+          {
+            "acl": [],
+            "name": "total_amount",
+            "type": "numeric(12,2)",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "cfcd208495d565ef66e7dff9f98764da"
+          },
+          {
+            "acl": [],
+            "name": "status",
+            "type": "order_status",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "81934ac7c8f2b3638c1e9a5e3de7013b"
+          },
+          {
+            "acl": [],
+            "name": "payment_status",
+            "type": "payment_status",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "5bac7d7b9faf6ad2392f67426ca049c8"
+          },
+          {
+            "acl": [],
+            "name": "payment_provider",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "payment_reference",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "notes",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          },
+          {
+            "acl": [],
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          },
+          {
+            "acl": [],
+            "name": "gst_amount",
+            "type": "numeric(12,2)",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "cfcd208495d565ef66e7dff9f98764da"
+          },
+          {
+            "acl": [],
+            "name": "customer_name",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipping_company",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipping_notes",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "love_letter_included",
+            "type": "boolean",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "68934a3e9455fa72420237eb05902327"
+          },
+          {
+            "acl": [],
+            "name": "love_letter_type",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "payment_gateway",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "payment_currency",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": "9d3949fafa6880251dd403b5d32b5d8d"
+          },
+          {
+            "acl": [],
+            "name": "payment_amount",
+            "type": "numeric(12,2)",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_order_id",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_payment_id",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_signature",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_payment_method",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_payment_contact",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_payment_email",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_error_code",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_error_description",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_error_source",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_error_step",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "razorpay_error_reason",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "gateway_order_status",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "gateway_payment_status",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "payment_verified_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "payment_failed_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "payment_captured_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "gateway_payload",
+            "type": "jsonb",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "courier_name",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "courier_awb_number",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipped_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "guest_token_hash",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "shipping_district",
+            "type": "text",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "customer_birth_date",
+            "type": "date",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "customer_anniversary_date",
+            "type": "date",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "customer_identity_id",
+            "type": "uuid",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [],
+            "name": "fulfillment_mode",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "7cd358e109c5375d78f20b66d71032a1"
+          }
+        ],
+        "policies": [
+          {
+            "name": "hod_admin_feature_read_v1",
+            "check": null,
+            "roles": [
+              "28137"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true
+          },
+          {
+            "name": "hod_app_f7_orders_select",
+            "check": null,
+            "roles": [
+              "27945"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true
+          },
+          {
+            "name": "hod_app_f7_orders_update",
+            "check": "true",
+            "roles": [
+              "27945"
+            ],
+            "using": "true",
+            "command": "w",
+            "permissive": true
+          }
+        ],
+        "triggers": [
+          {
+            "name": "orders_record_status_history",
+            "enabled": "O",
+            "function": "94d74aab85e208a99af1215d7f308e4a",
+            "definition": "4ecf9c731c2e249ec6fceed03fbe8767"
+          },
+          {
+            "name": "trg_orders_updated_at",
+            "enabled": "O",
+            "function": "8de7ae383447503e8949149bfb3f0efb",
+            "definition": "73c31c63bb85e4c3d31d610bd809a11b"
+          },
+          {
+            "name": "trg_restore_order_stock_on_cancel",
+            "enabled": "O",
+            "function": "09814890419341018aff5b703b21436d",
+            "definition": "5656453d11050c91daef7edd5adcca2d"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "orders_checkout_owner_check",
+            "definition": "CHECK (((num_nonnulls(user_id, guest_token_hash, customer_identity_id) = 1) AND ((guest_token_hash IS NULL) OR (guest_token_hash ~ '^[0-9a-f]{64}$'::text))))"
+          },
+          {
+            "name": "orders_created_at_not_null",
+            "definition": "NOT NULL created_at"
+          },
+          {
+            "name": "orders_currency_not_null",
+            "definition": "NOT NULL currency"
+          },
+          {
+            "name": "orders_customer_email_not_null",
+            "definition": "NOT NULL customer_email"
+          },
+          {
+            "name": "orders_customer_first_name_not_null",
+            "definition": "NOT NULL customer_first_name"
+          },
+          {
+            "name": "orders_customer_identity_id_fkey",
+            "definition": "FOREIGN KEY (customer_identity_id) REFERENCES customer_identities(id) ON DELETE RESTRICT"
+          },
+          {
+            "name": "orders_fulfillment_mode_check",
+            "definition": "CHECK ((fulfillment_mode = ANY (ARRAY['legacy_stock'::text, 'made_to_order'::text])))"
+          },
+          {
+            "name": "orders_fulfillment_mode_not_null",
+            "definition": "NOT NULL fulfillment_mode"
+          },
+          {
+            "name": "orders_gst_amount_not_null",
+            "definition": "NOT NULL gst_amount"
+          },
+          {
+            "name": "orders_id_not_null",
+            "definition": "NOT NULL id"
+          },
+          {
+            "name": "orders_love_letter_included_not_null",
+            "definition": "NOT NULL love_letter_included"
+          },
+          {
+            "name": "orders_love_letter_type_check",
+            "definition": "CHECK ((love_letter_type = ANY (ARRAY['generate_for_me'::text, 'write_myself'::text, 'no_letter'::text])))"
+          },
+          {
+            "name": "orders_order_number_key",
+            "definition": "UNIQUE (order_number)"
+          },
+          {
+            "name": "orders_order_number_not_null",
+            "definition": "NOT NULL order_number"
+          },
+          {
+            "name": "orders_payment_status_not_null",
+            "definition": "NOT NULL payment_status"
+          },
+          {
+            "name": "orders_pkey",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "orders_shipping_amount_not_null",
+            "definition": "NOT NULL shipping_amount"
+          },
+          {
+            "name": "orders_status_not_null",
+            "definition": "NOT NULL status"
+          },
+          {
+            "name": "orders_subtotal_amount_not_null",
+            "definition": "NOT NULL subtotal_amount"
+          },
+          {
+            "name": "orders_total_amount_not_null",
+            "definition": "NOT NULL total_amount"
+          },
+          {
+            "name": "orders_updated_at_not_null",
+            "definition": "NOT NULL updated_at"
+          },
+          {
+            "name": "orders_user_id_fkey",
+            "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+          }
+        ]
+      },
+      "fingerprint": "6056b68ee3e1cb5b2ed2e3cb61c8079e",
+      "preserved": "c4e9477ed75c8b56bc82ca63ab053528",
+      "select_all": true,
+      "select_columns": [
+        "id",
+        "order_number",
+        "user_id",
+        "customer_email",
+        "customer_first_name",
+        "customer_last_name",
+        "customer_phone",
+        "shipping_country",
+        "shipping_state",
+        "shipping_city",
+        "shipping_postal_code",
+        "shipping_address_line_1",
+        "shipping_address_line_2",
+        "currency",
+        "subtotal_amount",
+        "shipping_amount",
+        "total_amount",
+        "status",
+        "payment_status",
+        "payment_provider",
+        "payment_reference",
+        "notes",
+        "created_at",
+        "updated_at",
+        "gst_amount",
+        "customer_name",
+        "shipping_company",
+        "shipping_notes",
+        "love_letter_included",
+        "love_letter_type",
+        "payment_gateway",
+        "payment_currency",
+        "payment_amount",
+        "razorpay_order_id",
+        "razorpay_payment_id",
+        "razorpay_signature",
+        "razorpay_payment_method",
+        "razorpay_payment_contact",
+        "razorpay_payment_email",
+        "razorpay_error_code",
+        "razorpay_error_description",
+        "razorpay_error_source",
+        "razorpay_error_step",
+        "razorpay_error_reason",
+        "gateway_order_status",
+        "gateway_payment_status",
+        "payment_verified_at",
+        "payment_failed_at",
+        "payment_captured_at",
+        "gateway_payload",
+        "courier_name",
+        "courier_awb_number",
+        "shipped_at",
+        "guest_token_hash",
+        "shipping_district",
+        "customer_birth_date",
+        "customer_anniversary_date",
+        "customer_identity_id",
+        "fulfillment_mode"
+      ],
+      "writes": false,
+      "column_writes": false,
+      "sequences": []
+    },
+    {
+      "name": "public.site_settings",
+      "snapshot": {
+        "acl": [
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "MAINTAIN"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "REFERENCES"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRIGGER"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "TRUNCATE"
+          },
+          {
+            "grantee": "20427",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "DELETE"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "INSERT"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "SELECT"
+          },
+          {
+            "grantee": "27945",
+            "grantor": "20427",
+            "is_grantable": false,
+            "privilege_type": "UPDATE"
+          }
+        ],
+        "rls": true,
+        "kind": "r",
+        "force": false,
+        "owner": "hod_migration",
+        "columns": [
+          {
+            "acl": [],
+            "name": "id",
+            "type": "bigint",
+            "identity": "d",
+            "not_null": true,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "settings_key",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "b75aff033b77a8bb49872bb7711a0ef4"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "whatsapp_number",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "86e751880b3791dd7c2efae188915799"
+          },
+          {
+            "acl": [],
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          },
+          {
+            "acl": [],
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "75230039beb12ce952f24927f2bfa2f2"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "default_gst_slab_id",
+            "type": "uuid",
+            "identity": "",
+            "not_null": false,
+            "generated": "",
+            "default_hash": null
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "maintenance_mode_enabled",
+            "type": "boolean",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "68934a3e9455fa72420237eb05902327"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "maintenance_mode_message",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "58e40d9b721e08299596f5a042b369cd"
+          },
+          {
+            "acl": [
+              {
+                "grantee": "28137",
+                "grantor": "20427",
+                "is_grantable": false,
+                "privilege_type": "SELECT"
+              }
+            ],
+            "name": "estimated_delivery_text",
+            "type": "text",
+            "identity": "",
+            "not_null": true,
+            "generated": "",
+            "default_hash": "24d3c3921422300e2ef4196c85ad06f0"
+          }
+        ],
+        "policies": [
+          {
+            "name": "hod_admin_feature_read_v1",
+            "check": null,
+            "roles": [
+              "28137"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true
+          },
+          {
+            "name": "site settings admin write",
+            "check": "is_admin()",
+            "roles": [
+              "20430"
+            ],
+            "using": "is_admin()",
+            "command": "*",
+            "permissive": true
+          },
+          {
+            "name": "site settings public read",
+            "check": null,
+            "roles": [
+              "0"
+            ],
+            "using": "true",
+            "command": "r",
+            "permissive": true
+          }
+        ],
+        "triggers": [
+          {
+            "name": "trg_site_settings_updated_at",
+            "enabled": "O",
+            "function": "8de7ae383447503e8949149bfb3f0efb",
+            "definition": "7177c8e8956cda07737ee3eb1a898e32"
+          }
+        ],
+        "constraints": [
+          {
+            "name": "site_settings_created_at_not_null",
+            "definition": "NOT NULL created_at"
+          },
+          {
+            "name": "site_settings_default_gst_slab_id_fkey",
+            "definition": "FOREIGN KEY (default_gst_slab_id) REFERENCES catalog_gst_slabs(id) ON DELETE SET NULL"
+          },
+          {
+            "name": "site_settings_estimated_delivery_text_not_null",
+            "definition": "NOT NULL estimated_delivery_text"
+          },
+          {
+            "name": "site_settings_id_not_null",
+            "definition": "NOT NULL id"
+          },
+          {
+            "name": "site_settings_maintenance_mode_enabled_not_null",
+            "definition": "NOT NULL maintenance_mode_enabled"
+          },
+          {
+            "name": "site_settings_maintenance_mode_message_not_null",
+            "definition": "NOT NULL maintenance_mode_message"
+          },
+          {
+            "name": "site_settings_pkey",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "site_settings_settings_key_key",
+            "definition": "UNIQUE (settings_key)"
+          },
+          {
+            "name": "site_settings_settings_key_not_null",
+            "definition": "NOT NULL settings_key"
+          },
+          {
+            "name": "site_settings_updated_at_not_null",
+            "definition": "NOT NULL updated_at"
+          },
+          {
+            "name": "site_settings_whatsapp_number_not_null",
+            "definition": "NOT NULL whatsapp_number"
+          }
+        ]
+      },
+      "fingerprint": "af8ebad3f82b3b0dd25d7e7c38a2c0f4",
+      "preserved": "203d1931c7c5dba68660ce542af53067",
+      "select_all": false,
+      "select_columns": [
+        "settings_key",
+        "whatsapp_number",
+        "default_gst_slab_id",
+        "maintenance_mode_enabled",
+        "maintenance_mode_message",
+        "estimated_delivery_text"
+      ],
+      "writes": false,
+      "column_writes": false,
+      "sequences": [
+        {
+          "column": "id",
+          "identity": "d",
+          "sequence": "public.site_settings_id_seq"
+        }
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "relation": "public.coupons",
+      "trigger": "trg_coupons_updated_at",
+      "routine": "set_updated_at()",
+      "owner": "hod_migration",
+      "definer": false,
+      "sha256": "199f5c02bd7c5ee76f3d2ba98482eddd62afcaa2b4915baed2a47fe3383b428e",
+      "event": "CREATE TRIGGER trg_coupons_updated_at BEFORE UPDATE ON public.coupons FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+    },
+    {
+      "relation": "public.orders",
+      "trigger": "orders_record_status_history",
+      "routine": "record_order_status_history()",
+      "owner": "hod_migration",
+      "definer": true,
+      "sha256": "40ba57642b790d2c11dc47df6ec3c2d297b0ac6fb4707d5008c177179cf49127",
+      "event": "CREATE TRIGGER orders_record_status_history AFTER INSERT OR UPDATE OF status ON public.orders FOR EACH ROW EXECUTE FUNCTION record_order_status_history()"
+    },
+    {
+      "relation": "public.orders",
+      "trigger": "trg_orders_updated_at",
+      "routine": "set_updated_at()",
+      "owner": "hod_migration",
+      "definer": false,
+      "sha256": "199f5c02bd7c5ee76f3d2ba98482eddd62afcaa2b4915baed2a47fe3383b428e",
+      "event": "CREATE TRIGGER trg_orders_updated_at BEFORE UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+    },
+    {
+      "relation": "public.orders",
+      "trigger": "trg_restore_order_stock_on_cancel",
+      "routine": "restore_order_stock_on_cancel()",
+      "owner": "hod_migration",
+      "definer": false,
+      "sha256": "040e78cfe6f3dcd16da2892d5a2e04ec0c7ed1f867a838c9dc46a9a3ce555c3a",
+      "event": "CREATE TRIGGER trg_restore_order_stock_on_cancel AFTER UPDATE ON public.orders FOR EACH ROW EXECUTE FUNCTION restore_order_stock_on_cancel()"
+    },
+    {
+      "relation": "public.site_settings",
+      "trigger": "trg_site_settings_updated_at",
+      "routine": "set_updated_at()",
+      "owner": "hod_migration",
+      "definer": false,
+      "sha256": "199f5c02bd7c5ee76f3d2ba98482eddd62afcaa2b4915baed2a47fe3383b428e",
+      "event": "CREATE TRIGGER trg_site_settings_updated_at BEFORE UPDATE ON public.site_settings FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+    }
+  ],
+  "source_hashes": {
+    "lib/db/admin-repositories/coupons.ts": "a7da85066a34a704e85b72e80003b30a12fac86604f0abf627e74cbd10b0b0e4",
+    "lib/db/admin-repositories/settings.ts": "3facbf0cb25d374d0caa15e7335bd0b0e42b885289adbd3a6a6e6d479169459d",
+    "lib/db/admin-repositories/notifications.ts": "a2db93d419f2bdffe945d8ec75039c54ae1bf6dc15bf704782c60689882f14c4",
+    "lib/db/admin-repositories/orders.ts": "3b4741cc4c3e284a7aa20383b5b9c0955533ae374cba76297cc6031ad5b44b4f"
+  }
+}

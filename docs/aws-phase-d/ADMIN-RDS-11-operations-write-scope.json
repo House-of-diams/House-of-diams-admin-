@@ -1,0 +1,197 @@
+{
+  "scope": [
+    {
+      "name": "public.coupons",
+      "insert": [
+        "code",
+        "title",
+        "discount_type",
+        "discount_value",
+        "reward_type",
+        "minimum_order_amount",
+        "gift_product_id",
+        "gift_variant_data",
+        "gift_banner_image_url",
+        "banner_enabled",
+        "banner_title",
+        "banner_description",
+        "starts_at",
+        "ends_at",
+        "featured_priority",
+        "usage_limit",
+        "is_active"
+      ],
+      "update": [
+        "code",
+        "title",
+        "discount_type",
+        "discount_value",
+        "reward_type",
+        "minimum_order_amount",
+        "gift_product_id",
+        "gift_variant_data",
+        "gift_banner_image_url",
+        "banner_enabled",
+        "banner_title",
+        "banner_description",
+        "starts_at",
+        "ends_at",
+        "featured_priority",
+        "usage_limit",
+        "is_active"
+      ],
+      "delete": true,
+      "predicate": "true",
+      "fingerprint": "ca35c5fc3c722c677a68d21a20efd0bb",
+      "preserved": "1583ba9e99819d4a046749e328798a71",
+      "read_all": false,
+      "read_columns": [
+        "id",
+        "code",
+        "title",
+        "discount_type",
+        "discount_value",
+        "usage_limit",
+        "usage_count",
+        "is_active",
+        "created_at",
+        "reward_type",
+        "minimum_order_amount",
+        "gift_product_id",
+        "gift_variant_data",
+        "gift_banner_image_url",
+        "banner_enabled",
+        "banner_title",
+        "banner_description",
+        "starts_at",
+        "ends_at",
+        "featured_priority"
+      ]
+    },
+    {
+      "name": "public.site_settings",
+      "insert": [
+        "settings_key",
+        "whatsapp_number",
+        "default_gst_slab_id",
+        "maintenance_mode_enabled",
+        "maintenance_mode_message",
+        "estimated_delivery_text"
+      ],
+      "update": [
+        "whatsapp_number",
+        "default_gst_slab_id",
+        "maintenance_mode_enabled",
+        "maintenance_mode_message",
+        "estimated_delivery_text"
+      ],
+      "delete": false,
+      "predicate": "settings_key = 'global_site_settings'::text",
+      "fingerprint": "af8ebad3f82b3b0dd25d7e7c38a2c0f4",
+      "preserved": "203d1931c7c5dba68660ce542af53067",
+      "read_all": false,
+      "read_columns": [
+        "settings_key",
+        "whatsapp_number",
+        "default_gst_slab_id",
+        "maintenance_mode_enabled",
+        "maintenance_mode_message",
+        "estimated_delivery_text"
+      ]
+    },
+    {
+      "name": "public.admin_notification_reads",
+      "insert": [
+        "admin_user_id",
+        "notification_key",
+        "read_at"
+      ],
+      "update": [],
+      "delete": false,
+      "predicate": "EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = admin_user_id AND p.role = 'admin')",
+      "fingerprint": "c6a4479253965e722b29b35447be108b",
+      "preserved": "dc4a646d0eb711a5ace5a0db0a94a475",
+      "read_all": false,
+      "read_columns": [
+        "admin_user_id",
+        "notification_key"
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "table": "public.coupons",
+      "name": "hod_admin_ops11_insert",
+      "command": "insert",
+      "restrictive": false,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.coupons",
+      "name": "hod_admin_ops11_update",
+      "command": "update",
+      "restrictive": false,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.coupons",
+      "name": "hod_admin_ops11_delete",
+      "command": "delete",
+      "restrictive": false,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.site_settings",
+      "name": "hod_admin_ops11_insert",
+      "command": "insert",
+      "restrictive": false,
+      "using": null,
+      "check": "(settings_key = 'global_site_settings'::text)"
+    },
+    {
+      "table": "public.site_settings",
+      "name": "hod_admin_ops11_insert_guard",
+      "command": "insert",
+      "restrictive": true,
+      "using": null,
+      "check": "(settings_key = 'global_site_settings'::text)"
+    },
+    {
+      "table": "public.site_settings",
+      "name": "hod_admin_ops11_update",
+      "command": "update",
+      "restrictive": false,
+      "using": "(settings_key = 'global_site_settings'::text)",
+      "check": "(settings_key = 'global_site_settings'::text)"
+    },
+    {
+      "table": "public.site_settings",
+      "name": "hod_admin_ops11_update_guard",
+      "command": "update",
+      "restrictive": true,
+      "using": "(settings_key = 'global_site_settings'::text)",
+      "check": "(settings_key = 'global_site_settings'::text)"
+    },
+    {
+      "table": "public.admin_notification_reads",
+      "name": "hod_admin_ops11_insert",
+      "command": "insert",
+      "restrictive": false,
+      "using": null,
+      "check": "(EXISTS ( SELECT 1 FROM profiles p WHERE ((p.id = admin_notification_reads.admin_user_id) AND (p.role = 'admin'::text))))"
+    },
+    {
+      "table": "public.admin_notification_reads",
+      "name": "hod_admin_ops11_insert_guard",
+      "command": "insert",
+      "restrictive": true,
+      "using": null,
+      "check": "(EXISTS ( SELECT 1 FROM profiles p WHERE ((p.id = admin_notification_reads.admin_user_id) AND (p.role = 'admin'::text))))"
+    }
+  ],
+  "sql_sha256": "3e24cdee691f80b5b2d2df4d0ea24463126728be7e777fd4fcaf1d5e08a77a23",
+  "inverse_sha256": "9baf8ce4b6cb79eac94c3ef8d027538af0b4e66d890ffdccbb2d89b63f3396ac"
+}

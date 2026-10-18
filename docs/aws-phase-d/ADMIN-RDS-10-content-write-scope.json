@@ -1,0 +1,4743 @@
+{
+  "scope": [
+    {
+      "name": "public.about_founders",
+      "fingerprint": "006317d19493892369c1fa0f3870fc10",
+      "preserved": "bcfef8ad1b8044727393b21572a65bbb",
+      "insert": [
+        "bio",
+        "designation",
+        "image_path",
+        "name",
+        "sort_order"
+      ],
+      "update": [
+        "bio",
+        "designation",
+        "image_path",
+        "name",
+        "sort_order"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "sort_order",
+        "name",
+        "designation",
+        "bio",
+        "image_path",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "sort_order",
+        "name",
+        "designation",
+        "bio",
+        "image_path",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.about_hero",
+      "fingerprint": "3401e2871f3c2ae639d5e2ee841ef054",
+      "preserved": "d234ef2831bcd66fc2c9c9f1eb7a9f3a",
+      "insert": [
+        "button_label",
+        "button_link",
+        "desktop_media_path",
+        "heading",
+        "is_enabled",
+        "media_alt",
+        "media_type",
+        "mobile_media_path",
+        "overlay_position",
+        "overlay_scrim_enabled",
+        "paragraph",
+        "section_key",
+        "show_button",
+        "show_text_overlay",
+        "video_poster_path"
+      ],
+      "update": [
+        "button_label",
+        "button_link",
+        "desktop_media_path",
+        "heading",
+        "is_enabled",
+        "media_alt",
+        "media_type",
+        "mobile_media_path",
+        "overlay_position",
+        "overlay_scrim_enabled",
+        "paragraph",
+        "show_button",
+        "show_text_overlay",
+        "updated_at",
+        "video_poster_path"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "is_enabled",
+        "media_type",
+        "desktop_media_path",
+        "mobile_media_path",
+        "video_poster_path",
+        "media_alt",
+        "show_text_overlay",
+        "heading",
+        "paragraph",
+        "show_button",
+        "button_label",
+        "button_link",
+        "overlay_position",
+        "overlay_scrim_enabled",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "is_enabled",
+        "media_type",
+        "desktop_media_path",
+        "mobile_media_path",
+        "video_poster_path",
+        "media_alt",
+        "show_text_overlay",
+        "heading",
+        "paragraph",
+        "show_button",
+        "button_label",
+        "button_link",
+        "overlay_position",
+        "overlay_scrim_enabled",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.about_timeline",
+      "fingerprint": "10ef7b71974ae40bc3fd7220d6e8d587",
+      "preserved": "d580adf30c90e0f5cb7baf11371c9e31",
+      "insert": [
+        "label",
+        "sort_order",
+        "year"
+      ],
+      "update": [
+        "label",
+        "sort_order",
+        "year"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "sort_order",
+        "year",
+        "label",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "sort_order",
+        "year",
+        "label",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.about_values",
+      "fingerprint": "b4dd715da6b5f867be79e31ef326b6f5",
+      "preserved": "a93f2090bf33448ed2946a16f223c6fa",
+      "insert": [
+        "description",
+        "icon_path",
+        "image_alt",
+        "image_path",
+        "sort_order",
+        "title"
+      ],
+      "update": [
+        "description",
+        "icon_path",
+        "image_alt",
+        "image_path",
+        "sort_order",
+        "title"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": false,
+      "read_columns": [
+        "id",
+        "sort_order",
+        "title",
+        "description",
+        "icon_path",
+        "image_path",
+        "image_alt"
+      ],
+      "before_read_all": false,
+      "before_read_columns": [
+        "id",
+        "sort_order",
+        "title",
+        "description",
+        "icon_path",
+        "image_path",
+        "image_alt"
+      ]
+    },
+    {
+      "name": "public.about_wide_banner",
+      "fingerprint": "c464c2f19f95c2ec0cfdf65f9638df6a",
+      "preserved": "8e1b787aed7f96854b50f37180bf0049",
+      "insert": [
+        "button_label",
+        "button_link",
+        "content_position",
+        "desktop_image_path",
+        "heading",
+        "image_alt",
+        "is_enabled",
+        "mobile_image_path",
+        "paragraph",
+        "section_key",
+        "show_button",
+        "sort_order"
+      ],
+      "update": [
+        "button_label",
+        "button_link",
+        "content_position",
+        "desktop_image_path",
+        "heading",
+        "image_alt",
+        "is_enabled",
+        "mobile_image_path",
+        "paragraph",
+        "show_button",
+        "sort_order",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "is_enabled",
+        "desktop_image_path",
+        "mobile_image_path",
+        "image_alt",
+        "heading",
+        "paragraph",
+        "show_button",
+        "button_label",
+        "button_link",
+        "content_position",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "is_enabled",
+        "desktop_image_path",
+        "mobile_image_path",
+        "image_alt",
+        "heading",
+        "paragraph",
+        "show_button",
+        "button_label",
+        "button_link",
+        "content_position",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_form_carat_options",
+      "fingerprint": "96a17d36935de8ac81a2159b271a6778",
+      "preserved": "4988693c0f936a29008f9e7850499939",
+      "insert": [
+        "display_order",
+        "label",
+        "status"
+      ],
+      "update": [
+        "display_order",
+        "label",
+        "status",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_form_guarantees",
+      "fingerprint": "d60cc36c83fc5aeb08022f3ac4e7fc5d",
+      "preserved": "5463058adfee6176e17c78dc74545ada",
+      "insert": [
+        "display_order",
+        "label",
+        "status"
+      ],
+      "update": [
+        "display_order",
+        "label",
+        "status",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_form_metal_options",
+      "fingerprint": "c1673d75cf8d9ff3b6a1dec8880653b1",
+      "preserved": "a57b2e7c073c13202f6204a4d7e631f5",
+      "insert": [
+        "display_order",
+        "label",
+        "status"
+      ],
+      "update": [
+        "display_order",
+        "label",
+        "status",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_form_piece_types",
+      "fingerprint": "4869c0ac37cc106d4fd20f14cb232661",
+      "preserved": "27a3f03b6ab6417d83f306d6e4bb451a",
+      "insert": [
+        "display_order",
+        "label",
+        "status"
+      ],
+      "update": [
+        "display_order",
+        "label",
+        "status",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_form_settings",
+      "fingerprint": "5ab4db730b75fca4b49561758a91fc0c",
+      "preserved": "719636b098145269dec62d888511623a",
+      "insert": [
+        "footer_note",
+        "intro_heading",
+        "intro_subtitle",
+        "status"
+      ],
+      "update": [
+        "footer_note",
+        "intro_heading",
+        "intro_subtitle",
+        "status",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "intro_heading",
+        "intro_subtitle",
+        "footer_note",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "intro_heading",
+        "intro_subtitle",
+        "footer_note",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_form_stone_options",
+      "fingerprint": "a1dfd98742a4cf7749e7412416c20695",
+      "preserved": "3628e3d0ff5e12ce0114371e3cdee109",
+      "insert": [
+        "display_order",
+        "label",
+        "status"
+      ],
+      "update": [
+        "display_order",
+        "label",
+        "status",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "label",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_hero_content",
+      "fingerprint": "c1946205b65443a7f3ac9ab465fd9cf5",
+      "preserved": "230c2c5ae2d8b29a88341da1ccea88e6",
+      "insert": [
+        "badge_text",
+        "eyebrow",
+        "heading_line_1",
+        "heading_line_2",
+        "primary_cta_action",
+        "primary_cta_label",
+        "secondary_cta_action",
+        "secondary_cta_label",
+        "slider_enabled",
+        "status",
+        "subtitle"
+      ],
+      "update": [
+        "badge_text",
+        "eyebrow",
+        "heading_line_1",
+        "heading_line_2",
+        "primary_cta_action",
+        "primary_cta_label",
+        "secondary_cta_action",
+        "secondary_cta_label",
+        "slider_enabled",
+        "status",
+        "subtitle",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "badge_text",
+        "eyebrow",
+        "heading_line_1",
+        "heading_line_2",
+        "subtitle",
+        "primary_cta_label",
+        "primary_cta_action",
+        "secondary_cta_label",
+        "secondary_cta_action",
+        "status",
+        "created_at",
+        "updated_at",
+        "slider_enabled"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "badge_text",
+        "eyebrow",
+        "heading_line_1",
+        "heading_line_2",
+        "subtitle",
+        "primary_cta_label",
+        "primary_cta_action",
+        "secondary_cta_label",
+        "secondary_cta_action",
+        "status",
+        "created_at",
+        "updated_at",
+        "slider_enabled"
+      ]
+    },
+    {
+      "name": "public.bespoke_hero_slider_items",
+      "fingerprint": "82741cc3c0e2c5dc279d87e629571ce2",
+      "preserved": "8fe70852ab6475e05fc46c691d47c90c",
+      "insert": [
+        "button_link",
+        "button_text",
+        "hero_id",
+        "image_path",
+        "mobile_image_path",
+        "sort_order"
+      ],
+      "update": [
+        "button_link",
+        "button_text",
+        "image_path",
+        "mobile_image_path",
+        "sort_order",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "hero_id",
+        "sort_order",
+        "image_path",
+        "mobile_image_path",
+        "button_text",
+        "button_link",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "hero_id",
+        "sort_order",
+        "image_path",
+        "mobile_image_path",
+        "button_text",
+        "button_link",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_portfolio_categories",
+      "fingerprint": "41419568f385913c667ff99490049035",
+      "preserved": "dc78237a09d0504e33fc384875c242fa",
+      "insert": [
+        "display_order",
+        "image_path",
+        "name",
+        "slug",
+        "status"
+      ],
+      "update": [
+        "display_order",
+        "image_path",
+        "name",
+        "slug",
+        "status",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "name",
+        "slug",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at",
+        "image_path"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "name",
+        "slug",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at",
+        "image_path"
+      ]
+    },
+    {
+      "name": "public.bespoke_portfolio_items",
+      "fingerprint": "6d6e70121a1e945dd6bce248fbb61e29",
+      "preserved": "47798462064a8fed7f8e379aa66db23e",
+      "insert": [
+        "category_id",
+        "dark_theme",
+        "display_order",
+        "gem_color",
+        "gem_style",
+        "media_path",
+        "media_type",
+        "short_description",
+        "status",
+        "tag",
+        "thumbnail_path",
+        "title"
+      ],
+      "update": [
+        "category_id",
+        "dark_theme",
+        "display_order",
+        "gem_color",
+        "gem_style",
+        "media_path",
+        "media_type",
+        "short_description",
+        "status",
+        "tag",
+        "thumbnail_path",
+        "title",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "title",
+        "tag",
+        "category_id",
+        "media_type",
+        "media_path",
+        "thumbnail_path",
+        "gem_style",
+        "gem_color",
+        "dark_theme",
+        "short_description",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "title",
+        "tag",
+        "category_id",
+        "media_type",
+        "media_path",
+        "thumbnail_path",
+        "gem_style",
+        "gem_color",
+        "dark_theme",
+        "short_description",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_process_cards",
+      "fingerprint": "2df459e42c633b52d72b1220f4a4dfcf",
+      "preserved": "d848cc2846697a8698a470726c1faf0c",
+      "insert": [
+        "description",
+        "eyebrow",
+        "sort_order",
+        "title"
+      ],
+      "update": [
+        "description",
+        "eyebrow",
+        "sort_order",
+        "title"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "sort_order",
+        "eyebrow",
+        "title",
+        "description",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "sort_order",
+        "eyebrow",
+        "title",
+        "description",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.bespoke_process_steps",
+      "fingerprint": "aeb4c55a4566cd532fe47996642d3e03",
+      "preserved": "8277be76033645f50255894a66b9cc26",
+      "insert": [
+        "description",
+        "eyebrow",
+        "image_path",
+        "media_path",
+        "media_type",
+        "sort_order",
+        "step",
+        "title"
+      ],
+      "update": [
+        "description",
+        "eyebrow",
+        "image_path",
+        "media_path",
+        "media_type",
+        "sort_order",
+        "step",
+        "title"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": false,
+      "read_columns": [
+        "id",
+        "sort_order",
+        "step",
+        "eyebrow",
+        "title",
+        "description",
+        "image_path",
+        "media_type",
+        "media_path"
+      ],
+      "before_read_all": false,
+      "before_read_columns": [
+        "id",
+        "sort_order",
+        "step",
+        "eyebrow",
+        "title",
+        "description",
+        "image_path",
+        "media_type",
+        "media_path"
+      ]
+    },
+    {
+      "name": "public.blog_page_hero",
+      "fingerprint": "7f8921a258ab68fec35ae6111d088d29",
+      "preserved": "2db30ea8acbcc5ffd721d4755cf2dd07",
+      "insert": [
+        "button_label",
+        "button_link",
+        "desktop_image_alt",
+        "desktop_image_path",
+        "heading",
+        "id",
+        "is_enabled",
+        "mobile_image_alt",
+        "mobile_image_path",
+        "paragraph"
+      ],
+      "update": [
+        "button_label",
+        "button_link",
+        "desktop_image_alt",
+        "desktop_image_path",
+        "heading",
+        "is_enabled",
+        "mobile_image_alt",
+        "mobile_image_path",
+        "paragraph",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "is_enabled",
+        "heading",
+        "paragraph",
+        "button_label",
+        "button_link",
+        "desktop_image_path",
+        "desktop_image_alt",
+        "mobile_image_path",
+        "mobile_image_alt",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "is_enabled",
+        "heading",
+        "paragraph",
+        "button_label",
+        "button_link",
+        "desktop_image_path",
+        "desktop_image_alt",
+        "mobile_image_path",
+        "mobile_image_alt",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.blog_post_content_blocks",
+      "fingerprint": "4ff81ebf6b5440f36025cb7b835487b0",
+      "preserved": "1ea453ad67e71f3ae3374dadd01f2520",
+      "insert": [
+        "block_type",
+        "body_html",
+        "heading",
+        "image_alt",
+        "image_caption",
+        "image_path",
+        "is_enabled",
+        "post_id",
+        "sort_order"
+      ],
+      "update": [
+        "block_type",
+        "body_html",
+        "heading",
+        "image_alt",
+        "image_caption",
+        "image_path",
+        "is_enabled",
+        "sort_order",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "post_id",
+        "block_type",
+        "sort_order",
+        "heading",
+        "body_html",
+        "image_path",
+        "image_alt",
+        "image_caption",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "post_id",
+        "block_type",
+        "sort_order",
+        "heading",
+        "body_html",
+        "image_path",
+        "image_alt",
+        "image_caption",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.blog_post_products",
+      "fingerprint": "5593e1cf628a4888b230be6ef5f14b17",
+      "preserved": "6f592b23e8b4f59bb4da3f62c6f1feeb",
+      "insert": [
+        "post_id",
+        "product_id",
+        "sort_order"
+      ],
+      "update": [
+        "product_id",
+        "sort_order"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "post_id",
+        "product_id",
+        "sort_order",
+        "created_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "post_id",
+        "product_id",
+        "sort_order",
+        "created_at"
+      ]
+    },
+    {
+      "name": "public.blog_posts",
+      "fingerprint": "af7ead6449a3c326fe0fc6b8c078075c",
+      "preserved": "f6c2e863cc79408d27a21cd7c2cf7688",
+      "insert": [
+        "author",
+        "bg_color",
+        "bg_key",
+        "body_html",
+        "card_image_path",
+        "card_title",
+        "catalog_category_id",
+        "category",
+        "date_label",
+        "hero_image_alt",
+        "hero_image_path",
+        "is_published",
+        "read_time",
+        "slug",
+        "sort_order",
+        "subtitle",
+        "title",
+        "title_html"
+      ],
+      "update": [
+        "author",
+        "bg_color",
+        "bg_key",
+        "body_html",
+        "card_image_path",
+        "card_title",
+        "catalog_category_id",
+        "category",
+        "date_label",
+        "hero_image_alt",
+        "hero_image_path",
+        "is_published",
+        "read_time",
+        "slug",
+        "sort_order",
+        "subtitle",
+        "title",
+        "title_html",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "slug",
+        "title",
+        "title_html",
+        "subtitle",
+        "category",
+        "author",
+        "date_label",
+        "read_time",
+        "bg_key",
+        "bg_color",
+        "hero_image_path",
+        "body_html",
+        "is_published",
+        "sort_order",
+        "created_at",
+        "updated_at",
+        "hero_image_alt",
+        "card_title",
+        "card_image_path",
+        "catalog_category_id"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "slug",
+        "title",
+        "title_html",
+        "subtitle",
+        "category",
+        "author",
+        "date_label",
+        "read_time",
+        "bg_key",
+        "bg_color",
+        "hero_image_path",
+        "body_html",
+        "is_published",
+        "sort_order",
+        "created_at",
+        "updated_at",
+        "hero_image_alt",
+        "card_title",
+        "card_image_path",
+        "catalog_category_id"
+      ]
+    },
+    {
+      "name": "public.blog_post_tags",
+      "fingerprint": "3d166894d73d2cc35e16d248436dbbb7",
+      "preserved": "188590eabdcfa64a3bae5522f20f87ee",
+      "insert": [
+        "post_id",
+        "sort_order",
+        "tag"
+      ],
+      "update": [
+        "sort_order",
+        "tag",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "post_id",
+        "tag",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "post_id",
+        "tag",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.certifications_items",
+      "fingerprint": "3fbbc603c8ee3bcad96d52aa693dea9e",
+      "preserved": "7c06dea8167d7817bfd03294ea6fe318",
+      "insert": [
+        "badge",
+        "description",
+        "icon_path",
+        "sort_order",
+        "title"
+      ],
+      "update": [
+        "badge",
+        "description",
+        "icon_path",
+        "sort_order",
+        "title"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "sort_order",
+        "title",
+        "description",
+        "badge",
+        "icon_path"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "sort_order",
+        "title",
+        "description",
+        "badge",
+        "icon_path"
+      ]
+    },
+    {
+      "name": "public.certifications_section",
+      "fingerprint": "545cb0a34966bc7d9b3ea1d3aadc7775",
+      "preserved": "fc262e52f4ade66417145c1249f6fd90",
+      "insert": [
+        "eyebrow",
+        "heading",
+        "section_key"
+      ],
+      "update": [
+        "eyebrow",
+        "heading"
+      ],
+      "delete": false,
+      "lock_delete": true,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "eyebrow",
+        "heading"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "eyebrow",
+        "heading"
+      ]
+    },
+    {
+      "name": "public.checkout_result_page",
+      "fingerprint": "b6e7bc8dd2f21f1b1e0abaaad3b8b46e",
+      "preserved": "189c00448699c0bfa280f547e2ba0f27",
+      "insert": [
+        "id",
+        "is_enabled",
+        "main_banner_image_alt",
+        "main_banner_image_path",
+        "secondary_banner_image_alt",
+        "secondary_banner_image_path",
+        "secondary_eyebrow",
+        "secondary_heading",
+        "secondary_paragraph"
+      ],
+      "update": [
+        "is_enabled",
+        "main_banner_image_alt",
+        "main_banner_image_path",
+        "secondary_banner_image_alt",
+        "secondary_banner_image_path",
+        "secondary_eyebrow",
+        "secondary_heading",
+        "secondary_paragraph",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "main_banner_image_path",
+        "main_banner_image_alt",
+        "secondary_banner_image_path",
+        "secondary_banner_image_alt",
+        "secondary_eyebrow",
+        "secondary_heading",
+        "secondary_paragraph",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "main_banner_image_path",
+        "main_banner_image_alt",
+        "secondary_banner_image_path",
+        "secondary_banner_image_alt",
+        "secondary_eyebrow",
+        "secondary_heading",
+        "secondary_paragraph",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.checkout_result_states",
+      "fingerprint": "ef4d446b8768982db4b60bb7c11cdc89",
+      "preserved": "01e3430d527b5777d96218d2da7e9cdd",
+      "insert": [
+        "eyebrow",
+        "heading",
+        "is_enabled",
+        "order_button_label",
+        "paragraph",
+        "state"
+      ],
+      "update": [
+        "eyebrow",
+        "heading",
+        "is_enabled",
+        "order_button_label",
+        "paragraph",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "state",
+        "eyebrow",
+        "heading",
+        "paragraph",
+        "order_button_label",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "state",
+        "eyebrow",
+        "heading",
+        "paragraph",
+        "order_button_label",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.cms_home_bestseller_products",
+      "fingerprint": "1dfcf3090a58a2483d62f707805881b5",
+      "preserved": "e9bfe3d29b540e7d38addce237ad2f5a",
+      "insert": [
+        "display_image_path",
+        "display_order",
+        "display_title",
+        "product_id",
+        "section_id"
+      ],
+      "update": [
+        "display_image_path",
+        "display_order",
+        "display_title",
+        "product_id"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_id",
+        "product_id",
+        "display_order",
+        "created_at",
+        "display_title",
+        "display_image_path"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_id",
+        "product_id",
+        "display_order",
+        "created_at",
+        "display_title",
+        "display_image_path"
+      ]
+    },
+    {
+      "name": "public.cms_home_bestsellers",
+      "fingerprint": "31d59bcc89efc4a6b96bb41e30f0d361",
+      "preserved": "1e5f235a3e118b8742183bd423373f01",
+      "insert": [
+        "cta_href",
+        "cta_label",
+        "eyebrow",
+        "heading",
+        "status"
+      ],
+      "update": [
+        "cta_href",
+        "cta_label",
+        "eyebrow",
+        "heading",
+        "status"
+      ],
+      "delete": false,
+      "lock_delete": true,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "eyebrow",
+        "heading",
+        "cta_label",
+        "cta_href",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "eyebrow",
+        "heading",
+        "cta_label",
+        "cta_href",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.cms_save_receipts",
+      "fingerprint": "f394b591b95c591dd7181b85f3c7fe3a",
+      "preserved": "f394b591b95c591dd7181b85f3c7fe3a",
+      "insert": [
+        "actor_id",
+        "operation",
+        "payload_hash",
+        "request_id",
+        "result"
+      ],
+      "update": [],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": true,
+      "read_all": true,
+      "read_columns": [],
+      "before_read_all": false,
+      "before_read_columns": []
+    },
+    {
+      "name": "public.cms_summary_pointers",
+      "fingerprint": "4204e4dc03ad6e1cdd57c46762e64c3e",
+      "preserved": "15f87152ef9ffc500d2315c0b7e78ede",
+      "insert": [
+        "icon_url",
+        "pointer_text",
+        "section_id",
+        "sort_order",
+        "video_link_text",
+        "video_url"
+      ],
+      "update": [
+        "icon_url",
+        "pointer_text",
+        "sort_order",
+        "updated_at",
+        "video_link_text",
+        "video_url"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_id",
+        "sort_order",
+        "icon_url",
+        "pointer_text",
+        "video_url",
+        "video_link_text",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_id",
+        "sort_order",
+        "icon_url",
+        "pointer_text",
+        "video_url",
+        "video_link_text",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.cms_summary_sections",
+      "fingerprint": "36c8c21c1ff2c7fc2ba8bc615e997c1a",
+      "preserved": "8692389ef0073227b07ad544987f98f9",
+      "insert": [
+        "heading",
+        "is_enabled",
+        "section_key"
+      ],
+      "update": [
+        "heading",
+        "is_enabled",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "heading",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "heading",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.collection_items",
+      "fingerprint": "4a2a7151505058722fe5a896d5a7bba6",
+      "preserved": "0033b0a642678f1ba8751292dec8610a",
+      "insert": [
+        "description",
+        "image_path",
+        "label",
+        "link",
+        "sort_order",
+        "title"
+      ],
+      "update": [
+        "description",
+        "image_path",
+        "label",
+        "link",
+        "sort_order",
+        "title"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "sort_order",
+        "label",
+        "title",
+        "description",
+        "image_path",
+        "link"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "sort_order",
+        "label",
+        "title",
+        "description",
+        "image_path",
+        "link"
+      ]
+    },
+    {
+      "name": "public.collection_page_config",
+      "fingerprint": "3bb5129608a373cfdfe7d13d13fd1078",
+      "preserved": "53a3d3320970468007a54463cd31b384",
+      "insert": [
+        "page_enabled",
+        "section_key",
+        "show_home_showcase",
+        "show_in_footer",
+        "showcase_cta_href",
+        "showcase_cta_label",
+        "showcase_heading",
+        "showcase_image_path",
+        "showcase_mobile_image_path",
+        "showcase_subtitle"
+      ],
+      "update": [
+        "page_enabled",
+        "show_home_showcase",
+        "show_in_footer",
+        "showcase_cta_href",
+        "showcase_cta_label",
+        "showcase_heading",
+        "showcase_image_path",
+        "showcase_mobile_image_path",
+        "showcase_subtitle",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "page_enabled",
+        "show_in_footer",
+        "show_home_showcase",
+        "showcase_heading",
+        "showcase_subtitle",
+        "showcase_cta_label",
+        "showcase_cta_href",
+        "showcase_image_path",
+        "showcase_mobile_image_path",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "page_enabled",
+        "show_in_footer",
+        "show_home_showcase",
+        "showcase_heading",
+        "showcase_subtitle",
+        "showcase_cta_label",
+        "showcase_cta_href",
+        "showcase_image_path",
+        "showcase_mobile_image_path",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.contact_hero",
+      "fingerprint": "fa10c66049d0a31c8bf12e2715e1719b",
+      "preserved": "582dea70003af6609c1ff07466205841",
+      "insert": [
+        "eyebrow",
+        "heading",
+        "section_key",
+        "subtitle"
+      ],
+      "update": [
+        "eyebrow",
+        "heading",
+        "subtitle",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "eyebrow",
+        "heading",
+        "subtitle",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "eyebrow",
+        "heading",
+        "subtitle",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.contact_info",
+      "fingerprint": "b75a3f19218ccb7037ce347a6b111e0e",
+      "preserved": "c6e2c8a7864418e8642dc7bc296447e8",
+      "insert": [
+        "href",
+        "icon_path",
+        "label",
+        "note",
+        "sort_order",
+        "value"
+      ],
+      "update": [
+        "href",
+        "icon_path",
+        "label",
+        "note",
+        "sort_order",
+        "value"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "sort_order",
+        "label",
+        "value",
+        "note",
+        "href",
+        "icon_path",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "sort_order",
+        "label",
+        "value",
+        "note",
+        "href",
+        "icon_path",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.discover_shapes_items",
+      "fingerprint": "a2d2cc14816b5725c11da73ef4e31e0d",
+      "preserved": "11441bad7ca4b2ed2bb83b4f33a1b964",
+      "insert": [
+        "description",
+        "image_alt",
+        "image_path",
+        "shape_id",
+        "sort_order",
+        "status",
+        "title"
+      ],
+      "update": [
+        "description",
+        "image_alt",
+        "image_path",
+        "shape_id",
+        "sort_order",
+        "status",
+        "title"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "title",
+        "description",
+        "image_path",
+        "image_alt",
+        "sort_order",
+        "status",
+        "created_at",
+        "updated_at",
+        "shape_id"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "title",
+        "description",
+        "image_path",
+        "image_alt",
+        "sort_order",
+        "status",
+        "created_at",
+        "updated_at",
+        "shape_id"
+      ]
+    },
+    {
+      "name": "public.docs_blocks",
+      "fingerprint": "45daa15458ca5d4a9a97204a3d6b5f67",
+      "preserved": "9a1254459344491181a206e8648a5dfe",
+      "insert": [
+        "body",
+        "description",
+        "heading",
+        "page_id",
+        "sort_order"
+      ],
+      "update": [
+        "body",
+        "description",
+        "heading",
+        "sort_order",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "page_id",
+        "sort_order",
+        "heading",
+        "description",
+        "body",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "page_id",
+        "sort_order",
+        "heading",
+        "description",
+        "body",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.docs_pages",
+      "fingerprint": "8be8eb2b7c3f9f7105e597af32b2e142",
+      "preserved": "6b23a3ebcad50c799a48ac477f07a3ea",
+      "insert": [],
+      "update": [
+        "eyebrow",
+        "faq_category_id",
+        "subtitle",
+        "title",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "slug",
+        "title",
+        "eyebrow",
+        "subtitle",
+        "created_at",
+        "updated_at",
+        "faq_category_id"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "slug",
+        "title",
+        "eyebrow",
+        "subtitle",
+        "created_at",
+        "updated_at",
+        "faq_category_id"
+      ]
+    },
+    {
+      "name": "public.education_page_hero",
+      "fingerprint": "462e4650495a43d1705dfdbdb3640f85",
+      "preserved": "06fb11444f6073ce0187d627d585abfd",
+      "insert": [
+        "button_label",
+        "button_link",
+        "desktop_image_alt",
+        "desktop_image_path",
+        "heading",
+        "id",
+        "is_enabled",
+        "mobile_image_alt",
+        "mobile_image_path",
+        "paragraph"
+      ],
+      "update": [
+        "button_label",
+        "button_link",
+        "desktop_image_alt",
+        "desktop_image_path",
+        "heading",
+        "is_enabled",
+        "mobile_image_alt",
+        "mobile_image_path",
+        "paragraph",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "is_enabled",
+        "heading",
+        "paragraph",
+        "button_label",
+        "button_link",
+        "desktop_image_path",
+        "desktop_image_alt",
+        "mobile_image_path",
+        "mobile_image_alt",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "is_enabled",
+        "heading",
+        "paragraph",
+        "button_label",
+        "button_link",
+        "desktop_image_path",
+        "desktop_image_alt",
+        "mobile_image_path",
+        "mobile_image_alt",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.education_post_content_blocks",
+      "fingerprint": "c78065dcd2b5a47d84ed56d18046b370",
+      "preserved": "868c1e685878fcbd3a41d81c382057fe",
+      "insert": [
+        "block_type",
+        "body_html",
+        "heading",
+        "image_alt",
+        "image_caption",
+        "image_path",
+        "is_enabled",
+        "post_id",
+        "sort_order"
+      ],
+      "update": [
+        "block_type",
+        "body_html",
+        "heading",
+        "image_alt",
+        "image_caption",
+        "image_path",
+        "is_enabled",
+        "sort_order",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "post_id",
+        "block_type",
+        "sort_order",
+        "heading",
+        "body_html",
+        "image_path",
+        "image_alt",
+        "image_caption",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "post_id",
+        "block_type",
+        "sort_order",
+        "heading",
+        "body_html",
+        "image_path",
+        "image_alt",
+        "image_caption",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.education_post_products",
+      "fingerprint": "a90c000c2ca7560006a35458b0f727cd",
+      "preserved": "38589fa1c985814157e7a3c4c88b1aba",
+      "insert": [
+        "post_id",
+        "product_id",
+        "sort_order"
+      ],
+      "update": [
+        "product_id",
+        "sort_order"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "post_id",
+        "product_id",
+        "sort_order",
+        "created_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "post_id",
+        "product_id",
+        "sort_order",
+        "created_at"
+      ]
+    },
+    {
+      "name": "public.education_posts",
+      "fingerprint": "2a0ead2b37faaaa81a5058306d7d16d9",
+      "preserved": "8fa87812f15d5b3f102d9dc781ecf9ea",
+      "insert": [
+        "author",
+        "bg_color",
+        "bg_key",
+        "body_html",
+        "card_image_path",
+        "card_title",
+        "category",
+        "date_label",
+        "hero_image_alt",
+        "hero_image_path",
+        "is_published",
+        "read_time",
+        "slug",
+        "sort_order",
+        "subtitle",
+        "title",
+        "title_html"
+      ],
+      "update": [
+        "author",
+        "bg_color",
+        "bg_key",
+        "body_html",
+        "card_image_path",
+        "card_title",
+        "category",
+        "date_label",
+        "hero_image_alt",
+        "hero_image_path",
+        "is_published",
+        "read_time",
+        "slug",
+        "sort_order",
+        "subtitle",
+        "title",
+        "title_html",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "slug",
+        "title",
+        "title_html",
+        "subtitle",
+        "category",
+        "author",
+        "date_label",
+        "read_time",
+        "bg_key",
+        "bg_color",
+        "hero_image_path",
+        "hero_image_alt",
+        "body_html",
+        "is_published",
+        "sort_order",
+        "created_at",
+        "updated_at",
+        "card_title",
+        "card_image_path"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "slug",
+        "title",
+        "title_html",
+        "subtitle",
+        "category",
+        "author",
+        "date_label",
+        "read_time",
+        "bg_key",
+        "bg_color",
+        "hero_image_path",
+        "hero_image_alt",
+        "body_html",
+        "is_published",
+        "sort_order",
+        "created_at",
+        "updated_at",
+        "card_title",
+        "card_image_path"
+      ]
+    },
+    {
+      "name": "public.education_post_tags",
+      "fingerprint": "d29520a484e3380ab0ac1775e432c714",
+      "preserved": "b3abdafce90c12f268dc24a96c085002",
+      "insert": [
+        "post_id",
+        "sort_order",
+        "tag"
+      ],
+      "update": [
+        "sort_order",
+        "tag",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "post_id",
+        "tag",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "post_id",
+        "tag",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.hiphop_showcase_section",
+      "fingerprint": "7da9f0b558fa5ed6c4162f4fa86c19ea",
+      "preserved": "a856ff8550b2659da7301cfa16fe67ae",
+      "insert": [
+        "cta_label",
+        "cta_link",
+        "eyebrow",
+        "heading_emphasis",
+        "heading_line_1",
+        "heading_line_2",
+        "image_alt",
+        "image_path",
+        "is_enabled",
+        "section_key"
+      ],
+      "update": [
+        "cta_label",
+        "cta_link",
+        "eyebrow",
+        "heading_emphasis",
+        "heading_line_1",
+        "heading_line_2",
+        "image_alt",
+        "image_path",
+        "is_enabled",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "eyebrow",
+        "heading_line_1",
+        "heading_line_2",
+        "heading_emphasis",
+        "cta_label",
+        "cta_link",
+        "image_path",
+        "image_alt",
+        "created_at",
+        "updated_at",
+        "is_enabled"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "eyebrow",
+        "heading_line_1",
+        "heading_line_2",
+        "heading_emphasis",
+        "cta_label",
+        "cta_link",
+        "image_path",
+        "image_alt",
+        "created_at",
+        "updated_at",
+        "is_enabled"
+      ]
+    },
+    {
+      "name": "public.home_bespoke_showcase_section",
+      "fingerprint": "e3470478ce0b043127b08c1a994933d1",
+      "preserved": "a99a5a73272fb13a6fd4dd0261c036a3",
+      "insert": [
+        "cta_label",
+        "eyebrow",
+        "heading",
+        "image_alt",
+        "image_path",
+        "is_enabled",
+        "mobile_image_path",
+        "section_key",
+        "sort_order",
+        "subtitle"
+      ],
+      "update": [
+        "cta_label",
+        "eyebrow",
+        "heading",
+        "image_alt",
+        "image_path",
+        "is_enabled",
+        "mobile_image_path",
+        "sort_order",
+        "subtitle",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "is_enabled",
+        "eyebrow",
+        "heading",
+        "subtitle",
+        "cta_label",
+        "image_path",
+        "mobile_image_path",
+        "image_alt",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "is_enabled",
+        "eyebrow",
+        "heading",
+        "subtitle",
+        "cta_label",
+        "image_path",
+        "mobile_image_path",
+        "image_alt",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.home_instagram_reels",
+      "fingerprint": "c6a775e7f76a04012876c7edfce77c2a",
+      "preserved": "e2c42edf028f37b55606377cf79d28f2",
+      "insert": [
+        "cover_image_url",
+        "created_by",
+        "display_order",
+        "instagram_url",
+        "is_enabled",
+        "section_key",
+        "title"
+      ],
+      "update": [
+        "cover_image_url",
+        "display_order",
+        "instagram_url",
+        "is_enabled",
+        "title"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "instagram_url",
+        "title",
+        "display_order",
+        "is_enabled",
+        "created_by",
+        "created_at",
+        "updated_at",
+        "cover_image_url"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "instagram_url",
+        "title",
+        "display_order",
+        "is_enabled",
+        "created_by",
+        "created_at",
+        "updated_at",
+        "cover_image_url"
+      ]
+    },
+    {
+      "name": "public.home_instagram_reels_section",
+      "fingerprint": "3af890c47a20edc16db1ab08570d7029",
+      "preserved": "0f969478a3d5fd7c5736fc933a550abb",
+      "insert": [
+        "heading",
+        "is_enabled",
+        "marquee_duration_seconds",
+        "pause_on_hover",
+        "section_key",
+        "subtitle"
+      ],
+      "update": [
+        "heading",
+        "is_enabled",
+        "marquee_duration_seconds",
+        "pause_on_hover",
+        "subtitle"
+      ],
+      "delete": false,
+      "lock_delete": true,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "section_key",
+        "heading",
+        "subtitle",
+        "is_enabled",
+        "marquee_duration_seconds",
+        "pause_on_hover",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "section_key",
+        "heading",
+        "subtitle",
+        "is_enabled",
+        "marquee_duration_seconds",
+        "pause_on_hover",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.homepage_hero",
+      "fingerprint": "7c4cbd09792abe26ffdbcea8281e751a",
+      "preserved": "7c14c39fd3d797744b29969280f20f55",
+      "insert": [],
+      "update": [
+        "is_active",
+        "seo_description",
+        "seo_title",
+        "slider_enabled"
+      ],
+      "delete": false,
+      "lock_delete": true,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "eyebrow",
+        "headline",
+        "subtitle",
+        "is_active",
+        "updated_at",
+        "created_at",
+        "slider_enabled",
+        "seo_title",
+        "seo_description",
+        "seo_social_image_path"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "eyebrow",
+        "headline",
+        "subtitle",
+        "is_active",
+        "updated_at",
+        "created_at",
+        "slider_enabled",
+        "seo_title",
+        "seo_description",
+        "seo_social_image_path"
+      ]
+    },
+    {
+      "name": "public.homepage_hero_slider_items",
+      "fingerprint": "a47b650cfe1048e6b7d6e0f1ea17f38b",
+      "preserved": "1762505a1ed073f6f5bc672e646cc833",
+      "insert": [
+        "button_link",
+        "button_text",
+        "headline",
+        "hero_id",
+        "image_path",
+        "mobile_image_path",
+        "sort_order",
+        "subtitle"
+      ],
+      "update": [
+        "button_link",
+        "button_text",
+        "headline",
+        "image_path",
+        "mobile_image_path",
+        "sort_order",
+        "subtitle"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "hero_id",
+        "sort_order",
+        "image_path",
+        "button_text",
+        "button_link",
+        "created_at",
+        "updated_at",
+        "mobile_image_path",
+        "headline",
+        "subtitle"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "hero_id",
+        "sort_order",
+        "image_path",
+        "button_text",
+        "button_link",
+        "created_at",
+        "updated_at",
+        "mobile_image_path",
+        "headline",
+        "subtitle"
+      ]
+    },
+    {
+      "name": "public.homepage_shop_by_category",
+      "fingerprint": "a80d551758d5f240642525e2ff40fcaa",
+      "preserved": "7349c9bc5d9fd45d1b460afaf1fc1ed6",
+      "insert": [
+        "desktop_columns",
+        "heading",
+        "is_enabled",
+        "mobile_columns",
+        "section_key",
+        "shop_all_label",
+        "shop_all_link",
+        "tablet_columns"
+      ],
+      "update": [
+        "desktop_columns",
+        "heading",
+        "is_enabled",
+        "mobile_columns",
+        "shop_all_label",
+        "shop_all_link",
+        "tablet_columns"
+      ],
+      "delete": false,
+      "lock_delete": true,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "heading",
+        "shop_all_label",
+        "shop_all_link",
+        "is_enabled",
+        "desktop_columns",
+        "tablet_columns",
+        "mobile_columns",
+        "display_order",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "heading",
+        "shop_all_label",
+        "shop_all_link",
+        "is_enabled",
+        "desktop_columns",
+        "tablet_columns",
+        "mobile_columns",
+        "display_order",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.homepage_shop_by_category_items",
+      "fingerprint": "5426e1210e6530749e0b880d22f78bca",
+      "preserved": "3fc08519b10ee860595db4f779838523",
+      "insert": [
+        "category_id",
+        "display_order",
+        "is_active",
+        "item_type",
+        "option_id",
+        "section_id",
+        "subcategory_id"
+      ],
+      "update": [
+        "category_id",
+        "display_order",
+        "is_active",
+        "item_type",
+        "option_id",
+        "subcategory_id"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_id",
+        "item_type",
+        "category_id",
+        "subcategory_id",
+        "option_id",
+        "display_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_id",
+        "item_type",
+        "category_id",
+        "subcategory_id",
+        "option_id",
+        "display_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.navbar_featured_cards",
+      "fingerprint": "77cbf57f3eecf73132e1594ecc3d3cb6",
+      "preserved": "648cf346e45208a16bf32ebd4bda00fd",
+      "insert": [
+        "button_label",
+        "button_url",
+        "enabled",
+        "image_alt",
+        "image_path",
+        "navbar_item_id"
+      ],
+      "update": [
+        "button_label",
+        "button_url",
+        "enabled",
+        "image_alt",
+        "image_path",
+        "navbar_item_id",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "navbar_item_id",
+        "image_path",
+        "image_alt",
+        "button_label",
+        "button_url",
+        "enabled",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "navbar_item_id",
+        "image_path",
+        "image_alt",
+        "button_label",
+        "button_url",
+        "enabled",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.navbar_items",
+      "fingerprint": "38100448d445bed78cf98c98527eaac1",
+      "preserved": "c8374aab7301eb81b4950bffa283f123",
+      "insert": [
+        "direct_link_url",
+        "display_order",
+        "item_type",
+        "label",
+        "linked_category_id",
+        "slug",
+        "status"
+      ],
+      "update": [
+        "direct_link_url",
+        "display_order",
+        "item_type",
+        "label",
+        "linked_category_id",
+        "slug",
+        "status",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "label",
+        "slug",
+        "item_type",
+        "linked_category_id",
+        "direct_link_url",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "label",
+        "slug",
+        "item_type",
+        "linked_category_id",
+        "direct_link_url",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.navbar_section_links",
+      "fingerprint": "97b5836f9afa510b812b1240694d76dc",
+      "preserved": "09059f9096c21197a40fc99e628e8770",
+      "insert": [
+        "display_order",
+        "label",
+        "section_id",
+        "status",
+        "url"
+      ],
+      "update": [
+        "display_order",
+        "label",
+        "section_id",
+        "status",
+        "updated_at",
+        "url"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_id",
+        "label",
+        "url",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_id",
+        "label",
+        "url",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.navbar_sections",
+      "fingerprint": "d4ceae0673956734c149b7242819165a",
+      "preserved": "a5b51930c5bc30787a5f7ba5609ea6a2",
+      "insert": [
+        "column_number",
+        "display_order",
+        "enable_category_link",
+        "icon_svg_path",
+        "linked_category_id",
+        "navbar_item_id",
+        "section_type",
+        "show_as_filter",
+        "source_category_slug",
+        "source_subcategory_id",
+        "status",
+        "title"
+      ],
+      "update": [
+        "column_number",
+        "display_order",
+        "enable_category_link",
+        "icon_svg_path",
+        "linked_category_id",
+        "navbar_item_id",
+        "section_type",
+        "show_as_filter",
+        "source_category_slug",
+        "source_subcategory_id",
+        "status",
+        "title",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "navbar_item_id",
+        "title",
+        "section_type",
+        "source_subcategory_id",
+        "column_number",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at",
+        "source_category_slug",
+        "show_as_filter",
+        "enable_category_link",
+        "linked_category_id",
+        "icon_svg_path"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "navbar_item_id",
+        "title",
+        "section_type",
+        "source_subcategory_id",
+        "column_number",
+        "display_order",
+        "status",
+        "created_at",
+        "updated_at",
+        "source_category_slug",
+        "show_as_filter",
+        "enable_category_link",
+        "linked_category_id",
+        "icon_svg_path"
+      ]
+    },
+    {
+      "name": "public.navbar_section_source_items",
+      "fingerprint": "2d3a6c986212b53f71bc7feb2fe6e3b1",
+      "preserved": "9424bba42d4ac1cf3598a00d8fda8c5b",
+      "insert": [
+        "is_active",
+        "section_id",
+        "sort_order",
+        "source_item_id",
+        "source_kind"
+      ],
+      "update": [
+        "is_active",
+        "section_id",
+        "sort_order",
+        "source_item_id",
+        "source_kind"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_id",
+        "source_kind",
+        "source_item_id",
+        "sort_order",
+        "is_active",
+        "created_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_id",
+        "source_kind",
+        "source_item_id",
+        "sort_order",
+        "is_active",
+        "created_at"
+      ]
+    },
+    {
+      "name": "public.profiles",
+      "fingerprint": "fecd4e13c42226e6dbac2cab7dfc07e5",
+      "preserved": "fecd4e13c42226e6dbac2cab7dfc07e5",
+      "insert": [],
+      "update": [],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [
+        "id",
+        "role"
+      ],
+      "added_all": false,
+      "read_all": false,
+      "read_columns": [
+        "id",
+        "role"
+      ],
+      "before_read_all": false,
+      "before_read_columns": []
+    },
+    {
+      "name": "public.promotion_popup",
+      "fingerprint": "bbfead8388036bede9889bbf040514e3",
+      "preserved": "0fd42f71450acafb547d45d650227fdd",
+      "insert": [
+        "cta_action",
+        "cta_link",
+        "cta_text",
+        "description",
+        "image_alt",
+        "image_only_mode",
+        "image_path",
+        "is_active",
+        "label",
+        "mobile_image_path",
+        "section_key",
+        "selected_coupon_id",
+        "show_once_per_session",
+        "title"
+      ],
+      "update": [
+        "cta_action",
+        "cta_link",
+        "cta_text",
+        "description",
+        "image_alt",
+        "image_only_mode",
+        "image_path",
+        "is_active",
+        "label",
+        "mobile_image_path",
+        "selected_coupon_id",
+        "show_once_per_session",
+        "title",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "label",
+        "title",
+        "description",
+        "cta_text",
+        "cta_link",
+        "is_active",
+        "show_once_per_session",
+        "image_path",
+        "created_at",
+        "updated_at",
+        "mobile_image_path",
+        "image_alt",
+        "image_only_mode",
+        "cta_action",
+        "selected_coupon_id"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "label",
+        "title",
+        "description",
+        "cta_text",
+        "cta_link",
+        "is_active",
+        "show_once_per_session",
+        "image_path",
+        "created_at",
+        "updated_at",
+        "mobile_image_path",
+        "image_alt",
+        "image_only_mode",
+        "cta_action",
+        "selected_coupon_id"
+      ]
+    },
+    {
+      "name": "public.promotion_popup_questions",
+      "fingerprint": "3a5075dd212dc743b10aaf946cbc3ec9",
+      "preserved": "cfb5ed75ae08d924d9b9a1dc8f2e422f",
+      "insert": [
+        "allow_multiple",
+        "field_key",
+        "input_type",
+        "is_active",
+        "is_required",
+        "options",
+        "promotion_id",
+        "question",
+        "sort_order",
+        "validation_message",
+        "validation_pattern"
+      ],
+      "update": [
+        "allow_multiple",
+        "field_key",
+        "input_type",
+        "is_active",
+        "is_required",
+        "options",
+        "question",
+        "sort_order",
+        "updated_at",
+        "validation_message",
+        "validation_pattern"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "promotion_id",
+        "field_key",
+        "question",
+        "input_type",
+        "validation_pattern",
+        "validation_message",
+        "is_required",
+        "is_active",
+        "sort_order",
+        "created_at",
+        "updated_at",
+        "options",
+        "step",
+        "help_text",
+        "allow_multiple"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "promotion_id",
+        "field_key",
+        "question",
+        "input_type",
+        "validation_pattern",
+        "validation_message",
+        "is_required",
+        "is_active",
+        "sort_order",
+        "created_at",
+        "updated_at",
+        "options",
+        "step",
+        "help_text",
+        "allow_multiple"
+      ]
+    },
+    {
+      "name": "public.service_banner_blocks",
+      "fingerprint": "d82e1f3b8e8c1b9a0a84d8fcad189980",
+      "preserved": "5debc3c605ebfb48df07f99aed0f4bc8",
+      "insert": [
+        "is_active",
+        "paragraph",
+        "sort_order",
+        "title"
+      ],
+      "update": [
+        "is_active",
+        "paragraph",
+        "sort_order",
+        "title",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "title",
+        "paragraph",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "title",
+        "paragraph",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.service_banner_section",
+      "fingerprint": "eef713688ddaf809c1c86c17ba1fd0df",
+      "preserved": "d4ea1d7731818e0d8bbfb92f127455bd",
+      "insert": [
+        "id",
+        "image_alt",
+        "image_path",
+        "is_enabled"
+      ],
+      "update": [
+        "image_alt",
+        "image_path",
+        "is_enabled",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "image_path",
+        "image_alt",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "image_path",
+        "image_alt",
+        "is_enabled",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.support_announcement_bar",
+      "fingerprint": "df845302680099b5b85a50fe993fbe18",
+      "preserved": "4d08066307caa42abc32a49b35458bb3",
+      "insert": [
+        "autoplay",
+        "is_active",
+        "section_key",
+        "speed_ms"
+      ],
+      "update": [
+        "autoplay",
+        "is_active",
+        "speed_ms",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "is_active",
+        "autoplay",
+        "speed_ms",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "is_active",
+        "autoplay",
+        "speed_ms",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.support_announcement_bar_items",
+      "fingerprint": "71be0ad885ada374c8e842ce90b97970",
+      "preserved": "b572114d553fa02ae2dbcc9942db0e71",
+      "insert": [
+        "bar_id",
+        "is_active",
+        "link_url",
+        "message",
+        "open_in_new_tab",
+        "sort_order"
+      ],
+      "update": [
+        "is_active",
+        "link_url",
+        "message",
+        "open_in_new_tab",
+        "sort_order",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "bar_id",
+        "message",
+        "link_url",
+        "open_in_new_tab",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "bar_id",
+        "message",
+        "link_url",
+        "open_in_new_tab",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.support_faq_categories",
+      "fingerprint": "265b9cb0cd563224a7bde1055decf6f9",
+      "preserved": "4e42469a911c0e736b53c2ee2410f07d",
+      "insert": [
+        "description",
+        "image_alt",
+        "image_path",
+        "is_active",
+        "name",
+        "slug",
+        "sort_order"
+      ],
+      "update": [
+        "description",
+        "image_alt",
+        "image_path",
+        "is_active",
+        "name",
+        "slug",
+        "sort_order",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "name",
+        "slug",
+        "description",
+        "image_path",
+        "image_alt",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "name",
+        "slug",
+        "description",
+        "image_path",
+        "image_alt",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "name": "public.support_faq_items",
+      "fingerprint": "7cf4dd0c477030b852a5f868c42dd6da",
+      "preserved": "4ca81939bf0189cf9c1c1de947ee6a2a",
+      "insert": [
+        "answer",
+        "catalog_category_id",
+        "category_id",
+        "is_active",
+        "question",
+        "section_id",
+        "sort_order"
+      ],
+      "update": [
+        "answer",
+        "catalog_category_id",
+        "category_id",
+        "is_active",
+        "question",
+        "sort_order",
+        "updated_at"
+      ],
+      "delete": true,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_id",
+        "question",
+        "answer",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at",
+        "category_id",
+        "catalog_category_id"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_id",
+        "question",
+        "answer",
+        "sort_order",
+        "is_active",
+        "created_at",
+        "updated_at",
+        "category_id",
+        "catalog_category_id"
+      ]
+    },
+    {
+      "name": "public.support_faq_section",
+      "fingerprint": "d29e1137def221bcae56890537747b3c",
+      "preserved": "2167ed6571492dee9ca012bd34d73af0",
+      "insert": [
+        "section_key",
+        "subtitle",
+        "title"
+      ],
+      "update": [
+        "subtitle",
+        "title",
+        "updated_at"
+      ],
+      "delete": false,
+      "lock_delete": false,
+      "added_read": [],
+      "added_all": false,
+      "read_all": true,
+      "read_columns": [
+        "id",
+        "section_key",
+        "title",
+        "subtitle",
+        "created_at",
+        "updated_at"
+      ],
+      "before_read_all": true,
+      "before_read_columns": [
+        "id",
+        "section_key",
+        "title",
+        "subtitle",
+        "created_at",
+        "updated_at"
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "table": "public.about_founders",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.about_founders",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.about_founders",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.about_hero",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.about_hero",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.about_timeline",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.about_timeline",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.about_timeline",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.about_values",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.about_values",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.about_values",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.about_wide_banner",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.about_wide_banner",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_carat_options",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_carat_options",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_carat_options",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.bespoke_form_guarantees",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_guarantees",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_guarantees",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.bespoke_form_metal_options",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_metal_options",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_metal_options",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.bespoke_form_piece_types",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_piece_types",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_piece_types",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.bespoke_form_settings",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_settings",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_stone_options",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_stone_options",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_form_stone_options",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.bespoke_hero_content",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_hero_content",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_hero_slider_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_hero_slider_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_hero_slider_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.bespoke_portfolio_categories",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_portfolio_categories",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_portfolio_categories",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.bespoke_portfolio_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_portfolio_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_portfolio_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.bespoke_process_cards",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_process_cards",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_process_cards",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.bespoke_process_steps",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_process_steps",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.bespoke_process_steps",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.blog_page_hero",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.blog_page_hero",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.blog_post_content_blocks",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.blog_post_content_blocks",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.blog_post_content_blocks",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.blog_post_products",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.blog_post_products",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.blog_post_products",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.blog_posts",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.blog_posts",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.blog_posts",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.blog_post_tags",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.blog_post_tags",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.blog_post_tags",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.certifications_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.certifications_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.certifications_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.certifications_section",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.certifications_section",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.certifications_section",
+      "name": "hod_admin_content10_lock_guard",
+      "command": "d",
+      "permissive": false,
+      "using": "false",
+      "check": null
+    },
+    {
+      "table": "public.checkout_result_page",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.checkout_result_page",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.checkout_result_states",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.checkout_result_states",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.cms_home_bestseller_products",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.cms_home_bestseller_products",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.cms_home_bestseller_products",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.cms_home_bestsellers",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.cms_home_bestsellers",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.cms_home_bestsellers",
+      "name": "hod_admin_content10_lock_guard",
+      "command": "d",
+      "permissive": false,
+      "using": "false",
+      "check": null
+    },
+    {
+      "table": "public.cms_save_receipts",
+      "name": "hod_admin_content10_select",
+      "command": "r",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.cms_save_receipts",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.cms_summary_pointers",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.cms_summary_pointers",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.cms_summary_pointers",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.cms_summary_sections",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.cms_summary_sections",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.collection_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.collection_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.collection_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.collection_page_config",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.collection_page_config",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.contact_hero",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.contact_hero",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.contact_info",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.contact_info",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.contact_info",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.discover_shapes_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.discover_shapes_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.discover_shapes_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.docs_blocks",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.docs_blocks",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.docs_blocks",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.docs_pages",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.education_page_hero",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.education_page_hero",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.education_post_content_blocks",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.education_post_content_blocks",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.education_post_content_blocks",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.education_post_products",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.education_post_products",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.education_post_products",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.education_posts",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.education_posts",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.education_posts",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.education_post_tags",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.education_post_tags",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.education_post_tags",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.hiphop_showcase_section",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.hiphop_showcase_section",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.home_bespoke_showcase_section",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.home_bespoke_showcase_section",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.home_instagram_reels",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.home_instagram_reels",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.home_instagram_reels",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.home_instagram_reels_section",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.home_instagram_reels_section",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.home_instagram_reels_section",
+      "name": "hod_admin_content10_lock_guard",
+      "command": "d",
+      "permissive": false,
+      "using": "false",
+      "check": null
+    },
+    {
+      "table": "public.homepage_hero",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.homepage_hero",
+      "name": "hod_admin_content10_lock_guard",
+      "command": "d",
+      "permissive": false,
+      "using": "false",
+      "check": null
+    },
+    {
+      "table": "public.homepage_hero_slider_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.homepage_hero_slider_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.homepage_hero_slider_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.homepage_shop_by_category",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.homepage_shop_by_category",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.homepage_shop_by_category",
+      "name": "hod_admin_content10_lock_guard",
+      "command": "d",
+      "permissive": false,
+      "using": "false",
+      "check": null
+    },
+    {
+      "table": "public.homepage_shop_by_category_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.homepage_shop_by_category_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.homepage_shop_by_category_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.navbar_featured_cards",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_featured_cards",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_featured_cards",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.navbar_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_section_links",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_section_links",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_section_links",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.navbar_sections",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_sections",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_sections",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.navbar_section_source_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_section_source_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.navbar_section_source_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.profiles",
+      "name": "hod_admin_content10_select",
+      "command": "r",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.promotion_popup",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.promotion_popup",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.promotion_popup_questions",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.promotion_popup_questions",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.promotion_popup_questions",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.service_banner_blocks",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.service_banner_blocks",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.service_banner_blocks",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.service_banner_section",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.service_banner_section",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.support_announcement_bar",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.support_announcement_bar",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.support_announcement_bar_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.support_announcement_bar_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.support_announcement_bar_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.support_faq_categories",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.support_faq_categories",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.support_faq_categories",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.support_faq_items",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.support_faq_items",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    },
+    {
+      "table": "public.support_faq_items",
+      "name": "hod_admin_content10_delete",
+      "command": "d",
+      "permissive": true,
+      "using": "true",
+      "check": null
+    },
+    {
+      "table": "public.support_faq_section",
+      "name": "hod_admin_content10_insert",
+      "command": "a",
+      "permissive": true,
+      "using": null,
+      "check": "true"
+    },
+    {
+      "table": "public.support_faq_section",
+      "name": "hod_admin_content10_update",
+      "command": "w",
+      "permissive": true,
+      "using": "true",
+      "check": "true"
+    }
+  ],
+  "auth_schema": {
+    "owner": "hod_migration",
+    "usage": false,
+    "create": false,
+    "acl_hash": "b0aa6db276a25237582699fe93d78933",
+    "preserved_hash": "b0aa6db276a25237582699fe93d78933"
+  },
+  "sql_sha256": "8f702d85994d58780c649198b7d9d04628c7bd38300d40a7d07dd91a4f0aa683",
+  "inverse_sha256": "a4358549ef24e664ff895d358de3495cedd7c5df39a101c8274673ba76c6b5c7"
+}
