@@ -511,12 +511,14 @@ export function ProductsClient({
         allProducts={filteredProducts.map((product) => ({ id: product.id, name: product.name, price: product.price }))}
         lane={lane}
         onClose={() => setBulkPriceDialogOpen(false)}
-        onApplied={(items) => {
-          const nextPrices = new Map(items.map((item) => [item.id, item.price]))
+        onApplied={(items, skippedProductIds) => {
+          // The list shows base price, which follows each product's default metal.
+          const nextPrices = new Map(items.filter((item) => item.isDefault).map((item) => [item.productId, item.price]))
           setProducts((current) => current.map((product) => nextPrices.has(product.id) ? { ...product, price: nextPrices.get(product.id)! } : product))
           setBulkPriceDialogOpen(false)
           setSelectedProductIds([])
-          toast({ title: 'Prices updated', description: `${items.length} product base price${items.length === 1 ? '' : 's'} updated successfully.` })
+          const productCount = new Set(items.map((item) => item.productId)).size
+          toast({ title: 'Prices updated', description: `${items.length} metal price${items.length === 1 ? '' : 's'} updated on ${productCount} product${productCount === 1 ? '' : 's'}${skippedProductIds.length ? `; ${skippedProductIds.length} skipped (metal not offered)` : ''}.` })
         }}
       />
 

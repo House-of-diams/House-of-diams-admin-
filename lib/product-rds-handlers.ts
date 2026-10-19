@@ -14,7 +14,7 @@ import { saveRdsProduct } from './db/admin-repositories/product-save'
 import { loadRdsProductBootstrap } from './db/admin-repositories/product-bootstrap'
 import { productPayloadSchema, productPayloadErrorMessage, safeProductSaveError } from './product-payload-validation'
 import { readProductDataProvider } from './product-provider'
-import { activateDraftsSchema, bulkDeleteSchema, bulkPriceSchema, duplicateProductSchema, productOperationError, productStatusSchema } from './product-operations-validation'
+import { activateDraftsSchema, bulkDeleteSchema, bulkPriceByMetalSchema, bulkPriceMetalsSchema, bulkPricePreviewSchema, duplicateProductSchema, productOperationError, productStatusSchema } from './product-operations-validation'
 import { adminMutationError, inventoryUpdateSchema } from './order-inventory-validation'
 
 type Action = 'product-all' | 'bootstrap' | 'create' | 'read-id' | 'read-slug' | 'save-id' | 'save-slug' | 'single-delete' | 'product-list' | 'inventory-list' | 'inventory-stock' | 'price' | 'delete' | 'activate' | 'duplicate' | 'status'
@@ -105,9 +105,21 @@ export function createProductRdsHandlers(deps: Dependencies) {
         }, { repeatableWrite: true })
       }
       if (action === 'price') {
-        const input = bulkPriceSchema.safeParse(body)
+        // HOD-006: metals -> preview -> apply. Prices change on the chosen metal
+        // variants, which the storefront shows and charges.
+        const kind = body && typeof body === 'object' ? (body as { action?: unknown }).action : undefined
+        if (kind === 'metals') {
+          if (!bulkPriceMetalsSchema.safeParse(body).success) return response({ error: 'Invalid bulk price request.' }, 400)
+          return response({ metals: await deps.transaction(db => createProductRepository(db).bulkPriceMetals(), { snapshot: true }) })
+        }
+        if (kind === 'preview') {
+          const input = bulkPricePreviewSchema.safeParse(body)
+          if (!input.success) return response({ error: input.error.issues[0]?.message ?? 'Invalid bulk price preview.' }, 400)
+          return response({ variants: await deps.transaction(db => createProductRepository(db).bulkPricePreview(input.data), { snapshot: true }) })
+        }
+        const input = bulkPriceByMetalSchema.safeParse(body)
         if (!input.success) return response({ error: input.error.issues[0]?.message ?? 'Invalid bulk price request.' }, 400)
-        return response(await deps.transaction(db => createProductRepository(db).bulkPrice(actor, input.data)))
+        return response(await deps.transaction(db => createProductRepository(db).bulkPriceByMetal(actor, input.data)))
       }
       if (action === 'delete') {
         const input = bulkDeleteSchema.safeParse(body)

@@ -2,7 +2,7 @@ import 'server-only'
 import type { z } from 'zod'
 import type { AdminActor } from '../../auth/admin-identity-core'
 import type { ProductPayload } from '../../product-payload-validation'
-import type { bulkPriceSchema, bulkDeleteSchema, activateDraftsSchema } from '../../product-operations-validation'
+import type { bulkPriceSchema, bulkDeleteSchema, activateDraftsSchema, bulkPricePreviewSchema, bulkPriceByMetalSchema } from '../../product-operations-validation'
 import type { DbExecutor } from '../query'
 import { enforceVideoSave, videoReferenceSlots, productVideoProjection } from '../../video-save-admission'
 import { loadRdsProductEditor } from './product-editor'
@@ -30,6 +30,27 @@ export function createProductRepository(db: DbExecutor) {
     bulkPrice(actor: AdminActor, input: z.infer<typeof bulkPriceSchema>) {
       return scalar('SELECT public.admin_product_bulk_price_v1($1::uuid,$2::uuid,$3::text,$4::text,$5::numeric,$6::uuid[],$7::jsonb) AS result',
         [actor.profileId, input.requestId, input.lane, input.operation, input.value, input.ids, JSON.stringify(input.expectedPrices)])
+    },
+    /** Active metals offered in the bulk price dialog. */
+    async bulkPriceMetals() {
+      const { rows } = await db.query<{ id: string; name: string; label: string }>(`SELECT m.id::text AS id, m.name,
+        coalesce(nullif(trim(m.display_label), ''), m.name) AS label FROM public.catalog_metals m
+        WHERE m.status::text = 'active' ORDER BY m.display_order, m.name`)
+      return rows
+    },
+    /** Current variant prices for the chosen products and metals; their prices become the apply guard. */
+    async bulkPricePreview(input: z.infer<typeof bulkPricePreviewSchema>) {
+      const { rows } = await db.query<{ variant_id: string; product_id: string; product_name: string; metal_id: string; metal_label: string; price: string; is_default: boolean }>(
+        `SELECT v.id::text AS variant_id, v.product_id::text AS product_id, p.name AS product_name, v.metal_id::text AS metal_id,
+          coalesce(nullif(trim(m.display_label), ''), m.name) AS metal_label, v.price::text AS price, v.is_default
+        FROM public.product_metal_variants v JOIN public.products p ON p.id = v.product_id JOIN public.catalog_metals m ON m.id = v.metal_id
+        WHERE v.product_id = ANY($1::uuid[]) AND v.metal_id = ANY($2::uuid[]) AND coalesce(p.product_lane, 'standard') = $3::text
+        ORDER BY p.name, m.display_order, v.id`, [input.ids, input.metalIds, input.lane])
+      return rows.map((row) => ({ ...row, price: Number(row.price) }))
+    },
+    bulkPriceByMetal(actor: AdminActor, input: z.infer<typeof bulkPriceByMetalSchema>) {
+      return scalar('SELECT public.admin_product_bulk_price_v2($1::uuid,$2::uuid,$3::text,$4::text,$5::numeric,$6::uuid[],$7::uuid[],$8::jsonb) AS result',
+        [actor.profileId, input.requestId, input.lane, input.operation, input.value, input.ids, input.metalIds, JSON.stringify(input.expectedPrices)])
     },
     bulkDelete(actor: AdminActor, input: z.infer<typeof bulkDeleteSchema>) {
       return scalar('SELECT public.admin_product_bulk_delete_v1($1::uuid,$2::uuid,$3::text,$4::uuid[]) AS result',
