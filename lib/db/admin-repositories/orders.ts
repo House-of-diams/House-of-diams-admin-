@@ -58,6 +58,8 @@ export function createOrdersRepository(db: DbExecutor, actor?: AdminActor) {
       if(state==='P0002')throw new OperationsError(404,'Order not found.')
       if(state==='40001')throw new OperationsError(409,'This order changed after you opened it. Reload before saving.')
       if(state==='PT409')throw new OperationsError(409,'Stock-backed cancelled orders cannot be reopened here. A reviewed stock reservation is required.')
+      if(state==='PT422')throw new OperationsError(409,'Only paid orders can be processed, shipped or delivered.')
+      if(state==='PT423')throw new OperationsError(409,'This status change is not allowed. Orders move pending → processing → shipped → delivered.')
       throw error
     }
   }
