@@ -92,7 +92,10 @@ BEGIN
   'id',v_after.id,'status',v_after.status,'order_number',v_after.order_number,'customer_email',v_after.customer_email,
   'customer_first_name',v_after.customer_first_name,'customer_last_name',v_after.customer_last_name,
   'total_amount',v_after.total_amount,'created_at',v_after.created_at,'courier_name',v_after.courier_name,
-  'courier_awb_number',v_after.courier_awb_number,'shipped_at',v_after.shipped_at),
+  'courier_awb_number',v_after.courier_awb_number,'shipped_at',v_after.shipped_at,
+  -- HOD-016: what the customer was charged, so status emails use that currency.
+  'payment_amount',v_after.payment_amount,'payment_currency',v_after.payment_currency,
+  'exchange_rate',v_after.gateway_payload->'totals'->'exchangeRate'),
   'items',v_items,'statusChanged',v_before.status IS DISTINCT FROM v_after.status);
 END;
 $function$;

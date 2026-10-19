@@ -12,6 +12,7 @@ export type OrderRecord = {
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'; created_at: string;
   courier_name: string | null; courier_awb_number: string | null; shipped_at: string | null;
   fulfillment_mode?: string | null;
+  payment_amount?: number | string | null; payment_currency?: string | null; exchange_rate?: number | string | null;
 }
 export type OrderLine = { product_name: string; quantity: number | string; line_total: number | string; [key: string]: unknown }
 export function createOrdersRepository(db: DbExecutor, actor?: AdminActor) {

@@ -5,4 +5,5 @@ select 'paid-only rule installed' as check_name, coalesce((select position('Only
 union all select 'allowed-steps rule installed', coalesce((select position('This status change is not allowed.' in prosrc) > 0 from f), false)
 union all select 'security definer owned by hod_migration', coalesce((select prosecdef and owner = 'hod_migration' from f), false)
 union all select 'hod_admin_app can execute', coalesce((select has_function_privilege('hod_admin_app', oid, 'EXECUTE') from f), false)
+union all select 'returns charged currency', coalesce((select position('''payment_currency'',v_after.payment_currency' in prosrc) > 0 from f), false)
 union all select 'storefront role cannot execute', coalesce((select not has_function_privilege('hod_app', oid, 'EXECUTE') from f), false);
