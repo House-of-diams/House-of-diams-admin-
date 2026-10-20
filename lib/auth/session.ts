@@ -84,8 +84,8 @@ export function createSessions(deps: AuthDependencies) {
     // HOD-066 fast path: with no refresh in this request, a CAS on the version first
     // read proves nothing changed meanwhile (no logout, refresh or CSRF change), so the
     // re-read below is skipped. Any change fails the CAS and falls through to it.
-    if (session === stored.data && session.claims.expiresAt > now() && session.lastSeen + config.sessionIdleSeconds > now() && ttl(session) > 0
-      && await store.replace(key, stored.version, { ...session, lastSeen: now() }, ttl(session))) return { actor, csrf: session.csrf }
+    const fastPath = session === stored.data && session.claims.expiresAt > now() && session.lastSeen + config.sessionIdleSeconds > now() && ttl(session) > 0
+    if (fastPath && await store.replace(key, stored.version, { ...session, lastSeen: now() }, ttl(session))) return { actor, csrf: session.csrf }
     // Sliding idle TTL and final CAS also detect logout during lookup; never restore a deleted session.
     for (let attempt = 0; attempt < 8; attempt++) {
       const latest = await store.get<Session>(key)
@@ -95,7 +95,8 @@ export function createSessions(deps: AuthDependencies) {
       if (session.claims.expiresAt <= now() || latest.data.lastSeen + config.sessionIdleSeconds <= now() || ttl(session) <= 0) throw new Error('Session expired')
       // Retry metadata CAS only. No OIDC refresh or business mutation is replayed.
       // Every attempt rechecks identity so a competing metadata update cannot mask revocation.
-      const currentActor = attempt === 0 ? actor : await mapped(boundedClaims)
+      // After a lost fast-path CAS the earlier mapping check is stale: recheck every attempt.
+      const currentActor = attempt === 0 && !fastPath ? actor : await mapped(boundedClaims)
       if (await store.replace(key, latest.version, { ...latest.data, lastSeen: now() }, ttl(session))) return { actor: currentActor, csrf: session.csrf }
     }
     throw new Error('Concurrent session update')

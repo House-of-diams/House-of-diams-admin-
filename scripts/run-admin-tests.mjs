@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..')
 const renderSuites=new Set(['test-admin-integration.mjs','test-admin-d1a.mjs',
-  'test-admin-d1b.mjs','test-admin-d1c.mjs','test-admin-d1e.mjs'])
+  'test-admin-d1b.mjs','test-admin-d1c.mjs','test-admin-d1e.mjs',
+  // Client hooks need the browser React build, not the react-server condition.
+  'test-unsaved-changes.mjs'])
 const files=fs.readdirSync(path.join(root,'scripts')).filter(name=>
   (/^test.*\.mjs$/.test(name)||name.endsWith('.test.mjs'))
   // Historical copy has exactly the same cases; its fixture is now in the original.
