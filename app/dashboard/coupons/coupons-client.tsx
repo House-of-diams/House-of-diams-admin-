@@ -14,7 +14,9 @@ const PAGE_SIZE = 20
 export function CouponsClient({ initialItems, server }: { initialItems: CouponRow[]; server?: { page: number; total: number; query: string } }) {
   const router = useRouter()
   const { toast } = useToast(); const [items, setItems] = useState(initialItems); const [localPage, setPage] = useState(1); const [query, setQuery] = useState(server?.query ?? '');
-  useEffect(() => { setItems(initialItems) }, [initialItems])
+  // A new server page (search or paging) replaces the list.
+  const [shownItems, setShownItems] = useState(initialItems)
+  if (shownItems !== initialItems) { setShownItems(initialItems); setItems(initialItems) }
   const page = server ? server.page : localPage
   const searchUrl = (q: string, nextPage: number) => `/dashboard/coupons?${new URLSearchParams({ ...(q.trim() ? { q: q.trim() } : {}), ...(nextPage > 1 ? { page: String(nextPage) } : {}) })}`
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
