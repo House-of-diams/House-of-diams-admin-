@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CmsSaveAction } from '@/components/cms-save-action'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 import { prepareHeroImage } from '@/lib/prepare-hero-image'
 
 type SlideItem = {
@@ -53,6 +54,8 @@ const emptySlide = (sortOrder: number): SlideItem => ({
 
 export function HeroEditorClient({ initialData }: { initialData: HeroEditorInitialData }) {
   const { toast } = useToast()
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard()
   const [formData, setFormData] = useState(initialData.section)
   const [slides, setSlides] = useState<SlideItem[]>(
     initialData.items.map((item) => ({
@@ -229,6 +232,7 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
 
       setStatus('Hero content saved')
       setConfirmOpen(false)
+      edits.reset()
       toast({
         title: 'Saved',
         description: 'Hero content was updated successfully.',
@@ -269,7 +273,7 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" {...edits.bind}>
       <div className="p-8">
         <div className="mb-8 flex items-center justify-between gap-4">
           <Link

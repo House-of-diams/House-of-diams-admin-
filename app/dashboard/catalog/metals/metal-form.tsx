@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 import { slugify } from '@/lib/product-catalog'
 import type { MetalItem } from './metals-client'
 import { buildCombinedMetalDisplayLabel } from '@/lib/product-metal-variants'
@@ -43,6 +44,8 @@ export function MetalForm({
 }) {
   const router = useRouter()
   const { toast } = useToast()
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard()
   const [isSaving, setIsSaving] = useState(false)
   const initialMetalName = initialItem?.base_metal_name?.trim() || stripPurityPrefix(initialItem?.name ?? '', initialItem?.purity_label)
   const [formData, setFormData] = useState({
@@ -97,6 +100,7 @@ export function MetalForm({
         return
       }
 
+      edits.reset()
       toast({ title: 'Saved', description: 'Metal master updated successfully.' })
       router.push('/dashboard/catalog/metals')
       router.refresh()
@@ -106,7 +110,7 @@ export function MetalForm({
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8" {...edits.bind}>
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <Link href="/dashboard/catalog/metals" className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">

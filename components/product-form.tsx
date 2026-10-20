@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Plus, Trash2, Video, X } from 'lucide-react'
 import { productFetch } from '@/lib/product-transport'
 import { useToast } from '@/hooks/use-toast'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 import {
   Select,
   SelectContent,
@@ -401,6 +402,8 @@ function ProductFormEditor({
 }: ProductFormProps) {
   const { toast } = useToast()
   const router = useRouter()
+  // HOD-056: warn before leaving with unsaved product edits.
+  const edits = useEditGuard()
   const productLookupUrl = productSlug
     ? `/api/products/by-slug/${encodeURIComponent(productSlug)}`
     : productId
@@ -1457,6 +1460,7 @@ function ProductFormEditor({
       })
 
       shouldRedirect = true
+      edits.reset()
       setRedirecting(true)
       router.push(backHref)
     } catch (error) {
@@ -1493,7 +1497,7 @@ function ProductFormEditor({
 
   return (
     <>
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-10" {...edits.bind}>
       {redirecting ? <ProductFormRedirectOverlay /> : null}
 
       <ProductFormHeader

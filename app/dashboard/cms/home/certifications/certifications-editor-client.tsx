@@ -16,6 +16,7 @@ import {
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CmsSaveAction } from '@/components/cms-save-action'
 import { useToast } from '@/hooks/use-toast'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 import { uploadCmsAssetDirectWithFallback } from '@/lib/cms-direct-upload-client'
 
 type CertificationItem = {
@@ -71,6 +72,8 @@ const emptyItem = (sortOrder: number): CertificationItem => ({
 
 export function CertificationsEditorClient({ initialData }: { initialData: CertificationsInitialData }) {
   const { toast } = useToast()
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard()
   const [items, setItems] = useState<CertificationItem[]>(
     initialData.items.map((item) => ({
       clientId: `id-${item.id ?? item.sort_order}`,
@@ -174,11 +177,12 @@ export function CertificationsEditorClient({ initialData }: { initialData: Certi
     }
 
     setLoadStatus('Why Choose section saved')
+    edits.reset()
     toast({ title: 'Saved', description: 'Why Choose House of Diams updated successfully.' })
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8" {...edits.bind}>
       <div className="mb-8 flex items-center gap-4">
         <Link href="/dashboard/cms/home" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80">
           <ArrowLeft size={16} />

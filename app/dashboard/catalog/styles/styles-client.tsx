@@ -2,6 +2,7 @@
 
 import { tryUploadAwsImage } from '@/lib/image-transport'
 import { catalogFetch } from '@/lib/catalog-transport'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
 import { useState } from 'react'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
@@ -71,6 +72,8 @@ export function StylesClient({ initialItems }: { initialItems: CatalogStyleItem[
   const [items, setItems] = useState<CatalogStyleItem[]>(initialItems)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(formOpen)
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<CatalogStyleItem | null>(null)
   const [saving, setSaving] = useState(false)
@@ -182,7 +185,7 @@ export function StylesClient({ initialItems }: { initialItems: CatalogStyleItem[
   }
 
   return (
-    <div className="p-8">
+    <div {...edits.bind} className="p-8">
       <div className="mb-10 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-jakarta text-3xl font-semibold text-foreground">Styles</h1>

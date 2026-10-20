@@ -17,6 +17,7 @@ import {
 import { CmsSaveAction } from '@/components/cms-save-action'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
 type CollectionItem = {
   id: string
@@ -63,6 +64,8 @@ function normalizeCollectionItems(items: CollectionItem[]) {
 
 export function CollectionEditorClient({ initialData }: { initialData: CollectionEditorInitialData }) {
   const { toast } = useToast()
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard()
   const [items, setItems] = useState<CollectionItem[]>(normalizeCollectionItems(initialData.items.map((item) => createCollectionItem(item))))
   const [loadStatus, setLoadStatus] = useState(initialData.items.length ? 'Collection loaded' : 'No collection items found yet')
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle')
@@ -225,11 +228,12 @@ export function CollectionEditorClient({ initialData }: { initialData: Collectio
 
     setConfirmOpen(false)
     setLoadStatus('Collection saved')
+    edits.reset()
     toast({ title: 'Saved', description: 'Collection updated successfully.' })
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8" {...edits.bind}>
       <div className="mb-8 flex items-center gap-4">
         <Link href="/dashboard/cms/home" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80">
           <ArrowLeft size={16} />

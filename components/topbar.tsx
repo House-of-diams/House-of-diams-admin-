@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { confirmLeaveIfUnsaved } from '@/hooks/use-unsaved-changes'
 import { Bell, Search } from 'lucide-react'
 import { logoutAdmin } from '@/lib/admin-auth-client'
 import { AdminDataSourceStatus } from '@/components/admin-data-source-status'
@@ -23,6 +24,7 @@ export function Topbar({ notificationCount = 0 }: { notificationCount?: number }
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const trimmed = query.trim()
+    if (!confirmLeaveIfUnsaved()) return
     router.push(trimmed ? `/dashboard/search?q=${encodeURIComponent(trimmed)}` : '/dashboard/search')
   }
 
@@ -50,7 +52,7 @@ export function Topbar({ notificationCount = 0 }: { notificationCount?: number }
         <button type="button" disabled={signingOut} onClick={() => void signOut()} className="rounded-md px-3 py-2 text-sm">{signingOut ? 'Signing out…' : 'Sign out'}</button>
         <button
           type="button"
-          onClick={() => router.push('/dashboard/notifications')}
+          onClick={() => { if (confirmLeaveIfUnsaved()) router.push('/dashboard/notifications') }}
           className="relative rounded-md p-1.5 transition-colors hover:bg-secondary"
           aria-label="Notifications"
         >

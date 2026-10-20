@@ -2,6 +2,7 @@
 
 import { tryUploadAwsImage } from '@/lib/image-transport'
 import { catalogFetch } from '@/lib/catalog-transport'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
 import { useState } from 'react'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
@@ -31,6 +32,8 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
   const { toast } = useToast()
   const [shapes, setShapes] = useState<StoneShape[]>(initialShapes)
   const [isFormOpen, setIsFormOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(isFormOpen)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<StoneShape | null>(null)
@@ -174,7 +177,7 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
   }
 
   return (
-    <div className="p-8">
+    <div {...edits.bind} className="p-8">
       <div className="mb-10 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-jakarta text-3xl font-semibold text-foreground">Stone Shapes</h1>

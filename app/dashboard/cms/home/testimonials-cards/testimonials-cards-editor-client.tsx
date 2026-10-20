@@ -16,6 +16,7 @@ import {
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CmsSaveAction } from '@/components/cms-save-action'
 import { useToast } from '@/hooks/use-toast'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
 type TestimonialItem = {
   clientId: string
@@ -58,6 +59,8 @@ const emptyEditorItem = (sortOrder: number): EditorItem => ({
 
 export function TestimonialsCardsEditorClient({ initialData }: { initialData: TestimonialsCardsInitialData }) {
   const { toast } = useToast()
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard()
   const [eyebrow, setEyebrow] = useState(initialData.section.eyebrow)
   const [heading, setHeading] = useState(initialData.section.heading)
   const [items, setItems] = useState<TestimonialItem[]>(
@@ -115,6 +118,7 @@ export function TestimonialsCardsEditorClient({ initialData }: { initialData: Te
     setIsSaving(false)
     if (!res.ok) return setLoadStatus(payload?.error ?? 'Unable to save testimonial cards.')
     setConfirmOpen(false)
+    edits.reset()
     toast({ title: 'Saved', description: 'Testimonial cards updated successfully.' })
     setLoadStatus('Testimonial cards saved')
   }
@@ -122,7 +126,7 @@ export function TestimonialsCardsEditorClient({ initialData }: { initialData: Te
   const nextOrder = Math.max(...items.map((it) => it.sort_order), 0) + 1
 
   return (
-    <div className="p-8">
+    <div className="p-8" {...edits.bind}>
       <div className="mb-8 flex items-center justify-between gap-4">
         <Link href="/dashboard/cms/home" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80">
           <ArrowLeft size={16} />

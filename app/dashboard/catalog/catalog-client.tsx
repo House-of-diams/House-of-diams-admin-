@@ -2,6 +2,7 @@
 
 import { tryUploadAwsImage } from '@/lib/image-transport'
 import { catalogFetch } from '@/lib/catalog-transport'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
 import Link from 'next/link'
 import { ReactNode, useEffect, useState } from 'react'
@@ -263,6 +264,8 @@ function CategoriesPanel({ categories, navbarItems, onChange }: { categories: Ca
   const { toast } = useToast()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(isPanelOpen)
   const [formData, setFormData] = useState<CategoryFormState>(emptyCategoryForm(categories.length + 1))
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<CatalogCategory | null>(null)
@@ -338,7 +341,7 @@ function CategoriesPanel({ categories, navbarItems, onChange }: { categories: Ca
   }
 
   return (
-    <div className="space-y-6">
+    <div {...edits.bind} className="space-y-6">
       <SectionHeader title="Categories" description="Manage main catalog categories." actionLabel="Add New Category" onAction={openNew} />
 
       <DataTable
@@ -523,6 +526,8 @@ function SubcategoriesPanel({
   const { toast } = useToast()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(isPanelOpen)
   const [formData, setFormData] = useState<SubcategoryFormState>(emptySubcategoryForm(categories[0]?.id ?? '', subcategories.length + 1))
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<CatalogSubcategory | null>(null)
@@ -617,7 +622,7 @@ function SubcategoriesPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div {...edits.bind} className="space-y-6">
       <SectionHeader title="Subcategories" description="Manage category children and their display behavior." actionLabel="Add New Subcategory" onAction={openNew} />
 
       <DataTable
@@ -741,6 +746,8 @@ function OptionsPanel({
   const availableSubcategories = subcategories.filter((item) => item.status === 'active')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(isPanelOpen)
   const [formData, setFormData] = useState<OptionFormState>(emptyOptionForm(availableSubcategories[0]?.id ?? '', options.length + 1))
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<CatalogOption | null>(null)
@@ -834,7 +841,7 @@ function OptionsPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div {...edits.bind} className="space-y-6">
       <SectionHeader title="Options" description="Manage manual child options for any subcategory." actionLabel="Add New Option" onAction={openNew} />
 
       <DataTable
@@ -955,6 +962,8 @@ function PoliciesPanel({
   const { toast } = useToast()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(isPanelOpen)
   const [formData, setFormData] = useState<PolicyFormState>(emptyPolicyForm(productContentRules.length + 1))
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ProductContentRule | null>(null)
@@ -1023,7 +1032,7 @@ function PoliciesPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div {...edits.bind} className="space-y-6">
       <SectionHeader
         title="Policies"
         description="Manage reusable Shipping and Care & Warranty master rules."
