@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { safeLinkSchema } from './link-validation.ts'
 
 const cmsIdSchema = z.union([z.number().int().safe().positive(), z.string().regex(/^[1-9][0-9]*$/).refine(value => /^[1-9][0-9]*$/.test(value) && BigInt(value) <= BigInt('9223372036854775807'), 'Invalid CMS identifier')])
 
@@ -8,7 +9,8 @@ const uuid = z.string().uuid()
 const integer = z.coerce.number().int().min(0).max(1_000_000)
 const text = (max: number) => z.string().max(max)
 const required = (max: number) => z.string().trim().min(1).max(max)
-const safeLink = z.string().max(2_000).refine((value) => !value || /^(?:\/|https?:\/\/|mailto:|tel:)/i.test(value), 'Use a relative, HTTP(S), email, or telephone link.')
+// HOD-067: one shared link rule.
+const safeLink = safeLinkSchema
 
 export const supportAnnouncementParentSchema = z.object({ is_active: z.boolean(), autoplay: z.boolean(), speed_ms: z.coerce.number().int().min(100).max(120_000) }).strict()
 export const supportAnnouncementItemSchema = z.object({ id: numericId.optional(), message: required(2_000), link_url: safeLink, open_in_new_tab: z.boolean(), sort_order: integer, is_active: z.boolean() }).strict()

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { safeLinkSchema } from './link-validation.ts'
 import { navbarMutation, type CatalogAccess } from './catalog-command'
 import { mapSectionTypeToDb, normalizeNavbarItemForSave } from './navbar'
 
@@ -10,10 +11,10 @@ const shortText = z.string().max(500)
 const longText = z.string().max(2_000)
 const integer = z.coerce.number().int().min(0).max(1_000_000)
 const source = z.object({ id: bigintId.optional(), sourceKind: z.enum(['subcategory_option', 'metal', 'stone_shape', 'ring_size', 'certificate', 'style']), sourceItemId: uuid, label: shortText, sortOrder: integer, isActive: z.boolean() }).strict()
-const link = z.object({ id: uuid.optional(), label: shortText, url: longText }).strict()
+const link = z.object({ id: uuid.optional(), label: shortText, url: safeLinkSchema }).strict()
 const section = z.object({ id: z.string().min(1).max(200), title: shortText, iconSvgPath: longText.nullish(), type: z.enum(['Subcategory Options', 'Manual Links', 'Metal Swatches', 'Stone Shapes', 'Ring Sizes', 'Certificates', 'Styles', 'Category Link']), sourceLabel: shortText, sourceSubcategoryId: uuid.nullable(), sourceCategorySlug: shortText.nullish(), column: integer, showAsFilter: z.boolean().optional(), enableCategoryLink: z.boolean().optional(), linkedCategoryId: uuid.nullable().optional(), selectedSourceItems: z.array(source).max(1_000).optional(), links: z.array(link).max(500) }).strict()
-const featured = z.object({ id: uuid.optional(), enabled: z.boolean(), imageUrl: longText, buttonLabel: shortText, buttonUrl: longText, imageAlt: longText }).strict()
-const item = z.object({ id: z.string().min(1).max(200), label: shortText, slug: shortText, type: z.enum(['mega', 'direct']), linkedCategoryId: uuid.nullable().optional(), visible: z.boolean(), url: longText.optional(), columns: integer.optional(), sections: z.array(section).max(500).optional(), featuredImage: featured.optional() }).strict()
+const featured = z.object({ id: uuid.optional(), enabled: z.boolean(), imageUrl: longText, buttonLabel: shortText, buttonUrl: safeLinkSchema, imageAlt: longText }).strict()
+const item = z.object({ id: z.string().min(1).max(200), label: shortText, slug: shortText, type: z.enum(['mega', 'direct']), linkedCategoryId: uuid.nullable().optional(), visible: z.boolean(), url: safeLinkSchema.optional(), columns: integer.optional(), sections: z.array(section).max(500).optional(), featuredImage: featured.optional() }).strict()
 const envelope = z.object({
   request_id: uuid,
   expected_revision: z.string().regex(/^[a-f0-9]{32}$/),

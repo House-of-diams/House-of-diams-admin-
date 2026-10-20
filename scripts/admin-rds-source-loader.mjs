@@ -21,8 +21,8 @@ export function createSourceLoader(root) {
     for (const name of new Set(specifiers)) {
       if (name.startsWith('node:')) continue
       const dependency = name.startsWith('.')
-        ? await actualSource(path.resolve(path.dirname(absolute), name + '.ts'))
-        : name.startsWith('@/') ? await actualSource(path.resolve(root, name.slice(2) + '.ts'))
+        ? await actualSource(path.resolve(path.dirname(absolute), name.endsWith('.ts') ? name : name + '.ts'))
+        : name.startsWith('@/') ? await actualSource(path.resolve(root, name.slice(2).endsWith('.ts') ? name.slice(2) : name.slice(2) + '.ts'))
           : pathToFileURL(require.resolve(name)).href
       code = code.replaceAll(`'${name}'`, JSON.stringify(dependency)).replaceAll(`"${name}"`, JSON.stringify(dependency))
     }

@@ -17,7 +17,7 @@ async function load(file) {
     if (name === 'server-only') url = data('export {}')
     else if (name.endsWith('video-admission-runtime')) url = data('export const resolveAdmittedVideo=(url)=>globalThis.__d1eResolve(url)')
     else if (name.endsWith('/pool') || name.endsWith('product-session-runtime')) url = data('export const adminTransaction=()=>{throw Error("No live boundary")};export const authorizeProductRequest=()=>{throw Error("No live boundary")}')
-    else if (name.startsWith('.') || name.startsWith('@/')) url = (await load((name.startsWith('@/') ? path.resolve(name.slice(2)) : path.resolve(path.dirname(file), name)) + '.ts')).url
+    else if (name.startsWith('.') || name.startsWith('@/')) url = (await load((name.startsWith('@/') ? path.resolve(name.slice(2)) : path.resolve(path.dirname(file), name)) + (name.endsWith('.ts') ? '' : '.ts'))).url
     else url = import.meta.resolve(name)
     code = code.replaceAll(`'${name}'`, JSON.stringify(url)).replaceAll(`"${name}"`, JSON.stringify(url))
   }

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { safeLinkSchema } from './link-validation.ts'
 
 const cmsIdSchema = z.union([z.number().int().safe().positive(), z.string().regex(/^[1-9][0-9]*$/).refine(value => /^[1-9][0-9]*$/.test(value) && BigInt(value) <= BigInt('9223372036854775807'), 'Invalid CMS identifier')])
 
@@ -8,7 +9,8 @@ const integer = z.coerce.number().int().min(0).max(1_000_000)
 const numericId = cmsIdSchema.transform(String)
 const uuid = z.string().uuid()
 const httpUrl = z.string().max(2_000).refine((value) => !value || /^https?:\/\//i.test(value), 'Use a valid HTTP(S) URL.')
-const safeLink = z.string().max(2_000).refine((value) => !value || /^(?:\/|https?:\/\/|mailto:|tel:)/i.test(value), 'Use a relative, HTTP(S), email, or telephone link.')
+// HOD-067: one shared link rule.
+const safeLink = safeLinkSchema
 
 export const checkoutResultParentSchema = z.object({ main_banner_image_path: text(2_000), main_banner_image_alt: text(2_000), secondary_banner_image_path: text(2_000), secondary_banner_image_alt: text(2_000), secondary_eyebrow: text(500), secondary_heading: text(500), secondary_paragraph: text(10_000), is_enabled: z.boolean() }).strict()
 export const checkoutResultItemSchema = z.object({ state: z.enum(['success', 'pending', 'failed', 'error']), eyebrow: text(500), heading: text(500), paragraph: text(10_000), order_button_label: text(500), is_enabled: z.boolean() }).strict()

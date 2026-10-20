@@ -193,7 +193,10 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
       const savedIds = new Set(sortedSlides.flatMap((item) => item.id ? [String(item.id)] : []))
       const deletedIds = initialData.items.flatMap((item) => savedIds.has(String(item.id)) ? [] : [String(item.id)])
       const saveBody = {
-        ...formData,
+        // HOD-067: only the section fields the route saves.
+        slider_enabled: formData.slider_enabled,
+        seo_title: formData.seo_title,
+        seo_description: formData.seo_description,
         expected_revision: initialData.revision,
         deleted_ids: deletedIds,
         items: sortedSlides.map(({ id, image_path, mobile_image_path, headline, subtitle, button_text, button_link }, index) => ({
