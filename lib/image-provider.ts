@@ -1,5 +1,6 @@
 import 'server-only'
 import { readAdminAuthProvider } from './auth/integration'
+import { deploymentProfile } from './deployment-profile'
 
 export type ImageProvider = 'legacy' | 'aws'
 export function readImageProvider(env: NodeJS.ProcessEnv = process.env): ImageProvider {
@@ -17,9 +18,8 @@ export function imageTarget(context: ImageContext, env: NodeJS.ProcessEnv = proc
   if (context === 'content' && env.ADMIN_IMAGE_CONTENT_ROUTING_VERIFIED !== 'true') throw new Error('Image service unavailable.')
   const bucket = context === 'product' ? env.AWS_MEDIA_BUCKET : env.AWS_CONTENT_BUCKET
   const baseUrl = context === 'product' ? env.NEXT_PUBLIC_MEDIA_CDN_BASE_URL : env.AWS_CONTENT_CDN_BASE_URL
-  const expected = context === 'product'
-    ? { bucket: 'house-of-diams', baseUrl: 'https://media.houseofdiams.com' }
-    : { bucket: 'house-of-diams-hod', baseUrl: 'https://content.houseofdiams.com' }
+  const profile = deploymentProfile(env.NEXT_PUBLIC_HOD_DEPLOYMENT)
+  const expected = context === 'product' ? { ...profile.media } : { ...profile.content }
   if (bucket?.trim() !== expected.bucket || baseUrl?.trim().replace(/\/+$/, '') !== expected.baseUrl) throw new Error('Image service unavailable.')
   return expected
 }

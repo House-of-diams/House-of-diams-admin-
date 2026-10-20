@@ -14,7 +14,8 @@ async function load(path, dependencies = {}) {
   const url = `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`
   return { url, exports: await import(url) }
 }
-const cfg = await load('../lib/auth/config.ts')
+const profile = await load('../lib/deployment-profile.ts')
+const cfg = await load('../lib/auth/config.ts', { '../deployment-profile': profile.url })
 const security = await load('../lib/auth/request-security.ts')
 const core = await load('../lib/auth/admin-identity-core.ts')
 const oidcModule = await load('../lib/auth/keycloak.ts', { './request-security': security.url, jose: import.meta.resolve('jose') })

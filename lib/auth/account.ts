@@ -1,4 +1,5 @@
 import 'server-only'
+import { deploymentProfile } from '../deployment-profile'
 import { NO_STORE } from './request-security'
 import type { authorizeProductRequest } from '../product-session-runtime'
 import { ProductSessionError } from '../product-session-error'
@@ -7,7 +8,7 @@ import { ProductSessionError } from '../product-session-error'
 export function accountConsoleUrl(env: Record<string, string | undefined>): string | null {
   if (env.ADMIN_KEYCLOAK_ACCOUNT_VERIFIED !== 'true') return null
   const issuer = env.ADMIN_OIDC_ISSUER
-  if (issuer !== 'https://auth-uat.houseofdiams.com/realms/houseofdiams') throw new Error('Account configuration unavailable')
+  if (issuer !== deploymentProfile(env.NEXT_PUBLIC_HOD_DEPLOYMENT).oidcIssuer) throw new Error('Account configuration unavailable')
   // Explicit operator-reviewed URL; do not derive an unverified capability from discovery.
   const value = env.ADMIN_KEYCLOAK_ACCOUNT_URL
   if (value !== `${issuer}/account/`) throw new Error('Account configuration unavailable')
