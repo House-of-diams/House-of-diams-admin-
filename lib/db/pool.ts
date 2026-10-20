@@ -10,8 +10,12 @@ function database() {
   if (!state.hodAdminDb) {
     const config = readAdminDbConfig(process.env, path => readFileSync(path, 'utf8'))
     const pool = new Pool(config.pool)
-    // pg requires a handler for idle-client errors; do not log credentials/query details.
-    pool.on('error', () => {})
+    // pg requires a handler for idle-client errors. HOD-036: log only the error
+    // code and class so outages are visible, never credentials or query text.
+    pool.on('error', (error: Error & { code?: unknown }) => {
+      const code = typeof error.code === 'string' && /^[A-Z0-9_]{1,40}$/.test(error.code) ? error.code : 'unknown'
+      console.error(`[admin-db] idle client error code=${code} type=${error.name}`)
+    })
     state.hodAdminDb = { pool, loginRole: config.loginRole }
   }
   return state.hodAdminDb
