@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Eye, EyeOff, KeyRound, MessageCircle, Save, ShieldAlert } from 'lucide-react'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useToast } from '@/hooks/use-toast'
@@ -32,6 +32,8 @@ type PasswordForm = {
 
 export type SettingsPageData = {
   settings: SiteSettings
+  /** HOD-054: revision of the saved settings this page shows (RDS mode). */
+  revision?: string
   gstSlabs: CatalogGstSlab[]
 }
 
@@ -130,6 +132,7 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
     estimated_delivery_text: (initialData.settings.estimated_delivery_text ?? 'Approximately 3 to 4 weeks').trim(),
   }), [initialData.settings])
   const [savedSettingsFingerprint, setSavedSettingsFingerprint] = useState(initialSettingsFingerprint)
+  const settingsRevision = useRef<string | null>(initialData.revision ?? null)
   const settingsChanged = settingsFingerprint !== savedSettingsFingerprint
   const passwordChanged = Object.values(passwordForm).some(Boolean)
   const passwordReady = Boolean(passwordForm.currentPassword && passwordForm.newPassword.length >= 8 && passwordForm.newPassword === passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.currentPassword)
@@ -180,6 +183,7 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
         method: 'POST',
         headers: {
           'content-type': 'application/json',
+          'x-expected-revision': settingsRevision.current ?? '',
         },
         body: JSON.stringify(nextSettings),
       })
@@ -197,6 +201,7 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
         estimated_delivery_text: nextSettings.estimated_delivery_text,
       })
       setSavedSettingsFingerprint(settingsFingerprint)
+      if (typeof payload?.revision === 'string') settingsRevision.current = payload.revision
 
       toast({
         title: 'Saved',

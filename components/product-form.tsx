@@ -544,8 +544,11 @@ function ProductFormEditor({
       setCareWarrantyRules,
     })
 
-  const applyProduct = (item: ProductEditorItem | null | undefined) =>
-    applyProductPayload(item, {
+  // HOD-054: revision of the product as this editor loaded it; the save sends it back.
+  const editorRevision = useRef<string | null>(null)
+  const applyProduct = (item: ProductEditorItem | null | undefined) => {
+    editorRevision.current = item?.revision ?? null
+    return applyProductPayload(item, {
       setName,
       setSku,
       setProductLane,
@@ -620,6 +623,7 @@ function ProductFormEditor({
       setCustomDropdownsEnabled,
       setCustomDropdowns,
     })
+  }
 
   const markBootstrapScopeLoaded = (scope: CatalogBootstrapScope) => {
     setLoadedBootstrapScopes((current) => new Set(current).add(scope))
@@ -1344,6 +1348,7 @@ function ProductFormEditor({
       const saveUrl = productId ? `/api/products/${productId}` : productSlug ? `/api/products/by-slug/${encodeURIComponent(productSlug)}` : '/api/products'
       const response = await authedFetch(saveUrl, {
         method: productId || productSlug ? 'PATCH' : 'POST',
+        headers: productId || productSlug ? { 'x-expected-revision': editorRevision.current ?? '' } : undefined,
         body: JSON.stringify({
           name,
           sku,

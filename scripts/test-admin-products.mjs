@@ -177,6 +177,17 @@ test('route success uses mapped internal UUID and preserves duplicate/status out
   assert.equal((await moved.handler('status',req({status:'active',expected_status:'hidden'},'PATCH'),id(2))).status,200);assert.equal(moved.calls.at(-1)[1][3],'active')
   const before=moved.calls.length;assert.equal((await moved.handler('status',req({status:'active',expected_status:'archived'},'PATCH'),id(2))).status,400);assert.equal(moved.calls.length,before,'disallowed move never reaches the database')
 })
+test('HOD-054: product save needs the revision the editor opened; stale or missing is 409 before any write',async()=>{
+  const row={id:id(2),name:'Ring',slug:'ring',status:'active',updated_at:'2026-10-20T00:00:00.000Z'};let current=row
+  const h=harness({run:sql=>sql.includes('to_jsonb(p) AS item FROM public.products p')?[{item:current}]:sql.startsWith('SELECT id FROM public.products')?[{id:id(2)}]:[]})
+  const {item}=await (await h.handler('read-id',req(undefined,'GET'),id(2))).json();assert.match(item.revision,/^[0-9a-f]{32}$/)
+  const save=rev=>h.handler('save-id',new Request('https://admin.example/api/products/'+id(2),{method:'PATCH',headers:{'content-type':'application/json','x-admin-csrf':'csrf',...(rev===undefined?{}:{'x-expected-revision':rev})},body:JSON.stringify(payload())}),id(2))
+  const writes=()=>h.calls.filter(([sql])=>sql.includes('admin_product_save_v1')).length
+  for(const rev of [undefined,'','f'.repeat(32)]){const r=await save(rev);assert.equal(r.status,409);assert.match((await r.json()).error,/changed this since you opened it/)}
+  current={...row,name:'Edited by someone else'};assert.equal((await save(item.revision)).status,409,'a concurrent edit is detected')
+  assert.equal(writes(),0,'no write ever ran');assert.ok(h.calls.some(([sql])=>/FOR UPDATE/.test(sql)),'the row is locked before comparing')
+  current=row;const ok=await save(item.revision);assert.notEqual(ok.status,409,'the matching revision passes the check')
+})
 test('B2 transaction rollback protects atomic mutations and releases on SQLSTATE conflict',async()=>{
   const calls=[];let released
   const client={async query(sql){calls.push(sql);if(sql.startsWith('SELECT session_user'))return {rows:[{login_role:'hod_admin_app',active_role:'hod_admin_app',capability_exists:true,safe_login:true,isolated_login:true,safe_capability:true,isolated_capability:true}]};if(sql.includes('admin_product_delete_v2'))throw Object.assign(Error('SECRET'),{code:'40001'});return {rows:[]}},release(value){released=value}}

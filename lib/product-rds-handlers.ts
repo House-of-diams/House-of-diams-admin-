@@ -15,6 +15,7 @@ import { saveRdsProduct } from './db/admin-repositories/product-save'
 import { loadRdsProductBootstrap } from './db/admin-repositories/product-bootstrap'
 import { productPayloadSchema, productPayloadErrorMessage, safeProductSaveError } from './product-payload-validation'
 import { readProductDataProvider } from './product-provider'
+import { revisionOf, REVISION_HEADER, STALE_EDITOR_MESSAGE } from './revision'
 import { activateDraftsSchema, bulkDeleteSchema, bulkPriceByMetalSchema, bulkPriceMetalsSchema, bulkPricePreviewSchema, duplicateProductSchema, productOperationError, productStatusSchema } from './product-operations-validation'
 import { adminMutationError, inventoryUpdateSchema } from './order-inventory-validation'
 
@@ -59,10 +60,18 @@ export function createProductRdsHandlers(deps: Dependencies) {
           const id = action === 'create' ? null : await findRdsProductId(db, rawId ?? '', action.endsWith('-id'))
           if (action !== 'create' && !id) return response({ error: action === 'read-id' ? 'Unable to load the product.' : 'Product not found.' }, action === 'read-id' ? 500 : 404)
           if (saving && parsed?.success) {
+            if (id) {
+              // HOD-054: refuse if the product changed since this editor opened it.
+              const expected = request.headers.get(REVISION_HEADER)
+              await db.query('SELECT id FROM public.products WHERE id=$1::uuid FOR UPDATE', [id])
+              const current = await loadRdsProductEditor(db, id)
+              if (!expected || !current || revisionOf(current) !== expected) return response({ error: STALE_EDITOR_MESSAGE }, 409)
+            }
             const result = await saveRdsProduct(db, actor, parsed.data, id)
             return 'error' in result ? response({ error: result.error }, 400) : response(result.data)
           }
-          return response({ item: await loadRdsProductEditor(db, id!) })
+          const item = await loadRdsProductEditor(db, id!)
+          return response({ item: item && { ...item, revision: revisionOf(item) } })
         }, { snapshot: action === 'read-id' || action === 'read-slug' })
       }
       if (action === 'product-list') {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withOperationsRoute, isOperationsRds } from '@/lib/operations-route'
 import { createCouponsRepository } from '@/lib/db/admin-repositories/coupons'
+import { REVISION_HEADER } from '@/lib/revision'
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
 import { couponDatabaseError, saveCoupon } from '@/lib/coupon-save'
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   return withOperationsRoute(request,async access=>{
-  if(isOperationsRds(access)) return Response.json(await createCouponsRepository(access.db).save(await request.json().catch(()=>null)))
+  if(isOperationsRds(access)) return Response.json(await createCouponsRepository(access.db).save(await request.json().catch(()=>null),request.headers.get(REVISION_HEADER)??''))
   const body = await request.json().catch(() => null)
   return saveCoupon(access, body)
   })
