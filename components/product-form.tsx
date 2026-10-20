@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Plus, Trash2, Video, X } from 'lucide-react'
 import { productFetch } from '@/lib/product-transport'
 import { useToast } from '@/hooks/use-toast'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 import {
   Select,
   SelectContent,
@@ -292,7 +293,7 @@ export type ProductFormStepId = 'basics' | 'pricing' | 'attributes' | 'content' 
 
 const PRODUCT_FORM_STEPS: { id: ProductFormStepId; label: string; description: string }[] = [
   { id: 'basics', label: 'Basics', description: 'Core info, category, and template setup.' },
-  { id: 'pricing', label: 'Pricing', description: 'Choose metal options, then set their prices, media, GST, discounts, and stock.' },
+  { id: 'pricing', label: 'Pricing', description: 'Choose metal options, then set their prices, media, GST and discounts.' },
   { id: 'attributes', label: 'Attributes', description: 'Metals, filters, sizing, engraving, and storefront options.' },
   { id: 'content', label: 'Content', description: 'Description, highlights, and policy content.' },
   { id: 'details', label: 'Details', description: 'Specifications and detailed content sections.' },
@@ -401,6 +402,8 @@ function ProductFormEditor({
 }: ProductFormProps) {
   const { toast } = useToast()
   const router = useRouter()
+  // HOD-056: warn before leaving with unsaved product edits.
+  const edits = useEditGuard()
   const productLookupUrl = productSlug
     ? `/api/products/by-slug/${encodeURIComponent(productSlug)}`
     : productId
@@ -544,8 +547,11 @@ function ProductFormEditor({
       setCareWarrantyRules,
     })
 
-  const applyProduct = (item: ProductEditorItem | null | undefined) =>
-    applyProductPayload(item, {
+  // HOD-054: revision of the product as this editor loaded it; the save sends it back.
+  const editorRevision = useRef<string | null>(null)
+  const applyProduct = (item: ProductEditorItem | null | undefined) => {
+    editorRevision.current = item?.revision ?? null
+    return applyProductPayload(item, {
       setName,
       setSku,
       setProductLane,
@@ -620,6 +626,7 @@ function ProductFormEditor({
       setCustomDropdownsEnabled,
       setCustomDropdowns,
     })
+  }
 
   const markBootstrapScopeLoaded = (scope: CatalogBootstrapScope) => {
     setLoadedBootstrapScopes((current) => new Set(current).add(scope))
@@ -1344,6 +1351,7 @@ function ProductFormEditor({
       const saveUrl = productId ? `/api/products/${productId}` : productSlug ? `/api/products/by-slug/${encodeURIComponent(productSlug)}` : '/api/products'
       const response = await authedFetch(saveUrl, {
         method: productId || productSlug ? 'PATCH' : 'POST',
+        headers: productId || productSlug ? { 'x-expected-revision': editorRevision.current ?? '' } : undefined,
         body: JSON.stringify({
           name,
           sku,
@@ -1358,6 +1366,7 @@ function ProductFormEditor({
           base_price: basePrice ? Number(basePrice) : null,
           discount_price: discountPrice ? Number(discountPrice) : null,
           gst_slab_id: gstSlabId || null,
+          // Stock is retired (made to order). The saved value is sent back unchanged.
           stock_quantity: Math.max(0, Number(stockQuantity || 0)),
           status: 'active',
           main_category_id: mainCategoryId,
@@ -1451,6 +1460,7 @@ function ProductFormEditor({
       })
 
       shouldRedirect = true
+      edits.reset()
       setRedirecting(true)
       router.push(backHref)
     } catch (error) {
@@ -1476,7 +1486,7 @@ function ProductFormEditor({
       <ProductFormLoadingShell
         backHref={backHref}
         title={pageTitle || (productId || productSlug ? 'Edit Product' : 'Create Product')}
-        description={pageDescription || (productId || productSlug ? 'Update the saved product model and storefront details.' : 'Add a new jewelry product to inventory.')}
+        description={pageDescription || (productId || productSlug ? 'Update the saved product model and storefront details.' : 'Add a new jewelry product.')}
       />
     )
   }
@@ -1487,13 +1497,13 @@ function ProductFormEditor({
 
   return (
     <>
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-10" {...edits.bind}>
       {redirecting ? <ProductFormRedirectOverlay /> : null}
 
       <ProductFormHeader
         backHref={backHref}
         title={pageTitle || (productId || productSlug ? 'Edit Product' : 'Create Product')}
-        description={pageDescription || (productId || productSlug ? 'Update the saved product model and storefront details.' : 'Add a new jewelry product to inventory.')}
+        description={pageDescription || (productId || productSlug ? 'Update the saved product model and storefront details.' : 'Add a new jewelry product.')}
       />
 
       {!productId && !productSlug ? (
@@ -1627,8 +1637,6 @@ function ProductFormEditor({
               gstSlabId={gstSlabId}
               setGstSlabId={setGstSlabId}
               gstSlabs={gstSlabs}
-              stockQuantity={stockQuantity}
-              setStockQuantity={setStockQuantity}
               inputClassName={inputClassName}
             />
 

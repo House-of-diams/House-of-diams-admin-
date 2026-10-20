@@ -1,5 +1,5 @@
 import { operationsPage } from '@/lib/operations-page-data'
-import { createCouponsRepository } from '@/lib/db/admin-repositories/coupons'
+import { couponRevision, createCouponsRepository } from '@/lib/db/admin-repositories/coupons'
 import { couponProductSources } from '@/lib/db/admin-repositories/coupon-products'
 import { createSupabaseAdminClient } from '@/lib/admin-supabase'
 import type { CouponProduct, CouponRow } from './coupon-types'
@@ -57,5 +57,8 @@ return {products,variants,metals,media}
   }) as CouponProduct[]
 }
 
-export function getCoupons():Promise<CouponRow[]> { return operationsPage(db=>createCouponsRepository(db).list(),legacyGetCoupons) }
-export function getCoupon(id:number|string):Promise<CouponRow|null> {return operationsPage(db=>createCouponsRepository(db).one(id),()=>legacyGetCoupon(id))}
+/** RDS mode returns one page (HOD-065); legacy mode returns every coupon and the client pages. */
+export function getCoupons(page=1,query=''):Promise<{items:CouponRow[];server?:{page:number;total:number;query:string}}> {
+  return operationsPage(async db=>{const result=await createCouponsRepository(db).list(page,query);return {items:result.items,server:{page:result.page,total:result.total,query}}},async()=>({items:await legacyGetCoupons()}))
+}
+export function getCoupon(id:number|string):Promise<CouponRow|null> {return operationsPage(async db=>{const row=await createCouponsRepository(db).one(id);return row?{...row,revision:couponRevision(row)}:null},()=>legacyGetCoupon(id))}

@@ -102,7 +102,9 @@ export function HeroSlideEditorClient({ initialSlide, initialItems, initialSecti
     setStatus('Saving slide...')
     const items = savedItems.map((item) => item.id === slide.id ? slide : item)
     const saveBody = {
-      ...initialSection,
+      slider_enabled: initialSection.slider_enabled,
+      seo_title: initialSection.seo_title,
+      seo_description: initialSection.seo_description,
       items,
       expected_revision: revision,
       deleted_ids: [],

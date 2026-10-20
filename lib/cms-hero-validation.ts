@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { safeLinkSchema } from './link-validation.ts'
 
 const cmsIdSchema = z.union([z.number().int().safe().positive(), z.string().regex(/^[1-9][0-9]*$/).refine(value => /^[1-9][0-9]*$/.test(value) && BigInt(value) <= BigInt('9223372036854775807'), 'Invalid CMS identifier')])
 
@@ -10,16 +11,13 @@ const slideSchema = z.object({
   headline: z.string().trim().max(200),
   subtitle: z.string().trim().max(1000),
   button_text: z.string().trim().max(100),
-  button_link: z.string().trim().max(1000),
+  button_link: safeLinkSchema,
 }).strict()
 
 export const heroSaveSchema = z.object({
   request_id: z.string().uuid(),
   expected_revision: z.string().regex(/^[a-f0-9]{32}$/),
   deleted_ids: z.array(z.string().regex(/^\d+$/)).max(100),
-  eyebrow: z.string().max(160).optional(),
-  headline: z.string().max(240).optional(),
-  subtitle: z.string().max(1000).optional(),
   slider_enabled: z.boolean(),
   seo_title: z.string().trim().max(120),
   seo_description: z.string().trim().max(320),

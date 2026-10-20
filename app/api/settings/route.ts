@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withOperationsRoute, isOperationsRds } from '@/lib/operations-route'
-import { createSettingsRepository } from '@/lib/db/admin-repositories/settings'
+import { createSettingsRepository, settingsRevision } from '@/lib/db/admin-repositories/settings'
+import { REVISION_HEADER } from '@/lib/revision'
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
 import { settingsDatabaseError, siteSettingsSchema } from '@/lib/settings-validation'
@@ -9,7 +10,7 @@ const settingsKey = 'global_site_settings'
 
 export async function GET(request: Request) {
   return withOperationsRoute(request,async access=>{
-  if(isOperationsRds(access)) return Response.json({item:await createSettingsRepository(access.db).read()})
+  if(isOperationsRds(access)){const item=await createSettingsRepository(access.db).read();return Response.json({item,revision:settingsRevision(item)})}
 
   const { data, error } = await access.adminClient
     .from('site_settings')
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   return withOperationsRoute(request,async access=>{
-  if(isOperationsRds(access)) return Response.json(await createSettingsRepository(access.db).save(await request.json().catch(()=>null)))
+  if(isOperationsRds(access)) return Response.json(await createSettingsRepository(access.db).save(await request.json().catch(()=>null),request.headers.get(REVISION_HEADER)??''))
   const parsed = siteSettingsSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid settings details.' }, { status: 400 })
 

@@ -18,7 +18,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { data, error } = await access.adminClient
     .from('products')
-    .update({ status: 'draft', updated_at: new Date().toISOString() })
+    .update({ status: input.data.status, updated_at: new Date().toISOString() })
     .eq('id', id.data)
     .eq('status', input.data.expected_status)
     .select('id, status')

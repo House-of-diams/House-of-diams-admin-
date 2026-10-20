@@ -1,4 +1,5 @@
 import 'server-only'
+import { deploymentProfile } from '../deployment-profile'
 
 export type AuthConfig = Readonly<{
   issuer: string; clientId: string; clientSecret: string; origin: string
@@ -20,7 +21,7 @@ export function readAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig
   const roleLocation = env.ADMIN_OIDC_ROLE_LOCATION
   const tokenAuthMethod = env.ADMIN_OIDC_TOKEN_AUTH_METHOD
   if (env.ADMIN_AUTH_POLICY_VERIFIED !== 'true'
-    || issuer !== 'https://auth-uat.houseofdiams.com/realms/houseofdiams'
+    || issuer !== deploymentProfile(env.NEXT_PUBLIC_HOD_DEPLOYMENT).oidcIssuer
     || clientId !== 'hod-admin' || !clientSecret || !origin
     || (roleLocation !== 'realm' && roleLocation !== 'client')
     || (tokenAuthMethod !== 'client_secret_post' && tokenAuthMethod !== 'client_secret_basic')

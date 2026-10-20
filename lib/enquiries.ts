@@ -71,6 +71,8 @@ export type EnquiriesPageData = {
   counts: Record<EnquiryTab, number>
   newsletterEnabled: boolean
   promotionLeadsEnabled: boolean
+  /** Set when the server paged the inbox (HOD-065); items then hold one page of the active tab. */
+  paging?: { page: number; pageSize: number; total: number }
 }
 
 function isMissingRelationError(error: { code?: string; message?: string } | null) {
@@ -221,4 +223,12 @@ async function getLegacyEnquiriesPageData(): Promise<EnquiriesPageData> {
   }
 }
 
-export async function getEnquiriesPageData() { return operationsPage(async db => presentEnquiries(await createEnquiriesRepository(db).sources()), getLegacyEnquiriesPageData) }
+export function normalizeEnquiryTab(value: string | null | undefined): EnquiryTab {
+  return value === 'bespoke' || value === 'contact' || value === 'product' || value === 'newsletter' || value === 'promotion' ? value : 'all'
+}
+export async function getEnquiriesPageData(tab: EnquiryTab = 'all', page = 1) {
+  return operationsPage(async db => {
+    const paged = await createEnquiriesRepository(db).pagedSources(tab, page)
+    return { ...presentEnquiries(paged.sources), counts: paged.counts, paging: { page: paged.page, pageSize: paged.pageSize, total: paged.total } }
+  }, getLegacyEnquiriesPageData)
+}

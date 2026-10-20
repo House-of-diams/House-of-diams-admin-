@@ -12,7 +12,10 @@ type OrderStatusUpdateInput = {
   customerName: string
   orderNumber: string
   orderDate?: string | null
+  /** Amount in currency (the charged amount); line totals are already converted by the caller. */
   totalAmount: number
+  /** ISO currency the customer paid in; USD when unknown. */
+  currency?: string | null
   items: OrderEmailItem[]
   status: string
   courierName?: string | null
@@ -30,8 +33,12 @@ const logoUrl = `${siteUrl.replace(/\/$/, '')}/logo.jpeg`
 
 let cachedTransporter: ReturnType<typeof nodemailer.createTransport> | null = null
 
-function formatMoney(amount: number) {
-  return formatUsd(amount)
+// HOD-016: status emails show the amount in the currency the customer paid.
+function formatMoney(amount: number, currency?: string | null) {
+  const code = (currency || 'USD').toUpperCase()
+  if (code === 'USD') return formatUsd(amount)
+  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: code, maximumFractionDigits: 2 }).format(amount) }
+  catch { return formatUsd(amount) }
 }
 
 function escapeHtml(value: unknown) {
@@ -86,7 +93,7 @@ export async function sendOrderStatusUpdateEmail(input: OrderStatusUpdateInput) 
             <div style="font-size:12px;color:#666666;text-transform:uppercase;letter-spacing:.16em;margin-top:4px;">Qty ${escapeHtml(item.quantity)}</div>
           </td>
           <td style="padding:14px 0;border-bottom:1px solid #e5e5e5;color:#000000;font-size:14px;line-height:1.5;text-align:right;font-weight:600;">
-            ${formatMoney(item.line_total)}
+            ${formatMoney(item.line_total, input.currency)}
           </td>
         </tr>
       `
@@ -141,7 +148,7 @@ export async function sendOrderStatusUpdateEmail(input: OrderStatusUpdateInput) 
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-top:18px;border-top:1px solid #e5e5e5;">
               <tr>
                 <td style="padding-top:18px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#000000;">Total</td>
-                <td style="padding-top:18px;text-align:right;font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;font-size:22px;font-weight:600;color:#000000;">${formatMoney(input.totalAmount)}</td>
+                <td style="padding-top:18px;text-align:right;font-family:'Montserrat','Helvetica Neue',Arial,sans-serif;font-size:22px;font-weight:600;color:#000000;">${formatMoney(input.totalAmount, input.currency)}</td>
               </tr>
             </table>
           </td>

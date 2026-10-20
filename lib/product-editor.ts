@@ -10,6 +10,8 @@ import type { ProductCustomDropdown } from '@/lib/product-custom-dropdowns'
 import type { ProductMetalVariant, ProductVariantMediaItem } from '@/lib/product-metal-variants'
 
 export type ProductEditorItem = ProductRecord & {
+  /** HOD-054: revision of the data the editor opened; sent back on save. */
+  revision?: string
   linked_subcategory_ids?: string[] | null
   linked_option_ids?: string[] | null
   metal_ids?: string[] | null

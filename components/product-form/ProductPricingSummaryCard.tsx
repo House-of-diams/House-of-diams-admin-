@@ -37,8 +37,6 @@ export function ProductPricingSummaryCard({
   gstSlabId,
   setGstSlabId,
   gstSlabs,
-  stockQuantity,
-  setStockQuantity,
   inputClassName,
 }: {
   combinedMetalOptions: CatalogMetal[]
@@ -52,8 +50,6 @@ export function ProductPricingSummaryCard({
   gstSlabId: string
   setGstSlabId: Dispatch<SetStateAction<string>>
   gstSlabs: CatalogGstSlab[]
-  stockQuantity: string
-  setStockQuantity: Dispatch<SetStateAction<string>>
   inputClassName: string
 }) {
   return (
@@ -111,9 +107,6 @@ export function ProductPricingSummaryCard({
                 ))}
             </SelectContent>
           </Select>
-        </FormField>
-        <FormField label="Stock Quantity">
-          <input type="number" min="0" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} className={inputClassName} />
         </FormField>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">

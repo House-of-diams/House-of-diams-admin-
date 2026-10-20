@@ -113,6 +113,25 @@ const OCCASION_LABELS: Record<NonNullable<OrderLoveLetter['occasion_key']>, stri
 
 const authedFetch = operationsFetch
 
+// Mirrors admin_order_status_update_v1 (HOD-007): the current status, plus the
+// allowed next steps; fulfilment states need a paid order. The database enforces
+// the same rules, so this only keeps the screen from offering moves that fail.
+const NEXT_STATUSES: Record<OrderDetail['status'], OrderDetail['status'][]> = {
+  pending: ['processing', 'cancelled'],
+  processing: ['shipped', 'cancelled'],
+  shipped: ['delivered', 'processing'],
+  delivered: [],
+  cancelled: ['pending'],
+}
+function statusChoices(order: Pick<OrderDetail, 'status' | 'payment_status'> & { fulfillment_mode?: string | null }) {
+  const paid = order.payment_status?.toLowerCase() === 'paid'
+  const next = NEXT_STATUSES[order.status].filter((value) => !(order.status === 'cancelled' && order.fulfillment_mode !== 'made_to_order'))
+  return [order.status, ...next].map((value) => ({
+    value,
+    disabled: value !== order.status && ['processing', 'shipped', 'delivered'].includes(value) && !paid,
+  }))
+}
+
 export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const { toast } = useToast()
   const [id, setId] = useState('')
@@ -355,7 +374,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
               {status === 'cancelled' ? <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">Cancelled</span> : null}
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              <div><label className="mb-2 block text-[13px] text-muted-foreground">Order status</label><Select value={status} onValueChange={(value) => setStatus(value as OrderDetail['status'])}><SelectTrigger className="h-10 rounded-lg border-border text-sm"><SelectValue placeholder="Select status" /></SelectTrigger><SelectContent><SelectItem value="pending">Pending</SelectItem><SelectItem value="processing">Processing</SelectItem><SelectItem value="shipped">Shipped</SelectItem><SelectItem value="delivered">Delivered</SelectItem><SelectItem value="cancelled">Cancelled</SelectItem></SelectContent></Select></div>
+              <div><label className="mb-2 block text-[13px] text-muted-foreground">Order status</label><Select value={status} onValueChange={(value) => setStatus(value as OrderDetail['status'])}><SelectTrigger className="h-10 rounded-lg border-border text-sm"><SelectValue placeholder="Select status" /></SelectTrigger><SelectContent>{statusChoices(order).map((choice) => <SelectItem key={choice.value} value={choice.value} disabled={choice.disabled}>{formatStatusLabel(choice.value)}{choice.disabled ? ' (payment required)' : ''}</SelectItem>)}</SelectContent></Select></div>
               <div><label className="mb-2 block text-[13px] text-muted-foreground">Courier name</label><input value={courierName} onChange={(event) => setCourierName(event.target.value)} placeholder="Bluedart, DHL, FedEx..." className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-primary" /></div>
               <div><label className="mb-2 block text-[13px] text-muted-foreground">AWB / tracking number</label><input value={courierAwbNumber} onChange={(event) => setCourierAwbNumber(event.target.value)} placeholder="Shipment tracking number" className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-primary" /></div>
             </div>

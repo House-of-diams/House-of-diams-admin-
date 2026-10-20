@@ -1,14 +1,30 @@
 'use client'
-export async function cmsRequestHeaders(mutation = true): Promise<Headers> {
+// HOD-066: the provider and CSRF token are reused for 60 s within this page instead
+// of two extra requests per call. Any 401/403 from the server drops them.
+let context: { provider: 'supabase' | 'rds'; csrf: string; at: number } | null = null
+const CONTEXT_MS = 60_000
+export function forgetCmsRequestContext() { context = null }
+async function requestContext() {
+  if (context && Date.now() - context.at < CONTEXT_MS) return context
+  context = null
   const contract = await fetch('/api/cms/provider', { credentials: 'same-origin', cache: 'no-store' })
   const payload = await contract.json()
-  if (!contract.ok || !['supabase','rds'].includes(payload?.provider)) throw new Error('Content service unavailable.')
-  const headers = new Headers({ 'content-type': 'application/json' })
+  if (!contract.ok || !['supabase', 'rds'].includes(payload?.provider)) throw new Error('Content service unavailable.')
+  let csrf = ''
   if (payload.provider === 'rds') {
-    const result = await fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store' })
-    const session = await result.json()
-    if (!result.ok || session?.authenticated !== true || typeof session.csrfToken !== 'string' || !session.csrfToken) throw new Error('Please sign in again.')
-    if (mutation) headers.set('x-admin-csrf', session.csrfToken)
+    const response = await fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store' })
+    const session = await response.json()
+    if (!response.ok || session?.authenticated !== true || typeof session.csrfToken !== 'string' || !session.csrfToken) throw new Error('Please sign in again.')
+    csrf = session.csrfToken
+  }
+  context = { provider: payload.provider, csrf, at: Date.now() }
+  return context
+}
+export async function cmsRequestHeaders(mutation = true): Promise<Headers> {
+  const current = await requestContext()
+  const headers = new Headers({ 'content-type': 'application/json' })
+  if (current.provider === 'rds') {
+    if (mutation) headers.set('x-admin-csrf', current.csrf)
   } else {
     const { supabase } = await import('./supabase')
     const { data } = await supabase.auth.getSession()
@@ -25,7 +41,9 @@ export async function cmsFetch(url: string, options: RequestInit = {}) {
   try {
     const headers = await cmsRequestHeaders(!['GET','HEAD'].includes((options.method ?? 'GET').toUpperCase()))
     new Headers(options.headers).forEach((value,key) => { if (!['authorization','x-admin-csrf'].includes(key.toLowerCase())) headers.set(key,value) })
-    return await fetch(url,{...options,credentials:'same-origin',headers})
+    const response = await fetch(url,{...options,credentials:'same-origin',headers})
+    if (response.status === 401 || response.status === 403) context = null
+    return response
   } catch {
     return Response.json({error:'Content request unavailable. Please sign in again or retry after the service is restored.'},{status:503})
   }

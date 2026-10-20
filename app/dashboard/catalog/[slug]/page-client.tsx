@@ -2,6 +2,7 @@
 
 import { tryUploadAwsImage } from '@/lib/image-transport'
 import { catalogFetch } from '@/lib/catalog-transport'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
 import Link from 'next/link'
 import { ReactNode, useEffect, useMemo, useState } from 'react'
@@ -331,6 +332,8 @@ function CategoryBannerPanel({
 }) {
   const { toast } = useToast()
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(isPanelOpen)
   const [formData, setFormData] = useState<CategoryBannerFormState>({
     bannerEnabled: Boolean(category.banner_enabled),
     desktopImagePath: category.banner_desktop_image_path ?? '',
@@ -418,7 +421,7 @@ function CategoryBannerPanel({
   }
 
   return (
-    <>
+    <div className="contents" {...edits.bind}>
       <div className="mb-8 rounded-xl border border-border bg-white p-6 shadow-xs">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -544,7 +547,7 @@ function CategoryBannerPanel({
         onCancel={() => setConfirmOpen(false)}
         isLoading={savingBanner}
       />
-    </>
+    </div>
   )
 }
 
@@ -560,6 +563,8 @@ function CategorySubcategoriesPanel({
   const { toast } = useToast()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(isPanelOpen)
   const [formData, setFormData] = useState<SubcategoryFormState>(emptySubcategoryForm(category.id, subcategories.length + 1))
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<CatalogSubcategory | null>(null)
@@ -651,7 +656,7 @@ function CategorySubcategoriesPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div {...edits.bind} className="space-y-6">
       <SectionHeader title="Subcategories" description={`Manage the subcategories linked to ${category.name}.`} actionLabel="Add New Subcategory" onAction={openNew} />
 
       <DataTable
@@ -765,6 +770,8 @@ function CategoryOptionsPanel({
   const [selectedSubcategoryFilter, setSelectedSubcategoryFilter] = useState<'all' | string>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(isPanelOpen)
   const [formData, setFormData] = useState<OptionFormState>(emptyOptionForm(subcategories[0]?.id ?? '', options.length + 1))
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<CatalogOption | null>(null)
@@ -865,7 +872,7 @@ function CategoryOptionsPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div {...edits.bind} className="space-y-6">
       <SectionHeader title="Options" description={`Manage options linked under the subcategories of ${category.name}.`} actionLabel="Add New Option" onAction={openNew} />
 
       <div className="flex items-center gap-3">

@@ -1,5 +1,7 @@
 'use client'
 
+import { deploymentProfile } from './deployment-profile'
+
 export async function adminAuthProvider(): Promise<'supabase' | 'keycloak'> {
   const response = await fetch('/api/auth/provider', { credentials: 'same-origin', cache: 'no-store' })
   const data = await response.json()
@@ -22,7 +24,7 @@ export async function openAdminAccount(): Promise<string> {
   const response = await fetch('/api/auth/account', { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'x-admin-csrf': session.csrfToken } })
   const data = await response.json()
   if (!response.ok) throw new Error(data?.error ?? 'Account management unavailable.')
-  if (data?.action !== 'account-console' || data.url !== 'https://auth-uat.houseofdiams.com/realms/houseofdiams/account/') throw new Error('Invalid account destination.')
+  if (data?.action !== 'account-console' || data.url !== `${deploymentProfile().oidcIssuer}/account/`) throw new Error('Invalid account destination.')
   return data.url
 }
 

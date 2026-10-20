@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, Edit2, Trash2, CheckCircle2, Circle, Copy, MoreHorizontal, EyeOff, SlidersHorizontal } from 'lucide-react'
+import { Search, Plus, Edit2, Trash2, CheckCircle2, Circle, Copy, MoreHorizontal, EyeOff, Eye, Ban, SlidersHorizontal } from 'lucide-react'
 import { productRequestHeaders } from '@/lib/product-transport'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { TablePagination } from '@/components/table-pagination'
@@ -16,6 +16,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
+
+type StatusMove = 'draft' | 'hidden' | 'active'
+// Deactivate keeps the product (status hidden) but takes it off the storefront.
+const STATUS_MOVES: Record<StatusMove, { title: string; confirm: string; done: string; failed: string; describe: (name: string) => string }> = {
+  draft: { title: 'Mark this product as draft?', confirm: 'Mark as Draft', done: 'Product marked as draft', failed: 'Unable to mark this product as draft.',
+    describe: (name) => `This will hide ${name} from the storefront. You can activate it again from the product list.` },
+  hidden: { title: 'Deactivate this product?', confirm: 'Deactivate', done: 'Product deactivated', failed: 'Unable to deactivate this product.',
+    describe: (name) => `This will take ${name} off the storefront without deleting it. You can reactivate it any time from the product list.` },
+  active: { title: 'Reactivate this product?', confirm: 'Reactivate', done: 'Product reactivated', failed: 'Unable to reactivate this product.',
+    describe: (name) => `This will show ${name} on the storefront again.` },
+}
 
 export type ProductRow = {
   id: string
@@ -77,8 +88,8 @@ export function ProductsClient({
   const [duplicateTarget, setDuplicateTarget] = useState<ProductRow | null>(null)
   const [duplicateRequestId, setDuplicateRequestId] = useState<string | null>(null)
   const [duplicateLoading, setDuplicateLoading] = useState(false)
-  const [draftTarget, setDraftTarget] = useState<ProductRow | null>(null)
-  const [draftLoading, setDraftLoading] = useState(false)
+  const [statusTarget, setStatusTarget] = useState<{ product: ProductRow; status: StatusMove } | null>(null)
+  const [statusLoading, setStatusLoading] = useState(false)
   const [page, setPage] = useState(initialData.page)
   const [total, setTotal] = useState(initialData.total)
   const [activatingDrafts, setActivatingDrafts] = useState(false)
@@ -202,7 +213,7 @@ export function ProductsClient({
         return
       }
 
-      toast({ title: 'Draft created', description: 'The product copy is now listed as a draft with stock and checkout disabled.' })
+      toast({ title: 'Draft created', description: 'The product copy is now listed as a draft with checkout disabled.' })
       setDuplicateTarget(null)
       setDuplicateRequestId(null)
       await loadProducts()
@@ -217,37 +228,38 @@ export function ProductsClient({
     }
   }
 
-  const markProductAsDraft = async () => {
-    if (!draftTarget || draftLoading) return
+  const changeProductStatus = async () => {
+    if (!statusTarget || statusLoading) return
+    const { product: target, status } = statusTarget
+    const copy = STATUS_MOVES[status]
 
-    setDraftLoading(true)
+    setStatusLoading(true)
     try {
       const requestHeaders = await productRequestHeaders()
 
-      const response = await fetch(`/api/products/${draftTarget.id}/status`, {
+      const response = await fetch(`/api/products/${target.id}/status`, {
         method: 'PATCH',
         headers: requestHeaders,
-        body: JSON.stringify({ status: 'draft', expected_status: draftTarget.status }),
+        body: JSON.stringify({ status, expected_status: target.status }),
       })
       const payload = await response.json().catch(() => null)
 
       if (!response.ok) {
-        toast({ title: 'Status update failed', description: payload?.error ?? 'Unable to mark this product as draft.', variant: 'destructive' })
+        toast({ title: 'Status update failed', description: payload?.error ?? copy.failed, variant: 'destructive' })
         return
       }
 
-      const productName = draftTarget.name
-      setProducts((current) => current.map((product) => product.id === draftTarget.id ? { ...product, status: 'draft' } : product))
-      setDraftTarget(null)
-      toast({ title: 'Product marked as draft', description: `“${productName}” is now hidden from the storefront.` })
+      setProducts((current) => current.map((product) => product.id === target.id ? { ...product, status } : product))
+      setStatusTarget(null)
+      toast({ title: copy.done, description: status === 'active' ? `“${target.name}” is live on the storefront.` : `“${target.name}” is now hidden from the storefront.` })
     } catch (error) {
       toast({
         title: 'Status update failed',
-        description: error instanceof Error ? error.message : 'Unable to mark this product as draft.',
+        description: error instanceof Error ? error.message : copy.failed,
         variant: 'destructive',
       })
     } finally {
-      setDraftLoading(false)
+      setStatusLoading(false)
     }
   }
 
@@ -414,7 +426,6 @@ export function ProductsClient({
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Category</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Type</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Price</th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Stock</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Featured</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Status</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Actions</th>
@@ -438,13 +449,12 @@ export function ProductsClient({
                   <td className="px-6 py-3.5 text-sm text-muted-foreground">{product.categoryPath}</td>
                   <td className="px-6 py-3.5 text-sm text-muted-foreground">{product.type}</td>
                   <td className="px-6 py-3.5 text-sm font-jakarta font-semibold text-foreground">{product.price == null ? '-' : `$${product.price.toLocaleString()}`}</td>
-                  <td className="px-6 py-3.5 text-sm font-jakarta font-bold text-foreground">{product.stock}</td>
                   <td className="px-6 py-3.5">
                     {product.featured ? <CheckCircle2 size={16} className="text-primary" /> : <Circle size={16} className="text-muted-foreground" />}
                   </td>
                   <td className="px-6 py-3.5 text-sm">
                     <span className={`inline-flex rounded-md px-2 py-1 text-xs font-medium ${product.status === 'active' ? 'bg-green-100 text-green-700' : product.status === 'draft' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-700'}`}>
-                      {product.status === 'active' ? 'Active' : product.status === 'draft' ? 'Draft' : product.status}
+                      {product.status === 'active' ? 'Active' : product.status === 'draft' ? 'Draft' : product.status === 'hidden' ? 'Deactivated' : product.status}
                     </span>
                   </td>
                   <td className="px-6 py-3.5">
@@ -464,7 +474,7 @@ export function ProductsClient({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           {product.status !== 'draft' ? (
-                            <DropdownMenuItem onClick={() => setDraftTarget(product)}>
+                            <DropdownMenuItem onClick={() => setStatusTarget({ product, status: 'draft' })}>
                               <EyeOff size={14} />
                               Mark as Draft
                             </DropdownMenuItem>
@@ -473,6 +483,17 @@ export function ProductsClient({
                             <Copy size={14} />
                             Duplicate Product
                           </DropdownMenuItem>
+                          {product.status === 'active' ? (
+                            <DropdownMenuItem onClick={() => setStatusTarget({ product, status: 'hidden' })}>
+                              <Ban size={14} />
+                              Deactivate
+                            </DropdownMenuItem>
+                          ) : product.status === 'hidden' ? (
+                            <DropdownMenuItem onClick={() => setStatusTarget({ product, status: 'active' })}>
+                              <Eye size={14} />
+                              Reactivate
+                            </DropdownMenuItem>
+                          ) : null}
                           <DropdownMenuItem
                             onClick={() => setDeleteTarget(product)}
                             className="text-red-600 focus:text-red-600"
@@ -511,12 +532,14 @@ export function ProductsClient({
         allProducts={filteredProducts.map((product) => ({ id: product.id, name: product.name, price: product.price }))}
         lane={lane}
         onClose={() => setBulkPriceDialogOpen(false)}
-        onApplied={(items) => {
-          const nextPrices = new Map(items.map((item) => [item.id, item.price]))
+        onApplied={(items, skippedProductIds) => {
+          // The list shows base price, which follows each product's default metal.
+          const nextPrices = new Map(items.filter((item) => item.isDefault).map((item) => [item.productId, item.price]))
           setProducts((current) => current.map((product) => nextPrices.has(product.id) ? { ...product, price: nextPrices.get(product.id)! } : product))
           setBulkPriceDialogOpen(false)
           setSelectedProductIds([])
-          toast({ title: 'Prices updated', description: `${items.length} product base price${items.length === 1 ? '' : 's'} updated successfully.` })
+          const productCount = new Set(items.map((item) => item.productId)).size
+          toast({ title: 'Prices updated', description: `${items.length} metal price${items.length === 1 ? '' : 's'} updated on ${productCount} product${productCount === 1 ? '' : 's'}${skippedProductIds.length ? `; ${skippedProductIds.length} skipped (metal not offered)` : ''}.` })
         }}
       />
 
@@ -552,23 +575,23 @@ export function ProductsClient({
       />
 
       <ConfirmDialog
-        isOpen={Boolean(draftTarget)}
-        title="Mark this product as draft?"
-        description={`This will hide${draftTarget?.name ? ` “${draftTarget.name}”` : ' this product'} from the storefront. You can activate it again from the product list.`}
-        confirmText="Mark as Draft"
+        isOpen={Boolean(statusTarget)}
+        title={statusTarget ? STATUS_MOVES[statusTarget.status].title : ''}
+        description={statusTarget ? STATUS_MOVES[statusTarget.status].describe(`“${statusTarget.product.name}”`) : ''}
+        confirmText={statusTarget ? STATUS_MOVES[statusTarget.status].confirm : 'Confirm'}
         cancelText="Cancel"
         type="warning"
-        isLoading={draftLoading}
-        onConfirm={() => void markProductAsDraft()}
+        isLoading={statusLoading}
+        onConfirm={() => void changeProductStatus()}
         onCancel={() => {
-          if (!draftLoading) setDraftTarget(null)
+          if (!statusLoading) setStatusTarget(null)
         }}
       />
 
       <ConfirmDialog
         isOpen={Boolean(duplicateTarget)}
         title="Duplicate this product?"
-        description={`This will create a hidden draft copy${duplicateTarget?.name ? ` of “${duplicateTarget.name}”` : ''}. Its stock will be zero and checkout and featured status will be disabled until you review it.`}
+        description={`This will create a hidden draft copy${duplicateTarget?.name ? ` of “${duplicateTarget.name}”` : ''}. Checkout and featured status will be disabled until you review it.`}
         confirmText="Create Draft Copy"
         cancelText="Cancel"
         isLoading={duplicateLoading}
@@ -584,7 +607,7 @@ export function ProductsClient({
       <ConfirmDialog
         isOpen={Boolean(deleteTarget)}
         title="Delete this product?"
-        description={`This will remove product${deleteTarget?.name ? ` "${deleteTarget.name}"` : ''} from the admin and storefront.`}
+        description={`This will permanently remove product${deleteTarget?.name ? ` "${deleteTarget.name}"` : ''} from the admin and storefront. Its old web address will redirect to its category page. To keep it for later, use Deactivate instead.`}
         confirmText="Delete Product"
         cancelText="Cancel"
         type="delete"

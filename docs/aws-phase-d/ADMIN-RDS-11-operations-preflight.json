@@ -1964,8 +1964,8 @@
     }
   ],
   "source_hashes": {
-    "lib/db/admin-repositories/coupons.ts": "a7da85066a34a704e85b72e80003b30a12fac86604f0abf627e74cbd10b0b0e4",
-    "lib/db/admin-repositories/settings.ts": "3facbf0cb25d374d0caa15e7335bd0b0e42b885289adbd3a6a6e6d479169459d",
+    "lib/db/admin-repositories/coupons.ts": "7ab9bd0b01f5383e7956b96ec90bcdac2dadb078ad6044b5c7e95eb338c9faea",
+    "lib/db/admin-repositories/settings.ts": "ec88368bf14231945ce0611894967f3f58d13f2ace2e9b3a33f7c240f55777c8",
     "lib/db/admin-repositories/notifications.ts": "a2db93d419f2bdffe945d8ec75039c54ae1bf6dc15bf704782c60689882f14c4",
     "lib/db/admin-repositories/orders.ts": "3b4741cc4c3e284a7aa20383b5b9c0955533ae374cba76297cc6031ad5b44b4f"
   }

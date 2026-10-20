@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { guardNavigation } from '@/hooks/use-unsaved-changes'
 import { ChevronLeft } from 'lucide-react'
 
 export function ProductFormRedirectOverlay() {
@@ -30,7 +31,7 @@ export function ProductFormHeader({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <Link href={backHref} className="rounded p-1.5 transition-colors hover:bg-secondary">
+      <Link href={backHref} onClick={guardNavigation} className="rounded p-1.5 transition-colors hover:bg-secondary">
         <ChevronLeft size={20} />
       </Link>
       <div>

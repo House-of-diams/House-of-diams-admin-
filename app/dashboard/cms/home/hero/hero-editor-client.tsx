@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CmsSaveAction } from '@/components/cms-save-action'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 import { prepareHeroImage } from '@/lib/prepare-hero-image'
 
 type SlideItem = {
@@ -53,6 +54,8 @@ const emptySlide = (sortOrder: number): SlideItem => ({
 
 export function HeroEditorClient({ initialData }: { initialData: HeroEditorInitialData }) {
   const { toast } = useToast()
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard()
   const [formData, setFormData] = useState(initialData.section)
   const [slides, setSlides] = useState<SlideItem[]>(
     initialData.items.map((item) => ({
@@ -193,7 +196,10 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
       const savedIds = new Set(sortedSlides.flatMap((item) => item.id ? [String(item.id)] : []))
       const deletedIds = initialData.items.flatMap((item) => savedIds.has(String(item.id)) ? [] : [String(item.id)])
       const saveBody = {
-        ...formData,
+        // HOD-067: only the section fields the route saves.
+        slider_enabled: formData.slider_enabled,
+        seo_title: formData.seo_title,
+        seo_description: formData.seo_description,
         expected_revision: initialData.revision,
         deleted_ids: deletedIds,
         items: sortedSlides.map(({ id, image_path, mobile_image_path, headline, subtitle, button_text, button_link }, index) => ({
@@ -226,6 +232,7 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
 
       setStatus('Hero content saved')
       setConfirmOpen(false)
+      edits.reset()
       toast({
         title: 'Saved',
         description: 'Hero content was updated successfully.',
@@ -266,7 +273,7 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" {...edits.bind}>
       <div className="p-8">
         <div className="mb-8 flex items-center justify-between gap-4">
           <Link

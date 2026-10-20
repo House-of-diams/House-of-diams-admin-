@@ -1,13 +1,15 @@
 import 'server-only'
 import { createHash } from 'node:crypto'
 import { HeadObjectCommand, PutObjectCommand, S3Client, type HeadObjectCommandOutput } from '@aws-sdk/client-s3'
+import { deploymentProfile } from './deployment-profile'
 
 const bucket = process.env.AWS_MEDIA_BUCKET?.trim()
 const baseUrl = process.env.NEXT_PUBLIC_MEDIA_CDN_BASE_URL?.trim().replace(/\/+$/, '')
 let client: S3Client | null = null
 
 export function isS3MediaConfigured() {
-  return bucket === 'house-of-diams' && baseUrl === 'https://media.houseofdiams.com'
+  const expected = deploymentProfile().media
+  return bucket === expected.bucket && baseUrl === expected.baseUrl
 }
 
 function getClient() {

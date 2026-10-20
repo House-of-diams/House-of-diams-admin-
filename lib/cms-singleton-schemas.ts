@@ -1,10 +1,12 @@
 import { z } from 'zod'
+import { safeLinkSchema } from './link-validation.ts'
 
 export type CmsSingletonKind = 'about_hero' | 'about_wide_banner' | 'blog_hero' | 'education_hero' | 'contact_hero' | 'bespoke_showcase' | 'collection_page' | 'hiphop_showcase'
 
 const text = (max = 10_000) => z.string().max(max)
 const requiredText = (max = 10_000) => z.string().trim().min(1).max(max)
-const safeLink = z.string().max(2_000).refine((value) => !/^\s*(?:javascript|data|vbscript):/i.test(value), 'Executable links are not allowed.')
+// HOD-067: one shared link rule.
+const safeLink = safeLinkSchema
 const imageHero = z.object({
   is_enabled: z.boolean(), heading: requiredText(500), paragraph: text(10_000), button_label: text(500), button_link: safeLink,
   desktop_image_path: text(2_000), desktop_image_alt: text(2_000), mobile_image_path: text(2_000), mobile_image_alt: text(2_000),

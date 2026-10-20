@@ -12,6 +12,7 @@ export type OrderRecord = {
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'; created_at: string;
   courier_name: string | null; courier_awb_number: string | null; shipped_at: string | null;
   fulfillment_mode?: string | null;
+  payment_amount?: number | string | null; payment_currency?: string | null; exchange_rate?: number | string | null;
 }
 export type OrderLine = { product_name: string; quantity: number | string; line_total: number | string; [key: string]: unknown }
 export function createOrdersRepository(db: DbExecutor, actor?: AdminActor) {
@@ -58,6 +59,8 @@ export function createOrdersRepository(db: DbExecutor, actor?: AdminActor) {
       if(state==='P0002')throw new OperationsError(404,'Order not found.')
       if(state==='40001')throw new OperationsError(409,'This order changed after you opened it. Reload before saving.')
       if(state==='PT409')throw new OperationsError(409,'Stock-backed cancelled orders cannot be reopened here. A reviewed stock reservation is required.')
+      if(state==='PT422')throw new OperationsError(409,'Only paid orders can be processed, shipped or delivered.')
+      if(state==='PT423')throw new OperationsError(409,'This status change is not allowed. Orders move pending → processing → shipped → delivered.')
       throw error
     }
   }

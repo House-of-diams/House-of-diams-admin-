@@ -145,6 +145,7 @@ async function formFixture(props = {}, original = false) {
   overrides.react = 'export const useState=(...a)=>globalThis.__d1.hooks.useState(...a);export const useRef=(...a)=>globalThis.__d1.hooks.useRef(...a);export const useEffect=(...a)=>globalThis.__d1.hooks.useEffect(...a);export const useMemo=(...a)=>globalThis.__d1.hooks.useMemo(...a)'
   overrides['next/navigation'] = 'export const useRouter=()=>({prefetch(){},push(){},refresh(){}})'
   overrides['@/hooks/use-toast'] = 'export const useToast=()=>({toast:x=>globalThis.__d1.toast.push(x)})'
+  overrides['@/hooks/use-unsaved-changes'] = 'export const useEditGuard=()=>({touched:false,reset(){},bind:{}})'
   overrides['@/lib/product-transport'] = 'export const productFetch=(...a)=>globalThis.__d1.productFetch(...a)'
   const sources = {}
   sources[path.resolve(root, 'components/product-form.tsx')] = source.replace('  if (loadError) {', '  globalThis.__d1.submit = handleSubmit\n  if (loadError) {')
@@ -240,7 +241,7 @@ test('F-02 failed reference reload retains matching populated fields and retry; 
   const late = await formFixture({ productId: id(51) }); late.mount(); await settle(); assert.equal(late.form(), undefined)
   late.props({ productId: id(51), initialProduct: editorItem(51), initialBasicsBootstrap: bootstrap }); late.render(); late.hooks.effects(); await settle(); assert.ok(late.form()); late.hooks.unmount()
 })
-test('R-02 actual product client parallel reads use real B1/B2 sessions; refresh denial recovers by explicit read retry', async () => {
+test('R-02 actual product client parallel reads use real B1/B2 sessions; a concurrent refresh denies neither (HOD-022)', async () => {
   const f = await authFixture(), calls = [], previous = globalThis.fetch
   globalThis.fetch = async (url, options) => {
     calls.push([url, options?.method ?? 'GET'])
@@ -253,7 +254,7 @@ test('R-02 actual product client parallel reads use real B1/B2 sessions; refresh
     const results = await Promise.all([productFetch('/api/products/' + id(1)), productFetch('/api/products/bootstrap?scope=basics')])
     assert.ok(results.every(r => r.ok)); f.tick(61)
     const refresh = await Promise.allSettled([productFetch('/api/products/' + id(1)), productFetch('/api/products/bootstrap?scope=basics')])
-    assert.equal(refresh.filter(r => r.status === 'rejected').length, 1)
+    assert.equal(refresh.filter(r => r.status === 'rejected').length, 0)
     assert.equal((await productFetch('/api/products/' + id(1))).status, 200)
     assert.ok(calls.every(([, method]) => method === 'GET')); assert.equal(f.refreshes(), 1)
   } finally { globalThis.fetch = previous }
@@ -318,10 +319,10 @@ test('R-02 eight overlapping actual B1 authorizations succeed through metadata C
   const results = await Promise.all(Array.from({ length: 8 }, () => f.sessions.authorize(f.request())))
   assert.equal(results.length, 8); assert.ok(results.every(r => r.actor.profileId === id(1))); assert.equal(f.refreshes(), 0)
 })
-test('R-02 refresh loser is transiently denied, explicit read retry recovers with one refresh', async () => {
+test('R-02 refresh loser waits for the winner (HOD-022), with one refresh', async () => {
   const f = await authFixture(); f.tick(61)
   const results = await Promise.allSettled([f.sessions.authorize(f.request()), f.sessions.authorize(f.request())])
-  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1); assert.equal(f.refreshes(), 1)
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 2); assert.equal(f.refreshes(), 1)
   assert.equal((await f.sessions.authorize(f.request())).actor.profileId, id(1)); assert.equal(f.refreshes(), 1)
   f.disable(); await assert.rejects(f.sessions.authorize(f.request()), /identity denied/)
 })
@@ -373,8 +374,9 @@ test('C3/DevOps reported realm role and azp do not override access audience: acc
 test('R-02 logout during identity lookup cannot be resurrected; store failure and invalid CSRF fail closed', async () => {
   const f = await authFixture(); const lookup = f.deps.lookup
   f.deps.lookup = lookup // sessions captures lookup; schedule at store boundary instead
-  const get = f.store.get; let reads = 0
-  f.store.get = async k => { if (++reads === 2) f.rows.delete(k); return get(k) }
+  // A logout lands while the request checks identity: the session-touch CAS must fail.
+  const replace = f.store.replace; let loggedOut = false
+  f.store.replace = async (k, ...rest) => { if (!loggedOut) { loggedOut = true; f.rows.delete(k) } return replace(k, ...rest) }
   await assert.rejects(f.sessions.authorize(f.request()), /revoked/); assert.equal(f.rows.size, 0)
   const g = await authFixture()
   assert.equal((await g.handlers.logout(g.request('POST', { 'x-admin-csrf': 'wrong' }))).status, 403)

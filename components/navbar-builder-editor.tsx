@@ -9,6 +9,7 @@ import { type Dispatch, type SetStateAction, useMemo, useState } from 'react'
 import { ArrowLeft, Eye, EyeOff, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -249,6 +250,8 @@ export function NavbarBuilderOverview({ initialData }: { initialData: NavbarBuil
 export function NavbarItemEditor({ itemId, initialData }: { itemId: string; initialData: NavbarBuilderInitialData }) {
   const router = useRouter()
   const { toast } = useToast()
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard()
   const { items, originalItems, itemRevisions, catalog, setItems, reload } = useNavbarBuilderState(initialData)
   const [saving, setSaving] = useState(false)
   const [sectionSaving, setSectionSaving] = useState(false)
@@ -429,6 +432,7 @@ export function NavbarItemEditor({ itemId, initialData }: { itemId: string; init
       }
 
       setConfirmOpen(false)
+      edits.reset()
       toast({
         title: 'Saved',
         description: 'Navbar item updated successfully.',
@@ -491,7 +495,7 @@ export function NavbarItemEditor({ itemId, initialData }: { itemId: string; init
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8" {...edits.bind}>
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <Link

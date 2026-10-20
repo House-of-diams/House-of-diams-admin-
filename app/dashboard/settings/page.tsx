@@ -1,5 +1,5 @@
 import { operationsPage } from '@/lib/operations-page-data'
-import { createSettingsRepository } from '@/lib/db/admin-repositories/settings'
+import { createSettingsRepository, settingsRevision } from '@/lib/db/admin-repositories/settings'
 import { createSupabaseAdminClient } from '@/lib/admin-supabase'
 import type { CatalogGstSlab } from '@/lib/product-catalog'
 import { SettingsClient, type SettingsPageData } from './settings-client'
@@ -48,4 +48,4 @@ export default async function SettingsPage() {
   return <SettingsClient initialData={initialData} authProvider={readAdminAuthProvider()} />
 }
 
-async function getSettingsPageData():Promise<SettingsPageData> {return operationsPage(async db=>{const repo=createSettingsRepository(db);return {settings:await repo.read(),gstSlabs:await repo.gst()}},()=>legacygetSettingsPageData())}
+async function getSettingsPageData():Promise<SettingsPageData> {return operationsPage(async db=>{const repo=createSettingsRepository(db);const settings=await repo.read();return {settings,revision:settingsRevision(settings),gstSlabs:await repo.gst()}},()=>legacygetSettingsPageData())}

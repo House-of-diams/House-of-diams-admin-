@@ -1,6 +1,7 @@
 'use client'
 
 import { catalogFetch } from '@/lib/catalog-transport'
+import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
 import { useMemo, useState } from 'react'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
@@ -33,6 +34,8 @@ const EMPTY_FORM: GstFormState = {
 export function GstClient({ initialItems }: { initialItems: CatalogGstSlab[] }) {
   const [items, setItems] = useState<CatalogGstSlab[]>(initialItems)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  // HOD-056: warn before leaving with unsaved edits.
+  const edits = useEditGuard(isDialogOpen)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<GstFormState>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
@@ -103,7 +106,7 @@ export function GstClient({ initialItems }: { initialItems: CatalogGstSlab[] }) 
   }
 
   return (
-    <div className="p-8">
+    <div {...edits.bind} className="p-8">
       <div className="mb-10 flex items-start justify-between gap-4">
         <div>
           <h1 className="font-jakarta text-3xl font-semibold text-foreground">GST</h1>

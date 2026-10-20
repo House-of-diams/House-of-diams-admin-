@@ -2,22 +2,47 @@ import 'server-only'
 import type { DbExecutor } from '../query'
 import type { CouponRow } from '@/app/dashboard/coupons/coupon-types'
 import { couponSaveSchema } from '../../coupon-save'
-import { exactId, jsonRows, OperationsError, uuid } from './operations-shared'
+import { parseCmsJson } from '../../cms-id-safety'
+import { exactId, jsonRows, OperationsError, pageNumber, safeCount, uuid } from './operations-shared'
+import { revisionOf, STALE_EDITOR_MESSAGE } from '../../revision'
 const fields=['code','title','discount_type','discount_value','reward_type','minimum_order_amount','gift_product_id','gift_variant_data','gift_banner_image_url','banner_enabled','banner_title','banner_description','starts_at','ends_at','featured_priority','usage_limit','is_active'] as const
 const columns='id,code,title,discount_type,discount_value,reward_type,minimum_order_amount,gift_product_id,gift_variant_data,gift_banner_image_url,banner_enabled,banner_title,banner_description,starts_at,ends_at,featured_priority,usage_limit,usage_count,is_active,created_at'
+export const COUPON_PAGE_SIZE=20
+/** HOD-054: revision over the editable fields only, so redemptions (usage_count) never look like an edit. */
+export function couponRevision(row:Record<string,unknown>){return revisionOf(Object.fromEntries(fields.map(f=>[f,row[f]??null])))}
 export function createCouponsRepository(db:DbExecutor) {
-  async function list() {return jsonRows<CouponRow>(db,`SELECT to_jsonb(c)::text AS item FROM (SELECT ${columns} FROM public.coupons ORDER BY created_at DESC,id DESC) c`)}
+  /** HOD-065: one page (optionally searched by code, title or offer type) plus the exact match count. */
+  async function list(rawPage:unknown=1,query='') {
+    const page=pageNumber(rawPage)
+    const needle=query.trim().slice(0,100)
+    // LIKE wildcards in the search are literal (backslash is ILIKE's default escape).
+    const pattern=needle?`%${needle.replace(/[\\%_]/g,m=>`\\${m}`)}%`:''
+    const match="($2::text='' OR code ILIKE $2::text OR coalesce(title,'') ILIKE $2::text OR coalesce(reward_type,discount_type,'') ILIKE $2::text)"
+    const {rows}=await db.query<{total:string;items:string}>(`WITH page AS (SELECT ${columns} FROM public.coupons WHERE ${match}
+      ORDER BY created_at DESC,id DESC LIMIT ${COUPON_PAGE_SIZE} OFFSET $1::integer)
+      SELECT (SELECT count(*)::text FROM public.coupons WHERE ${match}) AS total,
+      COALESCE((SELECT jsonb_agg(to_jsonb(page) ORDER BY page.created_at DESC,page.id DESC) FROM page),'[]'::jsonb)::text AS items`,[(page-1)*COUPON_PAGE_SIZE,pattern])
+    if(rows.length!==1)throw new Error('Invalid coupon list')
+    const total=safeCount(rows[0].total)
+    return {items:parseCmsJson(rows[0].items) as CouponRow[],page,pageSize:COUPON_PAGE_SIZE,total,totalPages:Math.max(1,Math.ceil(total/COUPON_PAGE_SIZE))}
+  }
   async function one(id:unknown) {return (await jsonRows<CouponRow>(db,`SELECT to_jsonb(c)::text AS item FROM (SELECT ${columns} FROM public.coupons WHERE id=$1::bigint) c`,[exactId(id)]))[0]??null}
-  async function save(raw:unknown) {
+  /** expectedRevision: the HTTP route always passes one (missing header = ''); internal callers may omit it. */
+  async function save(raw:unknown,expectedRevision?:string|null) {
     const coupon=couponSaveSchema.parse(raw)
+    if(coupon.id && expectedRevision!==undefined){
+      const current=(await jsonRows<CouponRow>(db,`SELECT to_jsonb(c)::text AS item FROM (SELECT ${columns} FROM public.coupons WHERE id=$1::bigint FOR UPDATE) c`,[exactId(coupon.id)]))[0]
+      if(!current)throw new OperationsError(404,'Coupon not found.')
+      if(couponRevision(current)!==expectedRevision)throw new OperationsError(409,STALE_EDITOR_MESSAGE)
+    }
     const date=(value:string|null)=>{if(!value)return null;const d=new Date(value);if(Number.isNaN(d.getTime()))throw new OperationsError(400,'Enter a valid coupon date.');return d.toISOString()}
     const starts=date(coupon.starts_at),ends=date(coupon.ends_at)
     if(starts && ends && ends<=starts)throw new OperationsError(400,'The end date and time must be after the start date and time.')
     const gift=coupon.reward_type==='free_gift'?coupon.gift_product_id:null
     const variantData=coupon.reward_type==='free_gift'?coupon.gift_variant_data:{}
     if(gift){
-      const product=await db.query('SELECT id FROM public.products WHERE id=$1::uuid AND status::text=\'active\' AND stock_quantity>=1 FOR UPDATE',[uuid(gift)])
-      if(product.rows.length!==1)throw new OperationsError(400,'The selected gift product must be active and in stock.')
+      const product=await db.query('SELECT id FROM public.products WHERE id=$1::uuid AND status::text=\'active\' FOR UPDATE',[uuid(gift)])
+      if(product.rows.length!==1)throw new OperationsError(400,'The selected gift product must be active.')
       // Lock existing association rows until commit; the parent UPDATE lock also serializes FK checks.
       const variants=await db.query<{id:string}>('SELECT id FROM public.product_metal_variants WHERE product_id=$1::uuid FOR SHARE',[gift])
       const variant=variantData.variant_id
@@ -30,7 +55,9 @@ export function createCouponsRepository(db:DbExecutor) {
       ?`UPDATE public.coupons SET (${fields.join(',')})=(${projection}) WHERE id=$2::bigint RETURNING jsonb_build_object('id',id)::text AS item`
       :`INSERT INTO public.coupons (${fields.join(',')}) SELECT ${projection} RETURNING jsonb_build_object('id',id)::text AS item`,coupon.id?[JSON.stringify(payload),exactId(coupon.id)]:[JSON.stringify(payload)])
     if(rows.length!==1)throw new OperationsError(404,'Coupon not found.')
-    return {ok:true,id:rows[0].id}
+    if(expectedRevision===undefined)return {ok:true,id:rows[0].id}
+    const saved=await one(rows[0].id)
+    return {ok:true,id:rows[0].id,revision:saved?couponRevision(saved):null}
   }
   async function remove(id:unknown) {
     const result=await db.query('DELETE FROM public.coupons WHERE id=$1::bigint RETURNING id',[exactId(id)])

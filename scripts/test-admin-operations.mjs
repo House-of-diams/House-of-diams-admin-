@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url'
 // Actual-source offline adapters only. No listener, real fetch, database, Redis or browser.
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -44,7 +45,7 @@ const {deliverOrderUpdate}=await get('lib/operations-order-mail.ts')
 const {withAdminTransaction}=await get('lib/db/query.ts')
 const {ProductSessionError}=await get('lib/product-session-error.ts')
 const {assertMutation}=await get('lib/auth/request-security.ts')
-const {operationsFetch}=await get('lib/operations-transport.ts')
+const {operationsFetch,forgetOperationsRequestContext}=await get('lib/operations-transport.ts')
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const actor={profileId:id(1),issuer:'https://admin.example/realm',subject:'verified-admin'}
 const req=(method='GET',body,url='/api/orders')=>new Request('https://admin.example'+url,{method,headers:{origin:'https://admin.example','x-admin-csrf':'csrf','content-type':'application/json',authorization:'Bearer untrusted'},...(body===undefined?{}:{body:JSON.stringify(body)})})
@@ -160,8 +161,64 @@ test('contact pagination binds page and page size and has honest empty-page coun
  const f=dbFake(()=>[{total:'101',items:'[]'}]);assert.equal((await createEnquiriesRepository(f.db).contactPage(3,25)).total,101);assert.deepEqual(f.calls[0][1],[25,50]);await assert.rejects(()=>createEnquiriesRepository(f.db).contactPage(1,101))
 })
 test('customer read model uses identity FK only, stored verification/first-seen and no auth/email linkage',async()=>{
- const customer={id:id(9),email:'shared@example.test',name:'A',firstSeenAt:'2026-10-14',emailVerified:true};const f=dbFake(()=>[json(customer)]);assert.deepEqual(await createCustomersRepository(f.db).list(),[customer]);assert.match(f.calls[0][0],/p.identity_id=i.id/);assert.match(f.calls[0][0],/'firstSeenAt',i.created_at/);assert.doesNotMatch(f.calls[0][0],/auth\.users|customer_sessions|subject|p.email|confirmed|active/)
+ const customer={id:id(9),email:'shared@example.test',name:'A',firstSeenAt:'2026-10-14',emailVerified:true};const f=dbFake(()=>[json(customer)]);assert.deepEqual(await createCustomersRepository(f.db).one(id(9)),customer);assert.deepEqual(f.calls[0][1],[id(9)]);assert.match(f.calls[0][0],/p.identity_id=i.id/);assert.match(f.calls[0][0],/'firstSeenAt',i.created_at/);assert.doesNotMatch(f.calls[0][0],/auth\.users|customer_sessions|subject|p.email|confirmed|active/)
  await createCustomersRepository(f.db).orders(id(9));assert.match(f.calls[1][0],/customer_identity_id=\$1::uuid/);assert.deepEqual(f.calls[1][1],[id(9)])
+})
+test('HOD-065: merged enquiry inbox pages in SQL by tab with exact counts',async()=>{
+ const {PGlite}=await import(pathToFileURL(process.env.PGLITE_MODULE).href);const pg=new PGlite()
+ await pg.exec(`create table bespoke_submissions(id uuid primary key,full_name text,email text,phone text,piece_type text,country text,message text,status text,created_at timestamptz);
+  create table contact_submissions(id bigint primary key,full_name text,email text,phone text,topic text,message text,status text,created_at timestamptz);
+  create table newsletter_submissions(id uuid primary key,email text,source text,status text,created_at timestamptz);
+  create table promotion_popup_responses(id bigint primary key,promotion_id bigint,email text,answers jsonb,coupon_revealed boolean,revealed_at timestamptz,created_at timestamptz);
+  create table promotion_popup_questions(promotion_id bigint,field_key text,question text);`)
+ const at=n=>new Date(Date.UTC(2026,0,1,0,n)).toISOString()
+ for(let n=1;n<=15;n++)await pg.query('insert into bespoke_submissions values($1,$2,$3,null,$4,null,null,null,$5)',[`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,'B'+n,`b${n}@x.test`,'Ring',at(n*2)])
+ for(let n=1;n<=10;n++)await pg.query('insert into contact_submissions values($1,$2,$3,null,$4,null,null,$5)',[n,'C'+n,`c${n}@x.test`,n%2?'Product Enquiry: Ring':'Hello',at(n*2+1)])
+ await pg.query("insert into newsletter_submissions values('00000000-0000-4000-8000-0000000000aa','n@x.test','footer',null,$1)",[at(100)])
+ await pg.query("insert into promotion_popup_responses values(7,3,'p@x.test','{\"q1\":\"Gold\"}',true,null,$1)",[at(99)]);await pg.query("insert into promotion_popup_questions values(3,'q1','Favourite metal?')")
+ const repo=createEnquiriesRepository({query:(sql,values)=>pg.query(sql,values)})
+ const all=await repo.pagedSources('all',1);assert.deepEqual(all.counts,{all:27,bespoke:15,contact:5,product:5,newsletter:1,promotion:1});assert.equal(all.total,27)
+ const rows=n=>Object.values(n.sources).reduce((sum,r)=>sum+(r===n.sources.promotionQuestionsResult?0:r.data.length),0)
+ assert.equal(rows(all),20,'only one page of full rows is read');assert.equal(all.sources.newsletterResult.data[0].email,'n@x.test');assert.equal(all.sources.promotionQuestionsResult.data[0].question,'Favourite metal?')
+ const last=await repo.pagedSources('all',2);assert.equal(rows(last),7);assert.equal(last.sources.bespokeResult.data.some(b=>b.email==='b1@x.test'),true,'oldest item is on the last page')
+ const product=await repo.pagedSources('product',1);assert.equal(product.total,5);assert.equal(product.sources.contactResult.data.length,5);assert.ok(product.sources.contactResult.data.every(c=>c.topic.startsWith('Product Enquiry')));assert.equal(product.sources.bespokeResult.data.length,0)
+ await pg.close()
+})
+test('HOD-065: coupon list pages and searches in SQL; wildcards are literal',async()=>{
+ const {PGlite}=await import(pathToFileURL(process.env.PGLITE_MODULE).href);const pg=new PGlite()
+ await pg.exec(`create table coupons(id bigint primary key,code text,title text,discount_type text,discount_value numeric,reward_type text,minimum_order_amount numeric,gift_product_id uuid,gift_variant_data jsonb,gift_banner_image_url text,banner_enabled boolean,banner_title text,banner_description text,starts_at timestamptz,ends_at timestamptz,featured_priority int,usage_limit int,usage_count int,is_active boolean,created_at timestamptz)`)
+ for(let n=1;n<=23;n++)await pg.query('insert into coupons(id,code,title,discount_type,discount_value,reward_type,is_active,created_at) values($1,$2,$3,$4,5,$5,true,$6)',[n,n===7?'SAVE10%':`CODE${n}`,n%5?'Seasonal':'Gift offer',n%5?'percentage':'fixed',n%5?'percentage':'free_gift',new Date(Date.UTC(2026,0,n)).toISOString()])
+ const repo=createCouponsRepository({query:(sql,values)=>pg.query(sql,values)})
+ const first=await repo.list(1);assert.equal(first.total,23);assert.equal(first.items.length,20);assert.equal(first.items[0].code,'CODE23')
+ assert.equal((await repo.list('2')).items.length,3,'page may arrive as a URL string')
+ const gift=await repo.list(1,'free_gift');assert.equal(gift.total,4);assert.ok(gift.items.every(c=>c.reward_type==='free_gift'))
+ assert.deepEqual((await repo.list(1,'10%')).items.map(c=>c.code),['SAVE10%']);assert.equal((await repo.list(1,'%')).total,1,'% is a literal character, not match-all')
+ assert.equal((await repo.list(1,'CODE_')).total,0,'_ is literal too');await assert.rejects(()=>repo.list(0))
+ await pg.close()
+})
+test('HOD-054: coupon and settings saves check the editor revision; redemptions do not count as edits',async()=>{
+ const {couponRevision}=await get('lib/db/admin-repositories/coupons.ts');const {settingsRevision}=await get('lib/db/admin-repositories/settings.ts')
+ const stored={...coupon,id:'5',code:coupon.code.toUpperCase(),usage_count:3,created_at:'2026-10-01T00:00:00Z'};let row=stored
+ const f=dbFake(sql=>sql.includes('FOR UPDATE) c')||sql.includes('WHERE id=$1::bigint) c')?[json(row)]:sql.startsWith('UPDATE public.coupons')?[json({id:'5'})]:[]);const repo=createCouponsRepository(f.db)
+ const rev=couponRevision(stored);assert.equal(couponRevision({...stored,usage_count:99}),rev,'usage_count is not part of the revision')
+ await assert.rejects(()=>repo.save({...coupon,id:'5'},''),e=>e.status===409);await assert.rejects(()=>repo.save({...coupon,id:'5'},'0'.repeat(32)),e=>e.status===409)
+ assert.equal(f.calls.some(([sql])=>sql.startsWith('UPDATE public.coupons')),false,'stale saves never write')
+ row={...stored,usage_count:7};const saved=await repo.save({...coupon,id:'5'},rev);assert.equal(saved.ok,true);assert.match(saved.revision,/^[0-9a-f]{32}$/)
+ row={...stored,title:'Changed by someone else'};await assert.rejects(()=>repo.save({...coupon,id:'5'},rev),e=>e.status===409)
+ const s=dbFake(sql=>sql.startsWith('SELECT jsonb_build_object')?[json(settings)]:[]);const srepo=createSettingsRepository(s.db);const current=await srepo.read()
+ await assert.rejects(()=>srepo.save(settings,'stale'),e=>e.status===409);assert.equal(s.calls.some(([sql])=>sql.startsWith('UPDATE')),false)
+ assert.match((await srepo.save(settings,settingsRevision(current))).revision,/^[0-9a-f]{32}$/)
+})
+test('HOD-065: customer list pages in SQL with an exact total',async()=>{
+ const {PGlite}=await import(pathToFileURL(process.env.PGLITE_MODULE).href);const pg=new PGlite()
+ await pg.exec(`create table customer_identities(id uuid primary key,email text,email_verified boolean,created_at timestamptz);create table customer_profiles(identity_id uuid,first_name text,last_name text);`)
+ for(let n=1;n<=25;n++)await pg.query('insert into customer_identities values($1,$2,true,$3)',[`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,`c${n}@example.test`,new Date(Date.UTC(2026,0,n)).toISOString()])
+ const db={query:(sql,values)=>pg.query(sql,values)};const repo=createCustomersRepository(db)
+ const first=await repo.list(1);assert.equal(first.total,25);assert.equal(first.totalPages,2);assert.equal(first.items.length,20);assert.equal(first.items[0].email,'c25@example.test')
+ const second=await repo.list(2);assert.deepEqual(second.items.map(c=>c.email),['c5@example.test','c4@example.test','c3@example.test','c2@example.test','c1@example.test']);assert.equal(second.items[0].name,'Unnamed customer')
+ assert.equal((await repo.list(9)).items.length,0,'past the end is an empty page, not an error');await assert.rejects(()=>repo.list(0))
+ assert.equal((await repo.one('00000000-0000-4000-8000-000000000007')).email,'c7@example.test');assert.equal(await repo.one('00000000-0000-4000-8000-000000000099'),null)
+ await pg.close()
 })
 test('customer metric separates identities, guest orders and historical owner orders; missing schema fails closed',async()=>{
  const f=dbFake(()=>[{identities:'2',guest_orders:'5',legacy_account_orders:'3'}]);assert.deepEqual(await createCustomersRepository(f.db).metrics(),{persistedCustomerIdentities:2,guestOrders:5,legacyAccountOrders:3,historicalRegistrations:null});assert.match(f.calls[0][0],/user_id IS NULL AND customer_identity_id IS NULL AND guest_token_hash IS NOT NULL/);assert.doesNotMatch(f.calls[0][0],/count\(DISTINCT.*email|auth\.users/)
@@ -190,12 +247,12 @@ test('actual order routes execute RDS list/detail/update with committed email re
 })
 test('actual coupon, settings, notification and contact routes use scoped RDS repositories',async()=>{
  const h=harness({query:sql=>sql.startsWith('WITH page')?[{total:'0',items:'[]'}]:sql.startsWith('INSERT INTO public.coupons')?[json({id:1})]:sql.startsWith('DELETE FROM public.coupons')?[{id:'1'}]:[]});globalThis.__b6={authorize:h.deps.authorize,transaction:h.deps.transaction,legacy:()=>{throw Error('legacy must not run')}};const old=process.env.ADMIN_OPERATIONS_DATA_PROVIDER;process.env.ADMIN_OPERATIONS_DATA_PROVIDER='rds'
- try{const coupons=await get('app/api/coupons/route.ts');assert.equal((await coupons.GET(req())).status,200);assert.equal((await coupons.POST(req('POST',coupon,'/api/coupons'))).status,200);const remove=await get('app/api/coupons/[id]/route.ts');assert.equal((await remove.DELETE(req('DELETE',undefined,'/api/coupons/1'),{params:Promise.resolve({id:'1'})})).status,200);const settingsRoute=await get('app/api/settings/route.ts');assert.equal((await settingsRoute.POST(req('POST',settings,'/api/settings'))).status,200);const mark=await get('app/api/notifications/read/route.ts');assert.equal((await mark.POST(req('POST',{notificationKey:`order:${id(2)}`},'/api/notifications/read'))).status,200);const contact=await get('app/api/cms/contact/submissions/route.ts');assert.equal((await contact.GET(req('GET',undefined,'/api/cms/contact/submissions?page=1&pageSize=25'))).status,200);assert.equal((await contact.GET(req('GET',undefined,'/api/cms/contact/submissions?page=1.5'))).status,400)}finally{if(old===undefined)delete process.env.ADMIN_OPERATIONS_DATA_PROVIDER;else process.env.ADMIN_OPERATIONS_DATA_PROVIDER=old}
+ try{const coupons=await get('app/api/coupons/route.ts');assert.equal((await coupons.GET(req())).status,200);assert.equal((await coupons.POST(req('POST',coupon,'/api/coupons'))).status,200);const remove=await get('app/api/coupons/[id]/route.ts');assert.equal((await remove.DELETE(req('DELETE',undefined,'/api/coupons/1'),{params:Promise.resolve({id:'1'})})).status,200);const settingsRoute=await get('app/api/settings/route.ts');const {settingsRevision}=await get('lib/db/admin-repositories/settings.ts');const blank=settingsRevision({whatsapp_number:'',default_gst_slab_id:'',maintenance_mode_enabled:false,maintenance_mode_message:'',estimated_delivery_text:'Approximately 3 to 4 weeks'});assert.equal((await settingsRoute.POST(req('POST',settings,'/api/settings'))).status,409,'HOD-054: no revision header is refused');const withRev=req('POST',settings,'/api/settings');withRev.headers.set('x-expected-revision',blank);assert.equal((await settingsRoute.POST(withRev)).status,200);const mark=await get('app/api/notifications/read/route.ts');assert.equal((await mark.POST(req('POST',{notificationKey:`order:${id(2)}`},'/api/notifications/read'))).status,200);const contact=await get('app/api/cms/contact/submissions/route.ts');assert.equal((await contact.GET(req('GET',undefined,'/api/cms/contact/submissions?page=1&pageSize=25'))).status,200);assert.equal((await contact.GET(req('GET',undefined,'/api/cms/contact/submissions?page=1.5'))).status,400)}finally{if(old===undefined)delete process.env.ADMIN_OPERATIONS_DATA_PROVIDER;else process.env.ADMIN_OPERATIONS_DATA_PROVIDER=old}
 })
 test('route-specific SQLSTATE contracts remain safe after rollback',async()=>{
  for(const [path,code,status]of [['/api/orders/'+id(2),'23503',400],['/api/settings','23503',400],['/api/coupons','23505',409],['/api/coupons/1','23503',409]]){const r=operationsError({code,message:'PRIVATE SQL'},req('POST',{},path));assert.equal(r.status,status);assert.equal((await r.text()).includes('PRIVATE'),false)}
 })
-test('client legacy contract lazily obtains bearer and selected provider failures never retry',async()=>{
+test('client legacy contract lazily obtains bearer and selected provider failures never retry',async()=>{forgetOperationsRequestContext()
  const original=globalThis.fetch;const calls=[];globalThis.__b6LegacyCalls=0
  try{globalThis.fetch=async(url,options)=>{calls.push([url,options]);return url==='/api/operations/provider'?Response.json({provider:'supabase'}):Response.json({error:'conflict'},{status:409})};const result=await operationsFetch('/api/coupons',{method:'POST',body:'{}'});assert.equal(result.status,409);assert.equal(globalThis.__b6LegacyCalls,1);assert.equal(calls.length,2);assert.equal(calls[1][1].headers.get('authorization'),'Bearer legacy-token')}finally{globalThis.fetch=original}
 })

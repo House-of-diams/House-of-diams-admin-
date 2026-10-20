@@ -85,8 +85,8 @@ export async function saveCoupon(access: Access, input: unknown) {
       const safe = couponDatabaseError(giftProductError, 'save')
       return NextResponse.json({ error: safe.message }, { status: safe.status })
     }
-    if (!giftProduct || giftProduct.status !== 'active' || Number(giftProduct.stock_quantity ?? 0) < 1) {
-      return NextResponse.json({ error: 'The selected gift product must be active and in stock.' }, { status: 400 })
+    if (!giftProduct || giftProduct.status !== 'active') {
+      return NextResponse.json({ error: 'The selected gift product must be active.' }, { status: 400 })
     }
 
     const variantId = giftVariantData.variant_id ?? null

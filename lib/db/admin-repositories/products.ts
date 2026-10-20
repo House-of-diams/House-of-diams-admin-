@@ -2,7 +2,7 @@ import 'server-only'
 import type { z } from 'zod'
 import type { AdminActor } from '../../auth/admin-identity-core'
 import type { ProductPayload } from '../../product-payload-validation'
-import type { bulkPriceSchema, bulkDeleteSchema, activateDraftsSchema } from '../../product-operations-validation'
+import type { bulkPriceSchema, bulkDeleteSchema, activateDraftsSchema, bulkPricePreviewSchema, bulkPriceByMetalSchema } from '../../product-operations-validation'
 import type { DbExecutor } from '../query'
 import { enforceVideoSave, videoReferenceSlots, productVideoProjection } from '../../video-save-admission'
 import { loadRdsProductEditor } from './product-editor'
@@ -16,6 +16,13 @@ export function createProductRepository(db: DbExecutor) {
     const { rows } = await db.query<{ result: ProductOperationResult }>(sql, values)
     if (rows.length !== 1 || !rows[0].result || typeof rows[0].result !== 'object' || Array.isArray(rows[0].result)) throw new Error('Invalid product result')
     return rows[0].result
+  }
+  /** Moves are checked by productStatusSchema; expectedStatus guards against a stale list. */
+  async function setStatus(id: string, status: 'draft' | 'hidden' | 'active', expectedStatus: string) {
+    const { rows } = await db.query<{ id: string; status: string }>('UPDATE public.products SET status=$4::text::public.product_status,updated_at=$3::timestamptz WHERE id=$1::uuid AND status::text=$2::text RETURNING id,status', [id, expectedStatus, new Date().toISOString(), status])
+    if (rows[0]) return { status: 'updated' as const, item: rows[0] }
+    const current = await db.query<{ id: string }>('SELECT id FROM public.products WHERE id=$1::uuid', [id])
+    return { status: current.rows.length ? 'conflict' as const : 'not_found' as const }
   }
   return {
     async save(actor: AdminActor, input: { productId?: string | null; slug?: string | null; payload: ProductPayload }) {
@@ -31,9 +38,36 @@ export function createProductRepository(db: DbExecutor) {
       return scalar('SELECT public.admin_product_bulk_price_v1($1::uuid,$2::uuid,$3::text,$4::text,$5::numeric,$6::uuid[],$7::jsonb) AS result',
         [actor.profileId, input.requestId, input.lane, input.operation, input.value, input.ids, JSON.stringify(input.expectedPrices)])
     },
+    /** Active metals offered in the bulk price dialog. */
+    async bulkPriceMetals() {
+      const { rows } = await db.query<{ id: string; name: string; label: string }>(`SELECT m.id::text AS id, m.name,
+        coalesce(nullif(trim(m.display_label), ''), m.name) AS label FROM public.catalog_metals m
+        WHERE m.status::text = 'active' ORDER BY m.display_order, m.name`)
+      return rows
+    },
+    /** Current variant prices for the chosen products and metals; their prices become the apply guard. */
+    async bulkPricePreview(input: z.infer<typeof bulkPricePreviewSchema>) {
+      const { rows } = await db.query<{ variant_id: string; product_id: string; product_name: string; metal_id: string; metal_label: string; price: string; is_default: boolean }>(
+        `SELECT v.id::text AS variant_id, v.product_id::text AS product_id, p.name AS product_name, v.metal_id::text AS metal_id,
+          coalesce(nullif(trim(m.display_label), ''), m.name) AS metal_label, v.price::text AS price, v.is_default
+        FROM public.product_metal_variants v JOIN public.products p ON p.id = v.product_id JOIN public.catalog_metals m ON m.id = v.metal_id
+        WHERE v.product_id = ANY($1::uuid[]) AND v.metal_id = ANY($2::uuid[]) AND coalesce(p.product_lane, 'standard') = $3::text
+        ORDER BY p.name, m.display_order, v.id`, [input.ids, input.metalIds, input.lane])
+      return rows.map((row) => ({ ...row, price: Number(row.price) }))
+    },
+    bulkPriceByMetal(actor: AdminActor, input: z.infer<typeof bulkPriceByMetalSchema>) {
+      return scalar('SELECT public.admin_product_bulk_price_v2($1::uuid,$2::uuid,$3::text,$4::text,$5::numeric,$6::uuid[],$7::uuid[],$8::jsonb) AS result',
+        [actor.profileId, input.requestId, input.lane, input.operation, input.value, input.ids, input.metalIds, JSON.stringify(input.expectedPrices)])
+    },
+    /** Deletes and leaves a 301 from each old /shop/<slug> address (admin_product_delete_v2). */
     bulkDelete(actor: AdminActor, input: z.infer<typeof bulkDeleteSchema>) {
-      return scalar('SELECT public.admin_product_bulk_delete_v1($1::uuid,$2::uuid,$3::text,$4::uuid[]) AS result',
+      return scalar('SELECT public.admin_product_delete_v2($1::uuid,$2::uuid,$3::text,$4::uuid[]) AS result',
         [actor.profileId, input.requestId, input.lane, input.ids])
+    },
+    /** Single delete: no lane, and a product that is already gone is not an error. */
+    deleteOne(actor: AdminActor, id: string, requestId: string) {
+      return scalar('SELECT public.admin_product_delete_v2($1::uuid,$2::uuid,NULL::text,$3::uuid[]) AS result',
+        [actor.profileId, requestId, [id]])
     },
     activateDrafts(actor: AdminActor, input: z.infer<typeof activateDraftsSchema>) {
       return scalar('SELECT public.admin_product_activate_drafts_v1($1::uuid,$2::uuid,$3::text,$4::uuid[]) AS result',
@@ -69,11 +103,7 @@ export function createProductRepository(db: DbExecutor) {
       const { rows } = await db.query<{ id: string; product_lane: string | null }>('SELECT id, product_lane FROM public.products WHERE id=$1::uuid', [id])
       return rows[0] ?? null
     },
-    async draft(id: string, expectedStatus: string) {
-      const { rows } = await db.query<{ id: string; status: string }>("UPDATE public.products SET status='draft',updated_at=$3::timestamptz WHERE id=$1::uuid AND status::text=$2::text RETURNING id,status", [id, expectedStatus, new Date().toISOString()])
-      if (rows[0]) return { status: 'updated' as const, item: rows[0] }
-      const current = await db.query<{ id: string }>('SELECT id FROM public.products WHERE id=$1::uuid', [id])
-      return { status: current.rows.length ? 'conflict' as const : 'not_found' as const }
-    },
+    draft: (id: string, expectedStatus: string) => setStatus(id, 'draft', expectedStatus),
+    setStatus,
   }
 }

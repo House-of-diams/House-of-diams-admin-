@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Mail, Phone, Sparkles, MessageSquareText, ShoppingBag, Newspaper, ExternalLink, Gift, Eye, X } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { TablePagination } from '@/components/table-pagination'
 import type { AdminEnquiryItem, EnquiriesPageData, EnquiryTab } from '@/lib/enquiries'
 
 const TAB_ORDER: Array<{ id: EnquiryTab; label: string }> = [
@@ -37,7 +38,9 @@ function normalizeTab(value: string | null): EnquiryTab {
 
 export function EnquiriesClient({ initialData }: { initialData: EnquiriesPageData }) {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const activeTab = normalizeTab(searchParams.get('tab'))
+  const paging = initialData.paging
   const [selectedPromotionLead, setSelectedPromotionLead] = useState<Extract<AdminEnquiryItem, { source: 'promotion' }> | null>(null)
 
   const filteredItems = useMemo(() => {
@@ -175,6 +178,10 @@ export function EnquiriesClient({ initialData }: { initialData: EnquiriesPageDat
           </div>
         ) : null}
       </div>}
+      {paging && paging.total > paging.pageSize ? (
+        <TablePagination page={paging.page} totalItems={paging.total} pageSize={paging.pageSize}
+          onPageChange={(next) => router.push(`/dashboard/enquiries?${new URLSearchParams({ ...(activeTab === 'all' ? {} : { tab: activeTab }), page: String(next) })}`)} />
+      ) : null}
 
       {selectedPromotionLead ? <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4" role="dialog" aria-modal="true" aria-labelledby="promotion-lead-title"><div className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-xl border border-border bg-white shadow-2xl"><div className="flex items-start justify-between border-b border-border px-6 py-5"><div><h2 id="promotion-lead-title" className="font-jakarta text-lg font-semibold text-foreground">Promotion lead</h2><p className="mt-1 text-sm text-muted-foreground">{selectedPromotionLead.email}</p></div><button type="button" onClick={() => setSelectedPromotionLead(null)} className="rounded-md border border-border p-2 text-muted-foreground hover:bg-secondary" aria-label="Close"><X size={16}/></button></div><dl className="divide-y divide-border px-6">{selectedPromotionLead.answers.map((answer) => <div key={answer.label} className="grid gap-1 py-3 sm:grid-cols-[minmax(0,0.45fr)_1fr] sm:gap-5"><dt className="text-sm text-muted-foreground">{answer.label}</dt><dd className="break-words text-sm font-medium text-foreground">{answer.value || '—'}</dd></div>)}{selectedPromotionLead.answers.length === 0 ? <p className="py-6 text-sm text-muted-foreground">No additional answers were submitted.</p> : null}<div className="grid gap-1 py-3 sm:grid-cols-[minmax(0,0.45fr)_1fr] sm:gap-5"><dt className="text-sm text-muted-foreground">Coupon</dt><dd className="text-sm font-medium text-foreground">{selectedPromotionLead.coupon_revealed ? `Revealed${selectedPromotionLead.revealed_at ? ` · ${new Date(selectedPromotionLead.revealed_at).toLocaleString()}` : ''}` : 'Not revealed'}</dd></div></dl><div className="flex justify-end border-t border-border px-6 py-4"><button type="button" onClick={() => setSelectedPromotionLead(null)} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Close</button></div></div></div> : null}
     </div>

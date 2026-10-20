@@ -14,7 +14,8 @@ async function load(path, dependencies = {}) {
   const url = `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`
   return { url, exports: await import(url) }
 }
-const cfg = await load('../lib/auth/config.ts')
+const profile = await load('../lib/deployment-profile.ts')
+const cfg = await load('../lib/auth/config.ts', { '../deployment-profile': profile.url })
 const security = await load('../lib/auth/request-security.ts')
 const core = await load('../lib/auth/admin-identity-core.ts')
 const oidcModule = await load('../lib/auth/keycloak.ts', { './request-security': security.url, jose: import.meta.resolve('jose') })
@@ -89,7 +90,7 @@ function fixture(options = {}) {
     return Response.json({ token_type: 'Bearer', access_token: issued.accessToken, id_token: issued.idToken, refresh_token: options.reuse ? form.get('refresh_token') : issued.refreshToken })
   }
   const oidc = createKeycloak(config, fetcher, () => seconds * 1000)
-  const deps = { config, store, oidc, lookup: async () => options.lookupFailure ? Promise.reject(Error('offline db failure')) : options.mappings ?? [mapping], now: () => seconds * 1000 }
+  const deps = { config, store, oidc, lookup: async () => options.lookupFailure ? Promise.reject(Error('offline db failure')) : options.mappings ?? [mapping], now: () => seconds * 1000, sleep: options.sleep }
   return { options, store, oidc, deps, calls, handlers: createAuthHandlers(deps), sessions: createSessions(deps) }
 }
 function request(path, method = 'GET', cookie = '', headers = {}) {
@@ -229,8 +230,9 @@ test('concurrent refresh consumes rotating token at most once; logout race canno
   const f = fixture(), { sessionCookie } = await login(f)
   seconds += 61
   const result = await Promise.all([1, 2].map(() => f.handlers.session(request('session', 'GET', sessionCookie))))
-  assert.deepEqual(result.map(v => v.status).sort(), [200, 401])
-  assert.equal(f.calls.filter(v => v.url.endsWith('/token')).length, 2)
+  // HOD-022: the request that meets the refresh waits for it instead of being logged out.
+  assert.deepEqual(result.map(v => v.status), [200, 200])
+  assert.equal(f.calls.filter(v => v.url.endsWith('/token')).length, 2, 'login + exactly one refresh')
   const x = fixture(), loginResult = await login(x)
   let release, entered
   const reached = new Promise(resolve => { entered = resolve })
@@ -246,6 +248,25 @@ test('concurrent refresh consumes rotating token at most once; logout race canno
   release()
   assert.equal((await refreshing).status, 401)
   assert.equal(x.store.rows.size, 0)
+})
+
+test('HOD-022: abandoned refresh claim is taken over; a refresh that never ends gives 503 after waiting', async () => {
+  const claim = async (x, cookie, startedAt) => {
+    const key = x.sessions.sessionKey(cookie.split('=')[1])
+    const current = await x.store.get(key)
+    assert.ok(await x.store.replace(key, current.version, { ...current.data, refreshing: true, refreshStartedAt: startedAt }, 600))
+    return key
+  }
+  const a = fixture(), first = await login(a)
+  const key = await claim(a, first.sessionCookie, seconds - 31)
+  assert.equal((await a.handlers.session(request('session', 'GET', first.sessionCookie))).status, 200)
+  assert.equal((await a.store.get(key)).data.refreshing, false)
+  let waits = 0
+  const b = fixture({ sleep: async () => { waits++ } }), second = await login(b)
+  await claim(b, second.sessionCookie, seconds)
+  assert.equal((await b.handlers.session(request('session', 'GET', second.sessionCookie))).status, 503)
+  assert.equal(waits, 20)
+  assert.equal(b.calls.filter(v => v.url.endsWith('/token')).length, 1, 'waiting never uses the rotating token')
 })
 
 test('logout CSRF/origin enforced; local deletion survives upstream logout error', async () => {

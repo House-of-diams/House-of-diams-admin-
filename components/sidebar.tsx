@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { guardNavigation } from '@/hooks/use-unsaved-changes'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
@@ -45,7 +46,6 @@ const NAVIGATION_GROUPS = [
     label: 'Products',
     items: [
       { name: 'Products', href: '/dashboard/products', icon: Package },
-      { name: 'Inventory', href: '/dashboard/inventory', icon: Package },
       { name: 'Collection Products', href: '/dashboard/collection-products', icon: Package },
       { name: 'Bespoke Products', href: '/dashboard/bespoke', icon: Sparkles },
     ],
@@ -156,6 +156,7 @@ export function Sidebar({ customerCount }: { customerCount?: number }) {
 
                   return (
                     <Link
+                      onClick={guardNavigation}
                       key={item.name}
                       href={item.href}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
@@ -219,6 +220,7 @@ export function Sidebar({ customerCount }: { customerCount?: number }) {
 
                   return (
                     <Link
+                      onClick={guardNavigation}
                       key={item.name}
                       href={item.href}
                       className={`flex items-center gap-3 rounded-md px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
@@ -243,6 +245,7 @@ export function Sidebar({ customerCount }: { customerCount?: number }) {
 
               return (
                 <Link
+                  onClick={guardNavigation}
                   key={item.name}
                   href={item.href}
                   className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${

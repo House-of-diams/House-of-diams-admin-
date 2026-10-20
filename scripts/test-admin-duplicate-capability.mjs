@@ -20,7 +20,7 @@ async function load(file){
  let code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
  for(const name of new Set([...code.matchAll(/(?:from\s+|import\s*\(?\s*)['"]([^'"]+)['"]/g)].map(m=>m[1]))){
   const url=name==='server-only'?data('export {}'):name.endsWith('video-admission-runtime')?data('export const resolveAdmittedVideo=url=>globalThis.__duplicate13Resolve(url)')
-   :name.startsWith('.')?await load(path.resolve(path.dirname(file),name)+'.ts'):import.meta.resolve(name)
+   :name.startsWith('.')?await load(path.resolve(path.dirname(file),name)+(name.endsWith('.ts')?'':'.ts')):import.meta.resolve(name)
   code=code.replaceAll(`'${name}'`,JSON.stringify(url)).replaceAll(`"${name}"`,JSON.stringify(url))
  }
  const url=data(code);cache.set(file,url);return url
