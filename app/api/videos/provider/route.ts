@@ -1,8 +1,11 @@
+import { providerRouteGate } from '@/lib/provider-route-gate'
 import { createHash } from 'node:crypto'
 import { readVideoProvider, videoSources, videoNamespace, legacyVideoNamespace } from '@/lib/video-provider'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export async function GET() {
+  const denied = await providerRouteGate()
+  if (denied) return denied
   try {
     const provider = readVideoProvider()
     const namespace = createHash('sha256').update(provider === 'aws' ? videoNamespace(videoSources()) : legacyVideoNamespace()).digest('hex')

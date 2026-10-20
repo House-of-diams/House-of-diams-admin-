@@ -81,6 +81,9 @@ async function established() {
 
 test('legacy defaults do not activate features; exact global selection rejects unknowns', () => {
   for (const v of [undefined, '', 'supabase']) assert.equal(integration.readAdminAuthProvider({ ADMIN_AUTH_PROVIDER: v }), 'supabase')
+  // HOD-018: a production server must choose explicitly; unset never means legacy there.
+  for (const v of [undefined, '']) assert.throws(() => integration.readAdminAuthProvider({ NODE_ENV: 'production', ADMIN_AUTH_PROVIDER: v }), /unavailable/)
+  assert.equal(integration.readAdminAuthProvider({ NODE_ENV: 'production', ADMIN_AUTH_PROVIDER: 'supabase' }), 'supabase')
   for (const v of ['Keycloak', ' keycloak ', 'rds', 'aws']) assert.throws(() => integration.readAdminAuthProvider({ ...env, ADMIN_AUTH_PROVIDER: v }))
   assert.equal(integration.readAdminAuthProvider(env), 'keycloak')
 })
