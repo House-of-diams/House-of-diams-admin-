@@ -1,4 +1,4 @@
-import { ProductForm } from '@/components/product-form'
+import { redirect } from 'next/navigation'
 
 export default async function EditProductPage({
   params,
@@ -6,9 +6,5 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  return (
-    <div className="p-8">
-      <ProductForm productId={id} />
-    </div>
-  )
+  redirect(`/dashboard/products/${encodeURIComponent(id)}`)
 }

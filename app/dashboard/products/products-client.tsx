@@ -213,7 +213,7 @@ export function ProductsClient({
         return
       }
 
-      toast({ title: 'Draft created', description: 'The product copy is now listed as a draft with stock and checkout disabled.' })
+      toast({ title: 'Draft created', description: 'The product copy is now listed as a draft with checkout disabled.' })
       setDuplicateTarget(null)
       setDuplicateRequestId(null)
       await loadProducts()
@@ -426,7 +426,6 @@ export function ProductsClient({
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Category</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Type</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Price</th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Stock</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Featured</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Status</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Actions</th>
@@ -450,7 +449,6 @@ export function ProductsClient({
                   <td className="px-6 py-3.5 text-sm text-muted-foreground">{product.categoryPath}</td>
                   <td className="px-6 py-3.5 text-sm text-muted-foreground">{product.type}</td>
                   <td className="px-6 py-3.5 text-sm font-jakarta font-semibold text-foreground">{product.price == null ? '-' : `$${product.price.toLocaleString()}`}</td>
-                  <td className="px-6 py-3.5 text-sm font-jakarta font-bold text-foreground">{product.stock}</td>
                   <td className="px-6 py-3.5">
                     {product.featured ? <CheckCircle2 size={16} className="text-primary" /> : <Circle size={16} className="text-muted-foreground" />}
                   </td>
@@ -593,7 +591,7 @@ export function ProductsClient({
       <ConfirmDialog
         isOpen={Boolean(duplicateTarget)}
         title="Duplicate this product?"
-        description={`This will create a hidden draft copy${duplicateTarget?.name ? ` of “${duplicateTarget.name}”` : ''}. Its stock will be zero and checkout and featured status will be disabled until you review it.`}
+        description={`This will create a hidden draft copy${duplicateTarget?.name ? ` of “${duplicateTarget.name}”` : ''}. Checkout and featured status will be disabled until you review it.`}
         confirmText="Create Draft Copy"
         cancelText="Cancel"
         isLoading={duplicateLoading}

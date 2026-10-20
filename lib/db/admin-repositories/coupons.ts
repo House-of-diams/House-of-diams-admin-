@@ -16,8 +16,8 @@ export function createCouponsRepository(db:DbExecutor) {
     const gift=coupon.reward_type==='free_gift'?coupon.gift_product_id:null
     const variantData=coupon.reward_type==='free_gift'?coupon.gift_variant_data:{}
     if(gift){
-      const product=await db.query('SELECT id FROM public.products WHERE id=$1::uuid AND status::text=\'active\' AND stock_quantity>=1 FOR UPDATE',[uuid(gift)])
-      if(product.rows.length!==1)throw new OperationsError(400,'The selected gift product must be active and in stock.')
+      const product=await db.query('SELECT id FROM public.products WHERE id=$1::uuid AND status::text=\'active\' FOR UPDATE',[uuid(gift)])
+      if(product.rows.length!==1)throw new OperationsError(400,'The selected gift product must be active.')
       // Lock existing association rows until commit; the parent UPDATE lock also serializes FK checks.
       const variants=await db.query<{id:string}>('SELECT id FROM public.product_metal_variants WHERE product_id=$1::uuid FOR SHARE',[gift])
       const variant=variantData.variant_id

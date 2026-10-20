@@ -292,7 +292,7 @@ export type ProductFormStepId = 'basics' | 'pricing' | 'attributes' | 'content' 
 
 const PRODUCT_FORM_STEPS: { id: ProductFormStepId; label: string; description: string }[] = [
   { id: 'basics', label: 'Basics', description: 'Core info, category, and template setup.' },
-  { id: 'pricing', label: 'Pricing', description: 'Choose metal options, then set their prices, media, GST, discounts, and stock.' },
+  { id: 'pricing', label: 'Pricing', description: 'Choose metal options, then set their prices, media, GST and discounts.' },
   { id: 'attributes', label: 'Attributes', description: 'Metals, filters, sizing, engraving, and storefront options.' },
   { id: 'content', label: 'Content', description: 'Description, highlights, and policy content.' },
   { id: 'details', label: 'Details', description: 'Specifications and detailed content sections.' },
@@ -1358,6 +1358,7 @@ function ProductFormEditor({
           base_price: basePrice ? Number(basePrice) : null,
           discount_price: discountPrice ? Number(discountPrice) : null,
           gst_slab_id: gstSlabId || null,
+          // Stock is retired (made to order). The saved value is sent back unchanged.
           stock_quantity: Math.max(0, Number(stockQuantity || 0)),
           status: 'active',
           main_category_id: mainCategoryId,
@@ -1476,7 +1477,7 @@ function ProductFormEditor({
       <ProductFormLoadingShell
         backHref={backHref}
         title={pageTitle || (productId || productSlug ? 'Edit Product' : 'Create Product')}
-        description={pageDescription || (productId || productSlug ? 'Update the saved product model and storefront details.' : 'Add a new jewelry product to inventory.')}
+        description={pageDescription || (productId || productSlug ? 'Update the saved product model and storefront details.' : 'Add a new jewelry product.')}
       />
     )
   }
@@ -1493,7 +1494,7 @@ function ProductFormEditor({
       <ProductFormHeader
         backHref={backHref}
         title={pageTitle || (productId || productSlug ? 'Edit Product' : 'Create Product')}
-        description={pageDescription || (productId || productSlug ? 'Update the saved product model and storefront details.' : 'Add a new jewelry product to inventory.')}
+        description={pageDescription || (productId || productSlug ? 'Update the saved product model and storefront details.' : 'Add a new jewelry product.')}
       />
 
       {!productId && !productSlug ? (
@@ -1627,8 +1628,6 @@ function ProductFormEditor({
               gstSlabId={gstSlabId}
               setGstSlabId={setGstSlabId}
               gstSlabs={gstSlabs}
-              stockQuantity={stockQuantity}
-              setStockQuantity={setStockQuantity}
               inputClassName={inputClassName}
             />
 

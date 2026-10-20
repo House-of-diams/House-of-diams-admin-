@@ -1,9 +1,5 @@
-import { ProductForm } from '@/components/product-form'
+import { redirect } from 'next/navigation'
 
 export default function CreateProductPage() {
-  return (
-    <div className="p-8">
-      <ProductForm />
-    </div>
-  )
+  redirect('/dashboard/products/create')
 }
