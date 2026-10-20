@@ -7,7 +7,7 @@ import { couponDatabaseError, saveCoupon } from '@/lib/coupon-save'
 
 export async function GET(request: Request) {
   return withOperationsRoute(request,async access=>{
-  if(isOperationsRds(access)) return Response.json({items:await createCouponsRepository(access.db).list()})
+  if(isOperationsRds(access)){const params=new URL(request.url).searchParams;return Response.json(await createCouponsRepository(access.db).list(params.get('page')??1,params.get('q')??''))}
 
   const { data, error } = await access.adminClient
     .from('coupons')

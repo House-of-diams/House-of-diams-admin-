@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Mail, User, CalendarDays, ShieldCheck } from 'lucide-react'
 import { TablePagination } from '@/components/table-pagination'
 
@@ -22,13 +23,19 @@ function formatDate(dateValue: string) {
   }).format(new Date(dateValue))
 }
 
-export function CustomersClient({ initialCustomers, identityMode=false }: { initialCustomers: CustomerRow[];identityMode?:boolean }) {
-  const [page, setPage] = useState(1)
+// server: the server already sent one page (HOD-065); otherwise all rows are paged here.
+export function CustomersClient({ initialCustomers, identityMode=false, server }: { initialCustomers: CustomerRow[];identityMode?:boolean;server?:{page:number;total:number} }) {
+  const router = useRouter()
+  const [localPage, setLocalPage] = useState(1)
+  const page = server ? server.page : localPage
+  const total = server ? server.total : initialCustomers.length
+  const setPage = (next: number) => server ? router.push(`/dashboard/customers?page=${next}`) : setLocalPage(next)
 
   const visibleCustomers = useMemo(() => {
+    if (server) return initialCustomers
     const start = (page - 1) * PAGE_SIZE
     return initialCustomers.slice(start, start + PAGE_SIZE)
-  }, [initialCustomers, page])
+  }, [initialCustomers, page, server])
 
   return (
     <div className="p-8">
@@ -40,7 +47,7 @@ export function CustomersClient({ initialCustomers, identityMode=false }: { init
           </p>
         </div>
         <div className="rounded-lg border border-border bg-white px-4 py-2 text-sm text-muted-foreground shadow-xs">
-          Total users: <span className="font-semibold text-foreground">{initialCustomers.length}</span>
+          Total users: <span className="font-semibold text-foreground">{total}</span>
         </div>
       </div>
 
@@ -102,11 +109,11 @@ export function CustomersClient({ initialCustomers, identityMode=false }: { init
         </div>
       </div>
 
-      {initialCustomers.length > PAGE_SIZE ? (
-        <TablePagination page={page} totalItems={initialCustomers.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+      {total > PAGE_SIZE ? (
+        <TablePagination page={page} totalItems={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       ) : null}
 
-      {initialCustomers.length === 0 && (
+      {total === 0 && (
         <div className="mt-12 rounded-lg border border-dashed border-border bg-white p-10 text-center">
           <p className="text-muted-foreground">No records found.</p>
         </div>

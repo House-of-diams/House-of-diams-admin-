@@ -2,11 +2,27 @@ import 'server-only'
 import type { DbExecutor } from '../query'
 import type { CouponRow } from '@/app/dashboard/coupons/coupon-types'
 import { couponSaveSchema } from '../../coupon-save'
-import { exactId, jsonRows, OperationsError, uuid } from './operations-shared'
+import { parseCmsJson } from '../../cms-id-safety'
+import { exactId, jsonRows, OperationsError, pageNumber, safeCount, uuid } from './operations-shared'
 const fields=['code','title','discount_type','discount_value','reward_type','minimum_order_amount','gift_product_id','gift_variant_data','gift_banner_image_url','banner_enabled','banner_title','banner_description','starts_at','ends_at','featured_priority','usage_limit','is_active'] as const
 const columns='id,code,title,discount_type,discount_value,reward_type,minimum_order_amount,gift_product_id,gift_variant_data,gift_banner_image_url,banner_enabled,banner_title,banner_description,starts_at,ends_at,featured_priority,usage_limit,usage_count,is_active,created_at'
+export const COUPON_PAGE_SIZE=20
 export function createCouponsRepository(db:DbExecutor) {
-  async function list() {return jsonRows<CouponRow>(db,`SELECT to_jsonb(c)::text AS item FROM (SELECT ${columns} FROM public.coupons ORDER BY created_at DESC,id DESC) c`)}
+  /** HOD-065: one page (optionally searched by code, title or offer type) plus the exact match count. */
+  async function list(rawPage:unknown=1,query='') {
+    const page=pageNumber(rawPage)
+    const needle=query.trim().slice(0,100)
+    // LIKE wildcards in the search are literal (backslash is ILIKE's default escape).
+    const pattern=needle?`%${needle.replace(/[\\%_]/g,m=>`\\${m}`)}%`:''
+    const match="($2::text='' OR code ILIKE $2::text OR coalesce(title,'') ILIKE $2::text OR coalesce(reward_type,discount_type,'') ILIKE $2::text)"
+    const {rows}=await db.query<{total:string;items:string}>(`WITH page AS (SELECT ${columns} FROM public.coupons WHERE ${match}
+      ORDER BY created_at DESC,id DESC LIMIT ${COUPON_PAGE_SIZE} OFFSET $1::integer)
+      SELECT (SELECT count(*)::text FROM public.coupons WHERE ${match}) AS total,
+      COALESCE((SELECT jsonb_agg(to_jsonb(page) ORDER BY page.created_at DESC,page.id DESC) FROM page),'[]'::jsonb)::text AS items`,[(page-1)*COUPON_PAGE_SIZE,pattern])
+    if(rows.length!==1)throw new Error('Invalid coupon list')
+    const total=safeCount(rows[0].total)
+    return {items:parseCmsJson(rows[0].items) as CouponRow[],page,pageSize:COUPON_PAGE_SIZE,total,totalPages:Math.max(1,Math.ceil(total/COUPON_PAGE_SIZE))}
+  }
   async function one(id:unknown) {return (await jsonRows<CouponRow>(db,`SELECT to_jsonb(c)::text AS item FROM (SELECT ${columns} FROM public.coupons WHERE id=$1::bigint) c`,[exactId(id)]))[0]??null}
   async function save(raw:unknown) {
     const coupon=couponSaveSchema.parse(raw)

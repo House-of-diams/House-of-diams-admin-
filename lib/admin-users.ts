@@ -52,5 +52,5 @@ export async function getAdminCustomerUsers(): Promise<AdminCustomerUser[]> {
   return users
 }
 
-export function getCustomerIdentities() { return operationsPage(db=>createCustomersRepository(db).list(),async()=>{throw new Error('Customer identity view requires RDS mode.')}) }
+export function getCustomerIdentities(page = 1) { return operationsPage(db=>createCustomersRepository(db).list(page),async()=>{throw new Error('Customer identity view requires RDS mode.')}) }
 export function getCustomerMetrics() { return operationsPage(db=>createCustomersRepository(db).metrics(),async()=>({persistedCustomerIdentities:null,guestOrders:null,legacyAccountOrders:null,historicalRegistrations:(await getAdminCustomerUsers()).length})) }
