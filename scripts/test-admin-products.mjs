@@ -239,9 +239,11 @@ test('browser transport follows server contract, uses cookie CSRF, never exposes
     const response=await transport.productFetch('/api/inventory/'+id(2),{method:'PATCH',body:'{}',headers:{authorization:'evil','x-admin-csrf':'evil'}})
     assert.equal(response.status,409);assert.equal(legacyCalls,0);assert.equal(calls.length,3)
     assert.equal(calls[2][1].headers.get('authorization'),null);assert.equal(calls[2][1].headers.get('x-admin-csrf'),'csrf');assert.equal(calls[2][1].credentials,'same-origin')
-    sessionOk=false;await assert.rejects(()=>transport.productFetch('/api/products',{method:'POST',body:'{}'}));assert.equal(legacyCalls,0);assert.equal(calls.filter(([url])=>url==='/api/products').length,0)
-    provider='bogus';await assert.rejects(()=>transport.productRequestHeaders());assert.equal(legacyCalls,0)
-    provider='supabase';const headers=await transport.productRequestHeaders();assert.equal(headers.get('authorization'),'Bearer legacy-token');assert.equal(headers.get('x-admin-csrf'),null);assert.equal(legacyCalls,1)
+    // HOD-066: a later call reuses provider and CSRF (one request); 401/403 drops them.
+    calls.length=0;await transport.productFetch('/api/products/'+id(2),{method:'PATCH',body:'{}'});assert.deepEqual(calls.map(([u])=>u),['/api/products/'+id(2)])
+    transport.forgetProductRequestContext();sessionOk=false;await assert.rejects(()=>transport.productFetch('/api/products',{method:'POST',body:'{}'}));assert.equal(legacyCalls,0);assert.equal(calls.filter(([url])=>url==='/api/products').length,0)
+    transport.forgetProductRequestContext();provider='bogus';await assert.rejects(()=>transport.productRequestHeaders());assert.equal(legacyCalls,0)
+    transport.forgetProductRequestContext();provider='supabase';const headers=await transport.productRequestHeaders();assert.equal(headers.get('authorization'),'Bearer legacy-token');assert.equal(headers.get('x-admin-csrf'),null);assert.equal(legacyCalls,1)
     await assert.rejects(()=>transport.productFetch('https://attacker.example/api/products',{method:'POST'}));assert.equal(legacyCalls,1)
   }finally{globalThis.fetch=original;delete globalThis.__b3TransportLegacy}
 })

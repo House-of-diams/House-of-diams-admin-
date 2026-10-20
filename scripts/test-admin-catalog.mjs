@@ -255,7 +255,7 @@ test('browser transport follows server contract, protects auth/CSRF, excludes me
   let source=ts.transpileModule(fs.readFileSync(path.join(root,'lib/catalog-transport.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
   const legacyUrl='data:text/javascript,export const supabase={auth:{async getSession(){globalThis.__b4Legacy++;return {data:{session:{access_token:"legacy-token"}}}}}}'
   source=source.replace("import('./supabase')",`import('${legacyUrl}')`)
-  const {catalogFetch}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'))
+  const {catalogFetch,forgetCatalogRequestContext:forget}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'))
   const original=globalThis.fetch,calls=[];let provider='rds',sessionOk=true,contractOk=true,operationOk=true
   globalThis.__b4Legacy=0
   globalThis.fetch=async(url,options)=>{
@@ -268,12 +268,13 @@ test('browser transport follows server contract, protects auth/CSRF, excludes me
     const r=await catalogFetch('/api/catalog/styles',{method:'POST',body:'{}',headers:{authorization:'Bearer forged','x-admin-csrf':'forged','x-extra':'value'}})
     assert.equal(r.status,200);const [url,options]=calls.at(-1);assert.equal(url,'/api/catalog/styles');assert.equal(options.credentials,'same-origin')
     assert.equal(options.headers.get('x-admin-csrf'),'csrf');assert.equal(options.headers.has('authorization'),false);assert.equal(options.headers.get('x-extra'),'value');assert.equal(globalThis.__b4Legacy,0)
-    calls.length=0;await catalogFetch('/api/navbar');assert.equal(calls.at(-1)[1].headers.has('x-admin-csrf'),false)
+    // HOD-066: provider and CSRF are reused, so a follow-up call is a single request.
+    calls.length=0;await catalogFetch('/api/navbar');assert.equal(calls.at(-1)[1].headers.has('x-admin-csrf'),false);assert.deepEqual(calls.map(([u])=>u),['/api/navbar'])
     calls.length=0;operationOk=false;assert.equal((await catalogFetch('/api/navbar/'+id(3),{method:'PUT',body:'{}'})).status,409);assert.equal(calls.filter(([u])=>u.startsWith('/api/navbar')).length,1);assert.equal(globalThis.__b4Legacy,0)
-    calls.length=0;sessionOk=false;assert.equal((await catalogFetch('/api/catalog/styles',{method:'POST',body:'{}'})).status,503);assert.deepEqual(calls.map(([u])=>u),['/api/catalog/provider','/api/auth/session']);assert.equal(globalThis.__b4Legacy,0)
-    calls.length=0;contractOk=false;assert.equal((await catalogFetch('/api/catalog/styles')).status,503);assert.equal(calls.length,1)
-    calls.length=0;contractOk=true;provider='invalid';assert.equal((await catalogFetch('/api/catalog/styles')).status,503);assert.equal(calls.length,1)
-    provider='supabase';operationOk=true;await catalogFetch('/api/catalog/styles',{method:'POST',body:'{}'});assert.equal(globalThis.__b4Legacy,1);assert.equal(calls.at(-1)[1].headers.get('authorization'),'Bearer legacy-token');assert.equal(calls.at(-1)[1].headers.has('x-admin-csrf'),false)
+    forget();calls.length=0;sessionOk=false;assert.equal((await catalogFetch('/api/catalog/styles',{method:'POST',body:'{}'})).status,503);assert.deepEqual(calls.map(([u])=>u),['/api/catalog/provider','/api/auth/session']);assert.equal(globalThis.__b4Legacy,0)
+    forget();calls.length=0;contractOk=false;assert.equal((await catalogFetch('/api/catalog/styles')).status,503);assert.equal(calls.length,1)
+    forget();calls.length=0;contractOk=true;provider='invalid';assert.equal((await catalogFetch('/api/catalog/styles')).status,503);assert.equal(calls.length,1)
+    forget();provider='supabase';operationOk=true;await catalogFetch('/api/catalog/styles',{method:'POST',body:'{}'});assert.equal(globalThis.__b4Legacy,1);assert.equal(calls.at(-1)[1].headers.get('authorization'),'Bearer legacy-token');assert.equal(calls.at(-1)[1].headers.has('x-admin-csrf'),false)
     for(const bad of ['https://evil.example/api/catalog/styles','/api/products','/api/catalog/styles/upload','/api/navbar/featured-image','/api/navbar/section-icon'])await assert.rejects(()=>catalogFetch(bad))
   } finally {globalThis.fetch=original;delete globalThis.__b4Legacy}
 })

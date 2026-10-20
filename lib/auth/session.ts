@@ -81,6 +81,11 @@ export function createSessions(deps: AuthDependencies) {
     }
     const boundedClaims = { ...session.claims, expiresAt: Math.min(session.claims.expiresAt, session.expiresAt) }
     const actor = await mapped(boundedClaims)
+    // HOD-066 fast path: with no refresh in this request, a CAS on the version first
+    // read proves nothing changed meanwhile (no logout, refresh or CSRF change), so the
+    // re-read below is skipped. Any change fails the CAS and falls through to it.
+    if (session === stored.data && session.claims.expiresAt > now() && session.lastSeen + config.sessionIdleSeconds > now() && ttl(session) > 0
+      && await store.replace(key, stored.version, { ...session, lastSeen: now() }, ttl(session))) return { actor, csrf: session.csrf }
     // Sliding idle TTL and final CAS also detect logout during lookup; never restore a deleted session.
     for (let attempt = 0; attempt < 8; attempt++) {
       const latest = await store.get<Session>(key)

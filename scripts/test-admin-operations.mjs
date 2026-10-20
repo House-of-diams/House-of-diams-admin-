@@ -44,7 +44,7 @@ const {deliverOrderUpdate}=await get('lib/operations-order-mail.ts')
 const {withAdminTransaction}=await get('lib/db/query.ts')
 const {ProductSessionError}=await get('lib/product-session-error.ts')
 const {assertMutation}=await get('lib/auth/request-security.ts')
-const {operationsFetch}=await get('lib/operations-transport.ts')
+const {operationsFetch,forgetOperationsRequestContext}=await get('lib/operations-transport.ts')
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const actor={profileId:id(1),issuer:'https://admin.example/realm',subject:'verified-admin'}
 const req=(method='GET',body,url='/api/orders')=>new Request('https://admin.example'+url,{method,headers:{origin:'https://admin.example','x-admin-csrf':'csrf','content-type':'application/json',authorization:'Bearer untrusted'},...(body===undefined?{}:{body:JSON.stringify(body)})})
@@ -195,7 +195,7 @@ test('actual coupon, settings, notification and contact routes use scoped RDS re
 test('route-specific SQLSTATE contracts remain safe after rollback',async()=>{
  for(const [path,code,status]of [['/api/orders/'+id(2),'23503',400],['/api/settings','23503',400],['/api/coupons','23505',409],['/api/coupons/1','23503',409]]){const r=operationsError({code,message:'PRIVATE SQL'},req('POST',{},path));assert.equal(r.status,status);assert.equal((await r.text()).includes('PRIVATE'),false)}
 })
-test('client legacy contract lazily obtains bearer and selected provider failures never retry',async()=>{
+test('client legacy contract lazily obtains bearer and selected provider failures never retry',async()=>{forgetOperationsRequestContext()
  const original=globalThis.fetch;const calls=[];globalThis.__b6LegacyCalls=0
  try{globalThis.fetch=async(url,options)=>{calls.push([url,options]);return url==='/api/operations/provider'?Response.json({provider:'supabase'}):Response.json({error:'conflict'},{status:409})};const result=await operationsFetch('/api/coupons',{method:'POST',body:'{}'});assert.equal(result.status,409);assert.equal(globalThis.__b6LegacyCalls,1);assert.equal(calls.length,2);assert.equal(calls[1][1].headers.get('authorization'),'Bearer legacy-token')}finally{globalThis.fetch=original}
 })

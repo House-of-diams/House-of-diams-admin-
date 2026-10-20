@@ -1,14 +1,29 @@
 'use client'
-export async function operationsHeaders(mutation=true):Promise<Headers> {
+// HOD-066: provider and CSRF reused for 60 s within this page; any 401/403 drops them.
+let context:{provider:'supabase'|'rds';csrf:string;at:number}|null=null
+const CONTEXT_MS=60_000
+export function forgetOperationsRequestContext(){context=null}
+async function requestContext(){
+  if(context && Date.now()-context.at<CONTEXT_MS)return context
+  context=null
   const contract=await fetch('/api/operations/provider',{credentials:'same-origin',cache:'no-store'})
   const payload=await contract.json()
   if(!contract.ok || !['supabase','rds'].includes(payload?.provider))throw new Error('Operations service unavailable.')
-  const headers=new Headers({'content-type':'application/json'})
+  let csrf=''
   if(payload.provider==='rds'){
     const response=await fetch('/api/auth/session',{credentials:'same-origin',cache:'no-store'})
     const session=await response.json()
     if(!response.ok || session?.authenticated!==true || typeof session.csrfToken!=='string' || !session.csrfToken)throw new Error('Please sign in again.')
-    if(mutation)headers.set('x-admin-csrf',session.csrfToken)
+    csrf=session.csrfToken
+  }
+  context={provider:payload.provider,csrf,at:Date.now()}
+  return context
+}
+export async function operationsHeaders(mutation=true):Promise<Headers> {
+  const current=await requestContext()
+  const headers=new Headers({'content-type':'application/json'})
+  if(current.provider==='rds'){
+    if(mutation)headers.set('x-admin-csrf',current.csrf)
   }else{
     const {supabase}=await import('./supabase')
     const {data}=await supabase.auth.getSession()
@@ -22,6 +37,8 @@ export async function operationsFetch(url:string,options:RequestInit={}) {
   try{
     const headers=await operationsHeaders(!['GET','HEAD'].includes((options.method??'GET').toUpperCase()))
     new Headers(options.headers).forEach((v,k)=>{if(!['authorization','x-admin-csrf'].includes(k.toLowerCase()))headers.set(k,v)})
-    return await fetch(url,{...options,headers,credentials:'same-origin',cache:'no-store'})
+    const response=await fetch(url,{...options,headers,credentials:'same-origin',cache:'no-store'})
+    if(response.status===401||response.status===403)context=null
+    return response
   }catch{return Response.json({error:'Operations request unavailable. Please sign in again or retry after the service is restored.'},{status:503})}
 }
