@@ -59,7 +59,11 @@ export function createAuthHandlers(deps: AuthDependencies) {
         if (request.method !== 'GET' || new URL(request.url).origin !== config.origin) return response({ error: 'Unauthorized' }, 401)
         const { actor, csrf } = await sessions.authorize(request)
         return response({ authenticated: true, actor: { profileId: actor.profileId }, csrfToken: csrf })
-      } catch { return response({ error: 'Unauthorized' }, 401) }
+      } catch (error) {
+        // A refresh still running after the wait is temporary, not a logout (HOD-022).
+        if (error instanceof Error && error.message === 'Refresh in progress') return response({ error: 'Session refresh in progress. Try again.' }, 503)
+        return response({ error: 'Unauthorized' }, 401)
+      }
     },
     /** Deletion-only proof: no mapping/refresh, identity, bearer token or business CSRF. */
     async logoutChallenge(request: Request) {
