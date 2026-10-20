@@ -8,10 +8,18 @@ const productIds = z.array(uuid).min(1).max(500).superRefine((ids, context) => {
   }
 })
 
+// Draft: back to editing. Hidden: deactivated (off the storefront, kept for reactivation).
+const productStatusMoves: Record<'draft' | 'hidden' | 'active', readonly string[]> = {
+  draft: ['active', 'hidden', 'archived'],
+  hidden: ['active'],
+  active: ['hidden'],
+}
 export const productStatusSchema = z.object({
-  status: z.literal('draft'),
+  status: z.enum(['draft', 'hidden', 'active']),
   expected_status: z.enum(['active', 'hidden', 'archived']),
-}).strict()
+}).strict().refine((value) => productStatusMoves[value.status].includes(value.expected_status), {
+  message: 'This status change is not allowed.',
+})
 
 export const duplicateProductSchema = z.object({ requestId: uuid }).strict()
 

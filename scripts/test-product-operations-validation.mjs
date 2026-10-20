@@ -22,6 +22,10 @@ const requestId = '33333333-3333-4333-8333-333333333333'
 test('strictly validates single-product status and duplicate operations', () => {
   assert.equal(productStatusSchema.safeParse({ status: 'draft', expected_status: 'active' }).success, true)
   assert.equal(productStatusSchema.safeParse({ status: 'active', expected_status: 'draft' }).success, false)
+  assert.equal(productStatusSchema.safeParse({ status: 'hidden', expected_status: 'active' }).success, true)
+  assert.equal(productStatusSchema.safeParse({ status: 'active', expected_status: 'hidden' }).success, true)
+  assert.equal(productStatusSchema.safeParse({ status: 'active', expected_status: 'archived' }).success, false)
+  assert.equal(productStatusSchema.safeParse({ status: 'hidden', expected_status: 'hidden' }).success, false)
   assert.equal(productStatusSchema.safeParse({ status: 'draft', expected_status: 'active', id: id1 }).success, false)
   assert.equal(duplicateProductSchema.safeParse({ requestId }).success, true)
   assert.equal(duplicateProductSchema.safeParse({ requestId, sourceId: id1 }).success, false)

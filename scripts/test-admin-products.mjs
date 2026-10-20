@@ -85,7 +85,7 @@ test('bulk deletion and draft activation preserve receipt IDs and lane',async()=
   const f=fake();const input={requestId:id(2),lane:'standard',ids:[id(3)]};const repo=createProductRepository(f.db)
   await repo.bulkDelete(actor,input);await repo.activateDrafts(actor,input)
   for(const call of f.calls)assert.deepEqual(call[1],[id(1),id(2),'standard',[id(3)]])
-  assert.ok(f.calls[0][0].includes('admin_product_bulk_delete_v1'));assert.ok(f.calls[1][0].includes('admin_product_activate_drafts_v1'))
+  assert.ok(f.calls[0][0].includes('admin_product_delete_v2'));assert.ok(f.calls[1][0].includes('admin_product_activate_drafts_v1'))
 })
 test('duplicate binds source/request/admin rather than actor-first and preserves table result',async()=>{
   const item={product_id:id(4),slug:'copy',lane:'collection'};const f=fake(()=>[item])
@@ -171,10 +171,15 @@ test('route success uses mapped internal UUID and preserves duplicate/status out
   const response=await h.handler('duplicate',req({requestId:id(3)}),id(2));assert.equal(response.status,201);assert.equal((await response.json()).item.product_id,id(4));assert.deepEqual(h.calls.at(-1)[1],[id(2),id(3),id(1)])
   const conflict=harness({run:sql=>sql.startsWith('UPDATE')?[]:[{id:id(2)}]});assert.equal((await conflict.handler('status',req({status:'draft',expected_status:'active'},'PATCH'),id(2))).status,409)
   const absent=harness({run:()=>[]});assert.equal((await absent.handler('status',req({status:'draft',expected_status:'active'},'PATCH'),id(2))).status,404)
+  // Deactivate / reactivate (Phase 3): active <-> hidden, guarded by the loaded status.
+  const moved=harness({run:sql=>sql.startsWith('UPDATE')?[{id:id(2),status:'hidden'}]:[]})
+  assert.equal((await moved.handler('status',req({status:'hidden',expected_status:'active'},'PATCH'),id(2))).status,200);assert.deepEqual(moved.calls.at(-1)[1].slice(0,2),[id(2),'active']);assert.equal(moved.calls.at(-1)[1][3],'hidden')
+  assert.equal((await moved.handler('status',req({status:'active',expected_status:'hidden'},'PATCH'),id(2))).status,200);assert.equal(moved.calls.at(-1)[1][3],'active')
+  const before=moved.calls.length;assert.equal((await moved.handler('status',req({status:'active',expected_status:'archived'},'PATCH'),id(2))).status,400);assert.equal(moved.calls.length,before,'disallowed move never reaches the database')
 })
 test('B2 transaction rollback protects atomic mutations and releases on SQLSTATE conflict',async()=>{
   const calls=[];let released
-  const client={async query(sql){calls.push(sql);if(sql.startsWith('SELECT session_user'))return {rows:[{login_role:'hod_admin_app',active_role:'hod_admin_app',capability_exists:true,safe_login:true,isolated_login:true,safe_capability:true,isolated_capability:true}]};if(sql.includes('admin_product_bulk_delete'))throw Object.assign(Error('SECRET'),{code:'40001'});return {rows:[]}},release(value){released=value}}
+  const client={async query(sql){calls.push(sql);if(sql.startsWith('SELECT session_user'))return {rows:[{login_role:'hod_admin_app',active_role:'hod_admin_app',capability_exists:true,safe_login:true,isolated_login:true,safe_capability:true,isolated_capability:true}]};if(sql.includes('admin_product_delete_v2'))throw Object.assign(Error('SECRET'),{code:'40001'});return {rows:[]}},release(value){released=value}}
   await assert.rejects(()=>withAdminTransaction({connect:async()=>client},'hod_admin_app',db=>createProductRepository(db).bulkDelete(actor,{requestId:id(2),ids:[id(3)],lane:'standard'})),{sqlState:'40001'})
   assert.equal(calls.at(-1),'ROLLBACK');assert.ok(!calls.includes('COMMIT'));assert.equal(released,false)
 })
@@ -242,7 +247,9 @@ test('browser transport follows server contract, uses cookie CSRF, never exposes
 })
 
 test('single deletion remains idempotent and read-by-id/slug retain their legacy absence statuses',async()=>{
-  const h=harness({run:()=>[]});const deleted=await h.handler('single-delete',req(undefined,'DELETE'),id(2));assert.equal(deleted.status,200);assert.deepEqual(await deleted.json(),{ok:true});assert.equal(h.calls.length,1);assert.match(h.calls[0][0],/^DELETE/)
+  const h=harness({run:sql=>sql.includes('admin_product_delete_v2')?[{result:{ok:true,deletedCount:0,ids:[],redirectCount:0}}]:[]});const deleted=await h.handler('single-delete',req(undefined,'DELETE'),id(2));assert.equal(deleted.status,200);assert.deepEqual(await deleted.json(),{ok:true});assert.equal(h.calls.length,1)
+  // Single delete goes through the redirect-writing function with no lane; already-gone is still ok.
+  assert.match(h.calls[0][0],/admin_product_delete_v2\(\$1::uuid,\$2::uuid,NULL::text,\$3::uuid\[\]\)/);assert.equal(h.calls[0][1][0],id(1));assert.match(h.calls[0][1][1],/^[0-9a-f-]{36}$/);assert.deepEqual(h.calls[0][1][2],[id(2)])
   const byId=await h.handler('read-id',req(undefined,'GET'),id(2));assert.equal(byId.status,500)
   const bySlug=await h.handler('read-slug',req(undefined,'GET'),'missing-slug');assert.equal(bySlug.status,404)
 })

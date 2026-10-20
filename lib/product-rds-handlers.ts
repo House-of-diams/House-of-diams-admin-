@@ -1,4 +1,5 @@
 import 'server-only'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import type { AdminActor } from './auth/admin-identity-core'
 import { authorizeProductRequest } from './product-session-runtime'
@@ -50,8 +51,9 @@ export function createProductRdsHandlers(deps: Dependencies) {
           if (action === 'single-delete') {
             const id = z.string().uuid().safeParse(rawId)
             if (!id.success) return response({ error: 'Unable to delete this product.' }, 500)
-            // Legacy single DELETE is successful even if the row has already disappeared.
-            await db.query('DELETE FROM public.products WHERE id=$1::uuid', [id.data])
+            // Still successful if the row has already disappeared. The database leaves a
+            // 301 from the old product address (admin_product_delete_v2).
+            await createProductRepository(db).deleteOne(actor, id.data, randomUUID())
             return response({ ok: true })
           }
           const id = action === 'create' ? null : await findRdsProductId(db, rawId ?? '', action.endsWith('-id'))
@@ -90,7 +92,7 @@ export function createProductRdsHandlers(deps: Dependencies) {
         if (action === 'status') {
           const input = productStatusSchema.safeParse(body)
           if (!input.success) return response({ error: input.error.issues[0]?.message ?? 'Invalid product status request.' }, 400)
-          const result = await deps.transaction(db => createProductRepository(db).draft(id.data, input.data.expected_status))
+          const result = await deps.transaction(db => createProductRepository(db).setStatus(id.data, input.data.status, input.data.expected_status))
           if (result.status === 'updated') return response({ item: result.item })
           return response({ error: result.status === 'conflict' ? 'This product status changed after you loaded it. Refresh the list and try again.' : 'Product not found.' }, result.status === 'conflict' ? 409 : 404)
         }

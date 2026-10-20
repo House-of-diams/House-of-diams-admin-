@@ -17,6 +17,13 @@ export function createProductRepository(db: DbExecutor) {
     if (rows.length !== 1 || !rows[0].result || typeof rows[0].result !== 'object' || Array.isArray(rows[0].result)) throw new Error('Invalid product result')
     return rows[0].result
   }
+  /** Moves are checked by productStatusSchema; expectedStatus guards against a stale list. */
+  async function setStatus(id: string, status: 'draft' | 'hidden' | 'active', expectedStatus: string) {
+    const { rows } = await db.query<{ id: string; status: string }>('UPDATE public.products SET status=$4::text::public.product_status,updated_at=$3::timestamptz WHERE id=$1::uuid AND status::text=$2::text RETURNING id,status', [id, expectedStatus, new Date().toISOString(), status])
+    if (rows[0]) return { status: 'updated' as const, item: rows[0] }
+    const current = await db.query<{ id: string }>('SELECT id FROM public.products WHERE id=$1::uuid', [id])
+    return { status: current.rows.length ? 'conflict' as const : 'not_found' as const }
+  }
   return {
     async save(actor: AdminActor, input: { productId?: string | null; slug?: string | null; payload: ProductPayload }) {
       if (videoReferenceSlots(productVideoProjection(input.payload)).size) {
@@ -52,9 +59,15 @@ export function createProductRepository(db: DbExecutor) {
       return scalar('SELECT public.admin_product_bulk_price_v2($1::uuid,$2::uuid,$3::text,$4::text,$5::numeric,$6::uuid[],$7::uuid[],$8::jsonb) AS result',
         [actor.profileId, input.requestId, input.lane, input.operation, input.value, input.ids, input.metalIds, JSON.stringify(input.expectedPrices)])
     },
+    /** Deletes and leaves a 301 from each old /shop/<slug> address (admin_product_delete_v2). */
     bulkDelete(actor: AdminActor, input: z.infer<typeof bulkDeleteSchema>) {
-      return scalar('SELECT public.admin_product_bulk_delete_v1($1::uuid,$2::uuid,$3::text,$4::uuid[]) AS result',
+      return scalar('SELECT public.admin_product_delete_v2($1::uuid,$2::uuid,$3::text,$4::uuid[]) AS result',
         [actor.profileId, input.requestId, input.lane, input.ids])
+    },
+    /** Single delete: no lane, and a product that is already gone is not an error. */
+    deleteOne(actor: AdminActor, id: string, requestId: string) {
+      return scalar('SELECT public.admin_product_delete_v2($1::uuid,$2::uuid,NULL::text,$3::uuid[]) AS result',
+        [actor.profileId, requestId, [id]])
     },
     activateDrafts(actor: AdminActor, input: z.infer<typeof activateDraftsSchema>) {
       return scalar('SELECT public.admin_product_activate_drafts_v1($1::uuid,$2::uuid,$3::text,$4::uuid[]) AS result',
@@ -90,11 +103,7 @@ export function createProductRepository(db: DbExecutor) {
       const { rows } = await db.query<{ id: string; product_lane: string | null }>('SELECT id, product_lane FROM public.products WHERE id=$1::uuid', [id])
       return rows[0] ?? null
     },
-    async draft(id: string, expectedStatus: string) {
-      const { rows } = await db.query<{ id: string; status: string }>("UPDATE public.products SET status='draft',updated_at=$3::timestamptz WHERE id=$1::uuid AND status::text=$2::text RETURNING id,status", [id, expectedStatus, new Date().toISOString()])
-      if (rows[0]) return { status: 'updated' as const, item: rows[0] }
-      const current = await db.query<{ id: string }>('SELECT id FROM public.products WHERE id=$1::uuid', [id])
-      return { status: current.rows.length ? 'conflict' as const : 'not_found' as const }
-    },
+    draft: (id: string, expectedStatus: string) => setStatus(id, 'draft', expectedStatus),
+    setStatus,
   }
 }
