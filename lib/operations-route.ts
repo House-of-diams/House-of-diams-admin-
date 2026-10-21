@@ -24,10 +24,13 @@ export function operationsError(error: unknown,request?:Request) {
       : /^\/api\/orders\//.test(path) && failure.code!=='PT409' ? adminMutationError(failure,'order') : undefined
     if(safe)return Response.json({error:safe.message},{status:safe.status,headers:{'Cache-Control':'no-store'}})
   }
+  const path = request ? new URL(request.url).pathname : null
   const status = error instanceof OperationsError ? error.status : error instanceof ProductSessionError ? error.status : error instanceof ZodError ? 400
     : mapped.kind==='permission' ? 403 : mapped.sqlState==='P0002' ? 404 : mapped.kind==='conflict' || mapped.sqlState==='23503' ? 409
     : mapped.kind==='invalid' || ['22023','23502'].includes(mapped.sqlState ?? '') ? 400 : 503
   const message = error instanceof OperationsError ? error.message : status===401 ? 'Unauthorized.' : status===403 ? 'Administrator access is required.' : status===400 ? 'Invalid operation details.' : status===409 ? 'The record changed or is still referenced. Reload before continuing.' : status===404 ? 'Record not found.' : 'Operations service unavailable. No fallback was attempted.'
+  // Server log only: lets the operator see why a request failed without exposing database text to the browser.
+  if(status>=500)console.error('[admin-operations]',JSON.stringify({method:request?.method??null,path,status,kind:mapped.kind,sqlState:mapped.sqlState??null,source:error instanceof ProductSessionError?'session':error instanceof OperationsError?'operations':error instanceof ZodError?'validation':'database'}))
   return Response.json({error:message},{status,headers:{'Cache-Control':'no-store'}})
 }
 type Dependencies = {provider:()=> 'rds'|'supabase';authorize:typeof authorizeProductRequest;transaction:<T>(run:(db:DbExecutor)=>Promise<T>)=>Promise<T>;legacy:typeof assertAdmin}
