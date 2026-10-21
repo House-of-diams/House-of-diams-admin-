@@ -33,15 +33,21 @@ jobs:
         
       - name: Build application
         run: npm run build
-
+        
       - name: Prepare deployment archive
         run: |
+          set -euo pipefail
+          mkdir -p /tmp/admin-package
+
           tar \
             --exclude=.git \
             --exclude=node_modules \
             --exclude=.next/cache \
             --exclude=config/admin-uat-aws.env \
-            -czf admin-release.tar.gz .
+            -czf /tmp/admin-package/admin-release.tar.gz \
+            -C "$GITHUB_WORKSPACE" .
+
+          mv /tmp/admin-package/admin-release.tar.gz admin-release.tar.gz
 
       - name: Configure SSH
         env:
