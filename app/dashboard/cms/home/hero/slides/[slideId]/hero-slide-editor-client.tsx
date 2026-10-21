@@ -56,7 +56,7 @@ export function HeroSlideEditorClient({ initialSlide, initialItems, initialSecti
   }
 
   const uploadImage = async (file: File, field: 'image_path' | 'mobile_image_path') => {
-    if (file.size > 5 * 1024 * 1024) { setStatus('File too large. Maximum size is 5MB.'); return }
+    if (file.size > 15 * 1024 * 1024) { setStatus('File too large. Maximum size is 15MB.'); return }
 
     try {
       const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/hero', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
