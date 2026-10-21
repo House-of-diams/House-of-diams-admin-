@@ -6,7 +6,6 @@ import { ArrowLeft, Save } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
 import { cmsFetch } from '@/lib/cms-transport'
-import { REVISION_HEADER } from '@/lib/revision'
 import type { OfferSection } from '@/lib/offer-section-validation'
 
 const inputClass = 'w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm transition-colors hover:border-input focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring'
@@ -33,7 +32,7 @@ export function OfferSectionEditorClient({ initialItem, initialRevision, notice 
     try {
       const response = await cmsFetch('/api/cms/home/offer-section', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', [REVISION_HEADER]: revision.current },
+        headers: { 'content-type': 'application/json', 'x-expected-revision': revision.current },
         body: JSON.stringify({
           is_enabled: form.is_enabled,
           label: form.label.trim(),
