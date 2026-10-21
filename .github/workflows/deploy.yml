@@ -35,6 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           pnpm typecheck
+          python3 scripts/test-admin-release-cleanup.py
           node --test scripts/test-admin-ci-packaging.mjs
           node node_modules/eslint/bin/eslint.js lib/auth/request-security.ts lib/auth/handlers.ts scripts/build-admin-uat.mjs scripts/package-admin-uat.mjs scripts/test-admin-ci-packaging.mjs
           node --import ./scripts/offline-network-guard.mjs --conditions=react-server --test scripts/test-admin-oidc.mjs scripts/test-admin-images.mjs
@@ -43,6 +44,7 @@ jobs:
       - name: Package built release
         run: |
           set -euo pipefail
+          node scripts/prune-admin-ci-dependencies.mjs
           node scripts/package-admin-uat.mjs "$RUNNER_TEMP/admin-runtime"
           name="admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tar.gz"
           tar -czf "$RUNNER_TEMP/$name" -C "$RUNNER_TEMP/admin-runtime" .
@@ -73,9 +75,26 @@ jobs:
         run: |
           set -euo pipefail
           name="admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tar.gz"
+          ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
+            "python3 -" < scripts/cleanup-admin-uat.py
+          bytes=$(( $(du -sk "$RUNNER_TEMP/admin-runtime" | cut -f1) * 1024 ))
+          entries=$(find "$RUNNER_TEMP/admin-runtime" | wc -l | tr -d ' ')
+          ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
+            "bash -s -- '$bytes' '$entries'" < scripts/check-admin-uat-capacity.sh
           scp -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$RUNNER_TEMP/$name" "$RUNNER_TEMP/$name.sha256" "$SSH_USER@$SSH_HOST:/tmp/"
           ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
             "bash -s -- '$GITHUB_SHA' '${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}'" < scripts/deploy-admin-uat-artifact.sh
+      - name: Retain active and rollback releases and clean failed uploads
+        if: always()
+        env:
+          SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
+          SSH_USER: ${{ secrets.ADMIN_UAT_USER }}
+        run: |
+          set -euo pipefail
+          if test -f "$HOME/.ssh/admin_uat_key" && test -s "$HOME/.ssh/known_hosts"; then
+            ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
+              "python3 -" < scripts/cleanup-admin-uat.py
+          fi
       - name: Remove temporary SSH key
         if: always()
         run: rm -f -- "$HOME/.ssh/admin_uat_key"

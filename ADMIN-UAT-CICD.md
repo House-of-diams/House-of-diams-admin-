@@ -53,8 +53,14 @@ Keep video publishing false pending its separate acceptance.
 Coordinate changes to this workflow with DevOps; do not paste another workflow
 into this file. Preserve the one top-level name/on/jobs structure.
 
-The artifact is larger than standalone output because it includes locked runtime
-dependencies and the existing source-based preflight. No automatic release
-deletion is performed: retain known-good releases for rollback and monitor disk.
+The artifact includes production runtime dependencies and TypeScript for the
+source-based preflight; dev/test dependencies are pruned after build. Cleanup
+runs before capacity checks and after success/failure. It retains the running
+release and the rollback path recorded after a healthy activation (initially the
+known-good 111f8c5 release). Strict managed names and real-path checks exclude
+unrelated files and symlinked release directories. Releases still used by another
+process are protected rather than deleted. Failed uploads and inactive failed
+release directories are removed. A missing/invalid rollback path aborts cleanup.
+Disk bytes and inode capacity are checked before transfer.
 Manual rollback restores the last known-good release.conf and restarts only
 hod-admin-uat.service. Never delete an active release to make disk space.
