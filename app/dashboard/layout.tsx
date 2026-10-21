@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/sidebar'
+import { SessionKeepAlive } from '@/components/session-keep-alive'
 import { Topbar } from '@/components/topbar'
 import { getAdminServerSession } from '@/lib/admin-server'
 import { getCustomerMetrics } from '@/lib/admin-users'
@@ -26,6 +27,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-secondary/50">
+      <SessionKeepAlive />
       <Sidebar customerCount={customers.persistedCustomerIdentities ?? customers.historicalRegistrations ?? undefined} />
       <div className="flex flex-1 flex-col overflow-hidden bg-transparent">
         <Topbar notificationCount={notificationCount} />
