@@ -79,8 +79,10 @@ jobs:
             "python3 -" < scripts/cleanup-admin-uat.py
           bytes=$(( $(du -sk "$RUNNER_TEMP/admin-runtime" | cut -f1) * 1024 ))
           entries=$(find "$RUNNER_TEMP/admin-runtime" | wc -l | tr -d ' ')
+          compressed=$(stat -c %s "$RUNNER_TEMP/$name")
+          echo "Artifact sizes: unpacked=$bytes bytes, archive=$compressed bytes, entries=$entries"
           ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
-            "bash -s -- '$bytes' '$entries'" < scripts/check-admin-uat-capacity.sh
+            "bash -s -- '$bytes' '$entries' '$compressed'" < scripts/check-admin-uat-capacity.sh
           scp -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$RUNNER_TEMP/$name" "$RUNNER_TEMP/$name.sha256" "$SSH_USER@$SSH_HOST:/tmp/"
           ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
             "bash -s -- '$GITHUB_SHA' '${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}'" < scripts/deploy-admin-uat-artifact.sh
