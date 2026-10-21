@@ -54,8 +54,8 @@ export function CollectionPageEditorClient({ initialData, initialRevision }: { i
 
 
 
-    if (file.size > 5 * 1024 * 1024) {
-      setStatus('File too large. Max size is 5MB.')
+    if (file.size > 30 * 1024 * 1024) {
+      setStatus('File too large. Max size is 30MB.')
       return
     }
 

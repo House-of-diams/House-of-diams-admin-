@@ -109,9 +109,9 @@ export function CollectionEditorClient({ initialData }: { initialData: Collectio
       return
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 30 * 1024 * 1024) {
       setUploadState('error')
-      setLoadStatus('File too large. Max size is 5MB.')
+      setLoadStatus('File too large. Max size is 30MB.')
       return
     }
 

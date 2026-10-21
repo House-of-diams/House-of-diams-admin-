@@ -106,9 +106,9 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
       return
     }
 
-    if (file.size > 15 * 1024 * 1024) {
+    if (file.size > 30 * 1024 * 1024) {
       setUploadState('error')
-      setStatus('File too large. Max size is 15MB.')
+      setStatus('File too large. Max size is 30MB.')
       return
     }
 
