@@ -24,6 +24,7 @@ export async function tryUploadAwsImage(file: File, endpoint: string, fields: Re
   for (const [key, value] of Object.entries(fields)) if (key !== 'file') form.set(key, value)
   const response = await fetch(endpoint, { method: 'POST', credentials: 'same-origin', headers: { 'x-admin-csrf': session.csrfToken, 'x-admin-image-upload': '1' }, body: form })
   const payload = await response.json().catch(() => null)
+  if (!response.ok && typeof payload?.error === 'string' && payload.error) throw new Error(payload.error)
   if (!response.ok || payload?.provider !== 's3' || !isCanonicalAwsImageReference(payload.path) || payload.path !== payload.url) throw new Error('Unable to upload image.')
   ok = true
   return payload.path
