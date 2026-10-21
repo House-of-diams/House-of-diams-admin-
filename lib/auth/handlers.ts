@@ -2,7 +2,7 @@ import 'server-only'
 import { createHmac } from 'node:crypto'
 import type { AuthDependencies, Flow, Session } from './session'
 import { createSessions } from './session'
-import { assertMutation, assertSameOrigin, cookieValue, equalSecret, FLOW_COOKIE, NO_STORE, safeReturnPath, secureCookie, SESSION_COOKIE } from './request-security'
+import { assertMutation, assertRequestOrigin, assertSameOrigin, cookieValue, equalSecret, FLOW_COOKIE, NO_STORE, safeReturnPath, secureCookie, SESSION_COOKIE } from './request-security'
 
 /** Web-standard handlers allow complete protocol tests without a listener. */
 export function createAuthHandlers(deps: AuthDependencies) {
@@ -34,7 +34,8 @@ export function createAuthHandlers(deps: AuthDependencies) {
       const clear = (result: Response) => { result.headers.append('Set-Cookie', secureCookie(FLOW_COOKIE, '', 0)); return result }
       try {
         const url = new URL(request.url)
-        if (request.method !== 'GET' || url.origin !== config.origin) throw new Error('Invalid callback')
+        if (request.method !== 'GET') throw new Error('Invalid callback')
+        assertRequestOrigin(request, config.origin)
         const cookie = cookieValue(request, FLOW_COOKIE)
         if (!cookie) throw new Error('Flow missing')
         const key = sessions.flowKey(cookie)
@@ -56,7 +57,8 @@ export function createAuthHandlers(deps: AuthDependencies) {
     },
     async session(request: Request) {
       try {
-        if (request.method !== 'GET' || new URL(request.url).origin !== config.origin) return response({ error: 'Unauthorized' }, 401)
+        if (request.method !== 'GET') return response({ error: 'Unauthorized' }, 401)
+        assertRequestOrigin(request, config.origin)
         const { actor, csrf } = await sessions.authorize(request)
         return response({ authenticated: true, actor: { profileId: actor.profileId }, csrfToken: csrf })
       } catch (error) {

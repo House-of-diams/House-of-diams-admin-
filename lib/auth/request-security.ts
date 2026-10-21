@@ -28,8 +28,31 @@ export function secureCookie(name: string, value: string, seconds: number): stri
   return `${name}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${Math.max(0, Math.floor(seconds))}`
 }
 
+/** Nginx overwrites these headers and the Next listener is loopback-only.
+ * Never infer an allowed origin from client input: compare with the pinned origin.
+ * Next constructs route URLs from its listen host/port even behind HTTPS ingress.
+ */
+export function assertRequestOrigin(request: Request, origin: string): void {
+  const expected = new URL(origin)
+  const actual = new URL(request.url)
+  if (expected.protocol !== 'https:' || expected.origin !== origin) throw new Error('Invalid origin')
+  const host = request.headers.get('host')
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto')
+  if ((host !== null && host !== expected.host)
+    || (forwardedHost !== null && forwardedHost !== expected.host)
+    || (forwardedProto !== null && forwardedProto !== 'https')) throw new Error('Invalid origin')
+  if (actual.origin === origin) return
+  // No arbitrary private-network hosts, forwarded chains, ports or HTTP public URLs.
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(actual.hostname)
+    || !['http:', 'https:'].includes(actual.protocol)
+    || actual.username || actual.password
+    || host !== expected.host || forwardedHost !== expected.host || forwardedProto !== 'https') throw new Error('Invalid origin')
+}
+
 export function assertSameOrigin(request: Request, origin: string): void {
-  if (new URL(request.url).origin !== origin || request.headers.get('origin') !== origin
+  assertRequestOrigin(request, origin)
+  if (request.headers.get('origin') !== origin
     || (request.headers.get('sec-fetch-site') && request.headers.get('sec-fetch-site') !== 'same-origin')) throw new Error('Invalid origin')
 }
 

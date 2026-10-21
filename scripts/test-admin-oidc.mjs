@@ -96,6 +96,55 @@ function fixture(options = {}) {
 function request(path, method = 'GET', cookie = '', headers = {}) {
   return new Request(`${origin}/api/auth/${path}`, { method, headers: { ...(cookie ? { cookie } : {}), ...(method === 'POST' ? { origin } : {}), ...headers } })
 }
+function proxiedRequest(path, method = 'GET', cookie = '', headers = {}, base = 'https://localhost:3101') {
+  return new Request(`${base}/api/auth/${path}`, { method, headers: {
+    host: new URL(origin).host, 'x-forwarded-host': new URL(origin).host, 'x-forwarded-proto': 'https',
+    ...(cookie ? { cookie } : {}), ...(method === 'POST' ? { origin } : {}), ...headers,
+  } })
+}
+
+test('EC2 loopback URL supports the complete proxied auth flow and mutation CSRF', async () => {
+  const f = fixture()
+  const begin = await f.handlers.login(proxiedRequest('login', 'POST'))
+  assert.equal(begin.status, 303)
+  const authorize = new URL(begin.headers.get('location'))
+  f.options.nonce = authorize.searchParams.get('nonce')
+  f.options.challenge = authorize.searchParams.get('code_challenge')
+  const flowCookie = begin.headers.get('set-cookie').split(';')[0]
+  const callback = await f.handlers.callback(proxiedRequest(`callback?state=${authorize.searchParams.get('state')}&code=offline-code`, 'GET', flowCookie))
+  assert.equal(callback.status, 303)
+  assert.equal(new URL(callback.headers.get('location')).origin, origin)
+  const sessionCookie = callback.headers.getSetCookie().find(value => value.startsWith(SESSION_COOKIE + '=')).split(';')[0]
+  const session = await f.handlers.session(proxiedRequest('session', 'GET', sessionCookie))
+  assert.equal(session.status, 200)
+  const data = await session.json()
+  assert.equal(data.authenticated, true)
+  assert.equal((await f.sessions.authorize(proxiedRequest('save', 'POST', sessionCookie, { 'x-admin-csrf': data.csrfToken }), true)).actor.profileId, profileId)
+  for (const headers of [{ origin: 'https://evil.example' }, { 'x-admin-csrf': 'wrong' }, { 'sec-fetch-site': 'cross-site' }]) {
+    await assert.rejects(f.sessions.authorize(proxiedRequest('save', 'POST', sessionCookie, { 'x-admin-csrf': data.csrfToken, ...headers }), true))
+  }
+  const logout = await f.handlers.logout(proxiedRequest('logout', 'POST', sessionCookie, { 'x-admin-csrf': data.csrfToken }))
+  assert.equal(logout.status, 200)
+  assert.equal((await f.handlers.session(proxiedRequest('session', 'GET', sessionCookie))).status, 401)
+})
+
+test('proxy origin validation rejects spoofed hosts, protocols, chains and non-loopback URLs', () => {
+  const { assertRequestOrigin } = security.exports
+  for (const base of ['http://127.0.0.1:3101', 'https://localhost:3101', 'http://[::1]:3101']) {
+    assert.doesNotThrow(() => assertRequestOrigin(proxiedRequest('session', 'GET', '', {}, base), origin))
+  }
+  for (const headers of [
+    { host: 'evil.example' }, { 'x-forwarded-host': 'evil.example' },
+    { 'x-forwarded-host': `${new URL(origin).host}, evil.example` },
+    { 'x-forwarded-proto': 'http' }, { 'x-forwarded-proto': 'https,http' },
+    { host: 'localhost:3101' }, { 'x-forwarded-host': `${new URL(origin).host}:3101` },
+  ]) assert.throws(() => assertRequestOrigin(proxiedRequest('session', 'GET', '', headers), origin))
+  for (const base of ['https://evil.example', 'http://10.0.0.1:3101', 'http://manage-uat.houseofdiams.com']) {
+    assert.throws(() => assertRequestOrigin(proxiedRequest('session', 'GET', '', {}, base), origin))
+  }
+  assert.throws(() => assertRequestOrigin(new Request('http://localhost:3101/api/auth/session'), origin))
+  assert.throws(() => assertRequestOrigin(request('session', 'GET', '', { 'x-forwarded-host': 'evil.example' }), origin))
+})
 async function start(f) {
   const response = await f.handlers.login(request('login?returnTo=/dashboard/products', 'POST'))
   assert.equal(response.status, 303)
