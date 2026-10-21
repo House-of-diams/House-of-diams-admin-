@@ -27,7 +27,6 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-secondary/50">
-      <SessionKeepAlive />
       <Sidebar customerCount={customers.persistedCustomerIdentities ?? customers.historicalRegistrations ?? undefined} />
       <div className="flex flex-1 flex-col overflow-hidden bg-transparent">
         <Topbar notificationCount={notificationCount} />
@@ -35,6 +34,7 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
+      <SessionKeepAlive />
     </div>
   )
 }
