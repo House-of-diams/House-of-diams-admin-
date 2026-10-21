@@ -16,112 +16,152 @@ concurrency:
 
 jobs:
   deploy:
-    name: Build and Deploy Admin UAT
+    name: Deploy Admin UAT
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - name: Install dependencies
-        run: npm install
-        
-      - name: Build application
-        run: npm run build
-        
-      - name: Prepare deployment archive
+      - name: Prepare source package
         run: |
           set -euo pipefail
-          mkdir -p /tmp/admin-package
 
-          tar \
-            --exclude=.git \
-            --exclude=node_modules \
-            --exclude=.next/cache \
-            --exclude=config/admin-uat-aws.env \
-            -czf /tmp/admin-package/admin-release.tar.gz \
-            -C "$GITHUB_WORKSPACE" .
+          test -f package.json
+          test -f pnpm-lock.yaml
 
-          mv /tmp/admin-package/admin-release.tar.gz admin-release.tar.gz
+          mkdir -p "$RUNNER_TEMP/admin-source"
+
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/admin-source"
+
+          rm -rf "$RUNNER_TEMP/admin-source/.git"
+          rm -rf "$RUNNER_TEMP/admin-source/.next"
+          rm -rf "$RUNNER_TEMP/admin-source/node_modules"
+          rm -f "$RUNNER_TEMP/admin-source/config/admin-uat-aws.env"
+
+          tar -czf "$RUNNER_TEMP/admin-release.tar.gz" \
+            -C "$RUNNER_TEMP/admin-source" .
 
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ADMIN_UAT_SSH_KEY }}
           SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
         run: |
-          set -eu
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/admin_uat_key
-          chmod 600 ~/.ssh/admin_uat_key
-          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
+          set -euo pipefail
 
-      - name: Upload release archive
+          test -n "$SSH_PRIVATE_KEY" || {
+            echo "Missing ADMIN_UAT_SSH_KEY secret"
+            exit 1
+          }
+
+          test -n "$SSH_HOST" || {
+            echo "Missing ADMIN_UAT_HOST secret"
+            exit 1
+          }
+
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/admin_uat_key"
+          chmod 600 "$HOME/.ssh/admin_uat_key"
+
+          # Obtain the host key. For stronger protection, pin a key
+          # verified through a trusted channel instead of trusting this scan.
+          ssh-keyscan -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null
+          test -s "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Upload source package
         env:
           SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
           SSH_USER: ${{ secrets.ADMIN_UAT_USER }}
         run: |
-          scp -i ~/.ssh/admin_uat_key \
-            admin-release.tar.gz \
+          set -euo pipefail
+          test -n "$SSH_USER"
+
+          scp -i "$HOME/.ssh/admin_uat_key" \
+            "$RUNNER_TEMP/admin-release.tar.gz" \
             "$SSH_USER@$SSH_HOST:/tmp/admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}.tar.gz"
 
-      - name: Deploy to Admin UAT
+      - name: Build and activate Admin UAT release
         env:
           SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
           SSH_USER: ${{ secrets.ADMIN_UAT_USER }}
         run: |
-          ssh -i ~/.ssh/admin_uat_key "$SSH_USER@$SSH_HOST" \
-            "GITHUB_SHA='$GITHUB_SHA' GITHUB_RUN_ID='$GITHUB_RUN_ID' bash -s" <<'REMOTE'
-          set -eu
+          set -euo pipefail
 
+          ssh -i "$HOME/.ssh/admin_uat_key" \
+            "$SSH_USER@$SSH_HOST" \
+            "GITHUB_SHA='$GITHUB_SHA' GITHUB_RUN_ID='$GITHUB_RUN_ID' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          SERVICE="hod-admin-uat.service"
+          DROPIN="/etc/systemd/system/hod-admin-uat.service.d/release.conf"
           RELEASE="/opt/hod-admin/releases/${GITHUB_SHA}-${GITHUB_RUN_ID}"
           ARCHIVE="/tmp/admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}.tar.gz"
-          CURRENT="/opt/hod-admin/releases/111f8c53d738d0b799b38bf0edd4cefa04654d52"
-          SERVICE_DROPIN="/etc/systemd/system/hod-admin-uat.service.d/release.conf"
 
-          # Preserve the current release's UAT configuration.
-          test -f "$CURRENT/config/admin-uat-aws.env"
-          mkdir -p "$RELEASE"
+          # Find the currently active release and preserve its UAT config.
+          PREVIOUS="$(systemctl show "$SERVICE" -p WorkingDirectory --value)"
+          test -n "$PREVIOUS"
+          test -f "$PREVIOUS/config/admin-uat-aws.env"
+          test -f "$ARCHIVE"
+
+          install -d -o root -g root -m 755 "$RELEASE"
           tar -xzf "$ARCHIVE" -C "$RELEASE"
 
-          mkdir -p "$RELEASE/config"
-          cp "$CURRENT/config/admin-uat-aws.env" \
-             "$RELEASE/config/admin-uat-aws.env"
+          install -d -o hod-admin -g hod-admin -m 755 "$RELEASE/config"
+          cp -a "$PREVIOUS/config/admin-uat-aws.env" \
+            "$RELEASE/config/admin-uat-aws.env"
 
-          # Install dependencies and build as the application user.
           chown -R hod-admin:hod-admin "$RELEASE"
-          runuser -u hod-admin -- /opt/node-v24/bin/npm \
-            --prefix "$RELEASE" ci
-          runuser -u hod-admin -- bash -c \
-            "cd '$RELEASE' && /opt/node-v24/bin/npm run build"
 
-          # Point only the Admin UAT service to the new release.
-          printf '[Service]\nWorkingDirectory=%s\n' "$RELEASE" \
-            > "$SERVICE_DROPIN"
+          # Ensure pnpm is available through Corepack.
+          command -v /opt/node-v24/bin/node
+          command -v /opt/node-v24/bin/corepack
 
+          # Install locked dependencies and build as the service user.
+          runuser -u hod-admin -- env \
+            HOME=/var/lib/hod-admin \
+            PATH=/opt/node-v24/bin:/usr/local/bin:/usr/bin:/bin \
+            bash -c "
+              set -e
+              cd '$RELEASE'
+              corepack pnpm install --frozen-lockfile
+              corepack pnpm run build
+            "
+
+          # Activate only after the new release builds successfully.
+          install -d -o root -g root -m 755 "$(dirname "$DROPIN")"
+          printf '[Service]\nWorkingDirectory=%s\n' "$RELEASE" > "$DROPIN"
           systemctl daemon-reload
-          systemctl restart hod-admin-uat.service
 
-          # Basic local health check.
+          if ! systemctl restart "$SERVICE"; then
+            echo "Service restart failed; restoring previous release."
+            printf '[Service]\nWorkingDirectory=%s\n' "$PREVIOUS" > "$DROPIN"
+            systemctl daemon-reload
+            systemctl restart "$SERVICE" || true
+            exit 1
+          fi
+
+          # Check the local Admin UAT login endpoint.
           for attempt in $(seq 1 12); do
-            if curl --fail --silent http://127.0.0.1:3101/login >/dev/null; then
-              echo "Admin UAT deployment successful: $GITHUB_SHA"
+            if curl --fail --silent \
+              http://127.0.0.1:3101/login >/dev/null; then
+              echo "Admin UAT health check passed."
               rm -f "$ARCHIVE"
               exit 0
             fi
             sleep 5
           done
 
-          echo "ERROR: Admin UAT health check failed."
+          echo "Health check failed; restoring previous release."
+          printf '[Service]\nWorkingDirectory=%s\n' "$PREVIOUS" > "$DROPIN"
+          systemctl daemon-reload
+          systemctl restart "$SERVICE" || true
           exit 1
           REMOTE
 
       - name: Remove temporary SSH key
         if: always()
-        run: rm -f ~/.ssh/admin_uat_key
+        run: rm -f "$HOME/.ssh/admin_uat_key"
