@@ -17,6 +17,8 @@ export type UploadConfig = {
   allowSvg?: boolean
   svgOnly?: boolean
   quality?: number
+  /** Pixel ceiling for decoding; banners may be larger than the 40 MP default. */
+  maxInputPixels?: number
   successStatus?: 200 | 201
   validateForm?: (form: FormData) => string | null
   buildPath: (extension: 'webp' | 'svg', form: FormData) => string
@@ -61,7 +63,7 @@ export async function handleAdminImageUpload(request: Request, access: Access | 
     const formats = rasterFormats.get(file.type)
     if (!formats) return NextResponse.json({ error: 'Only JPG, PNG, WebP, or AVIF images are allowed.' }, { status: 400 })
     try {
-      const image = sharp(input, { failOn: 'warning', limitInputPixels: 40_000_000 })
+      const image = sharp(input, { failOn: 'warning', limitInputPixels: config.maxInputPixels ?? 40_000_000 })
       const metadata = await image.metadata()
       if (!metadata.format || !formats.has(metadata.format)) return NextResponse.json({ error: 'The file contents do not match the selected image type.' }, { status: 400 })
       const width = typeof config.rasterWidth === 'function' ? config.rasterWidth(form) : config.rasterWidth
