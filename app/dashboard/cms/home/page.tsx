@@ -6,6 +6,7 @@ const HOME_SECTIONS = [
   { id: 'shop-by-category', label: 'Shop By Category', description: 'Choose and order category, subcategory, and option cards shown below the hero' },
   { id: 'discover-shapes', label: 'Discover Shapes', description: 'Homepage shape carousel images, titles, and descriptions' },
   { id: 'bestsellers', label: 'Best Sellers', description: 'Selected existing products shown in the best sellers grid' },
+  { id: 'offer-section', label: 'Offer Section', description: 'Label, headings, description and button of the coupon offer banner above the footer' },
   { id: 'reels', label: 'Instagram Reels', description: 'Public Instagram posts shown in the homepage marquee' },
 ]
 
