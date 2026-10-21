@@ -21,7 +21,7 @@ for location in /tmp /opt/hod-admin/releases; do
     need_entries=$required_entries
   fi
   available_bytes=$(df -B1 --output=avail "$location" | tail -1 | tr -d ' ')
-  available_entries=$(df -i --output=iavail "$location" | tail -1 | tr -d ' ')
+  available_entries=$(df --output=iavail "$location" | tail -1 | tr -d ' ')
   if (( available_bytes < need_bytes || available_entries < need_entries )); then
     printf 'Capacity check failed at %s: need %s bytes / %s inodes; available %s bytes / %s inodes. No release was uploaded or activated.\n' "$location" "$need_bytes" "$need_entries" "$available_bytes" "$available_entries"
     exit 1
