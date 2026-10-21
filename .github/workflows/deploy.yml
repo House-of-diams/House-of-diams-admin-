@@ -1,8 +1,10 @@
+
 name: Deploy Admin UAT
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -14,89 +16,154 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-24.04
+    name: Build and Deploy Admin UAT
+    runs-on: ubuntu-latest
     timeout-minutes: 45
-    env:
-      NEXT_TELEMETRY_DISABLED: '1'
-      AWS_EC2_METADATA_DISABLED: 'true'
-      NODE_OPTIONS: --max-old-space-size=4096
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24.22.0'
-      - name: Install locked dependencies
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare source package
         run: |
           set -euo pipefail
-          corepack enable
-          corepack prepare pnpm@10.28.0 --activate
-          pnpm install --frozen-lockfile
-      - name: TypeScript and authentication regressions
-        run: |
-          set -euo pipefail
-          pnpm typecheck
-          python3 scripts/test-admin-release-cleanup.py
-          node --test scripts/test-admin-ci-packaging.mjs
-          node node_modules/eslint/bin/eslint.js lib/auth/request-security.ts lib/auth/handlers.ts scripts/build-admin-uat.mjs scripts/package-admin-uat.mjs scripts/test-admin-ci-packaging.mjs
-          node --import ./scripts/offline-network-guard.mjs --conditions=react-server --test scripts/test-admin-oidc.mjs scripts/test-admin-images.mjs
-      - name: Build once on GitHub
-        run: node scripts/build-admin-uat.mjs
-      - name: Package built release
-        run: |
-          set -euo pipefail
-          node scripts/prune-admin-ci-dependencies.mjs
-          node scripts/package-admin-uat.mjs "$RUNNER_TEMP/admin-runtime"
-          name="admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tar.gz"
-          tar -czf "$RUNNER_TEMP/$name" -C "$RUNNER_TEMP/admin-runtime" .
-          (cd "$RUNNER_TEMP" && sha256sum "$name" > "$name.sha256")
-      - name: Configure verified SSH connection
+          test -f package.json
+          test -f pnpm-lock.yaml
+
+          mkdir -p "$RUNNER_TEMP/admin-source"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/admin-source"
+
+          rm -rf "$RUNNER_TEMP/admin-source/.next"
+          rm -rf "$RUNNER_TEMP/admin-source/node_modules"
+          rm -f "$RUNNER_TEMP/admin-source/config/admin-uat-aws.env"
+
+          tar -czf "$RUNNER_TEMP/admin-release.tar.gz" \
+            -C "$RUNNER_TEMP/admin-source" .
+
+      - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.ADMIN_UAT_SSH_KEY }}
           SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
-          SSH_USER: ${{ secrets.ADMIN_UAT_USER }}
         run: |
           set -euo pipefail
-          test -n "$SSH_PRIVATE_KEY" && test -n "$SSH_HOST" && test -n "$SSH_USER"
-          [[ "$SSH_HOST" =~ ^[A-Za-z0-9.-]+$ && "$SSH_HOST" != -* ]]
-          [[ "$SSH_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+
+          test -n "$SSH_PRIVATE_KEY" || {
+            echo "Missing ADMIN_UAT_SSH_KEY secret"
+            exit 1
+          }
+
+          test -n "$SSH_HOST" || {
+            echo "Missing ADMIN_UAT_HOST secret"
+            exit 1
+          }
+
           mkdir -p "$HOME/.ssh"
           chmod 700 "$HOME/.ssh"
+
           printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/admin_uat_key"
           chmod 600 "$HOME/.ssh/admin_uat_key"
-          ssh-keyscan -T 15 -t ed25519 "$SSH_HOST" > "$RUNNER_TEMP/scanned-host-key" 2>/dev/null
-          pinned="$(awk '{print $2}' config/admin-uat-ssh-hostkey.pub)"
-          awk -v pinned="$pinned" '$2 == "ssh-ed25519" && $3 == pinned {print}' "$RUNNER_TEMP/scanned-host-key" > "$HOME/.ssh/known_hosts"
-          test -s "$HOME/.ssh/known_hosts" || { echo 'EC2 SSH host key does not match the SSM-verified key'; exit 1; }
+
+          ssh-keyscan -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null
+          test -s "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/known_hosts"
-      - name: Upload and activate built artifact
+
+      - name: Upload source package
         env:
           SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
           SSH_USER: ${{ secrets.ADMIN_UAT_USER }}
         run: |
           set -euo pipefail
-          name="admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tar.gz"
-          ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
-            "python3 -" < scripts/cleanup-admin-uat.py
-          bytes=$(( $(du -sk "$RUNNER_TEMP/admin-runtime" | cut -f1) * 1024 ))
-          entries=$(find "$RUNNER_TEMP/admin-runtime" | wc -l | tr -d ' ')
-          compressed=$(stat -c %s "$RUNNER_TEMP/$name")
-          echo "Artifact sizes: unpacked=$bytes bytes, archive=$compressed bytes, entries=$entries"
-          ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
-            "bash -s -- '$bytes' '$entries' '$compressed'" < scripts/check-admin-uat-capacity.sh
-          scp -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$RUNNER_TEMP/$name" "$RUNNER_TEMP/$name.sha256" "$SSH_USER@$SSH_HOST:/tmp/"
-          ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
-            "bash -s -- '$GITHUB_SHA' '${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}'" < scripts/deploy-admin-uat-artifact.sh
-      - name: Retain active and rollback releases and clean failed uploads
-        if: always()
+          test -n "$SSH_USER"
+
+          scp -i "$HOME/.ssh/admin_uat_key" \
+            "$RUNNER_TEMP/admin-release.tar.gz" \
+            "$SSH_USER@$SSH_HOST:/tmp/admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}.tar.gz"
+
+      - name: Build and activate Admin UAT release
         env:
           SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
           SSH_USER: ${{ secrets.ADMIN_UAT_USER }}
         run: |
           set -euo pipefail
-          if test -f "$HOME/.ssh/admin_uat_key" && test -s "$HOME/.ssh/known_hosts"; then
-            ssh -o StrictHostKeyChecking=yes -i "$HOME/.ssh/admin_uat_key" "$SSH_USER@$SSH_HOST" \
-              "python3 -" < scripts/cleanup-admin-uat.py
+
+          ssh -i "$HOME/.ssh/admin_uat_key" \
+            "$SSH_USER@$SSH_HOST" \
+            "GITHUB_SHA='$GITHUB_SHA' GITHUB_RUN_ID='$GITHUB_RUN_ID' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          SERVICE="hod-admin-uat.service"
+          DROPIN="/etc/systemd/system/hod-admin-uat.service.d/release.conf"
+          RELEASE="/opt/hod-admin/releases/${GITHUB_SHA}-${GITHUB_RUN_ID}"
+          ARCHIVE="/tmp/admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}.tar.gz"
+
+          PREVIOUS="$(systemctl show "$SERVICE" -p WorkingDirectory --value)"
+
+          test -n "$PREVIOUS"
+          test -f "$PREVIOUS/config/admin-uat-aws.env"
+          test -f "$ARCHIVE"
+
+          # Refuse to overwrite or reuse a release.
+          if [ "$RELEASE" = "$PREVIOUS" ] || [ -e "$RELEASE" ]; then
+            echo "ERROR: Release directory already exists: $RELEASE"
+            exit 1
           fi
+
+          install -d -o root -g root -m 755 "$RELEASE"
+          tar -xzf "$ARCHIVE" -C "$RELEASE"
+
+          # Preserve the existing UAT configuration.
+          install -d -o hod-admin -g hod-admin -m 755 "$RELEASE/config"
+          cp "$PREVIOUS/config/admin-uat-aws.env" \
+            "$RELEASE/config/admin-uat-aws.env"
+
+          chown -R hod-admin:hod-admin "$RELEASE"
+
+          # Ensure Node.js 24 and Corepack exist.
+          test -x /opt/node-v24/bin/node
+          test -x /opt/node-v24/bin/corepack
+
+          # Install locked dependencies and build on EC2.
+          runuser -u hod-admin -- env \
+            HOME=/var/lib/hod-admin \
+            PATH=/opt/node-v24/bin:/usr/local/bin:/usr/bin:/bin \
+            bash -c "
+              set -e
+              cd '$RELEASE'
+              corepack pnpm install --frozen-lockfile
+              corepack pnpm run build
+            "
+
+          # Activate the release only after a successful build.
+          install -d -o root -g root -m 755 "$(dirname "$DROPIN")"
+          printf '[Service]\nWorkingDirectory=%s\n' "$RELEASE" > "$DROPIN"
+          systemctl daemon-reload
+
+          if ! systemctl restart "$SERVICE"; then
+            echo "Restart failed; restoring previous release."
+            printf '[Service]\nWorkingDirectory=%s\n' "$PREVIOUS" > "$DROPIN"
+            systemctl daemon-reload
+            systemctl restart "$SERVICE" || true
+            exit 1
+          fi
+
+          # Verify the local Admin UAT endpoint.
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent \
+              http://127.0.0.1:3101/login >/dev/null; then
+              echo "Admin UAT health check passed."
+              rm -f "$ARCHIVE"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "Health check failed; restoring previous release."
+          printf '[Service]\nWorkingDirectory=%s\n' "$PREVIOUS" > "$DROPIN"
+          systemctl daemon-reload
+          systemctl restart "$SERVICE" || true
+          exit 1
+          REMOTE
+
       - name: Remove temporary SSH key
         if: always()
-        run: rm -f -- "$HOME/.ssh/admin_uat_key"
+        run: rm -f "$HOME/.ssh/admin_uat_key"
