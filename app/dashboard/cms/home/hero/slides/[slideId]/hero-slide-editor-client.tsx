@@ -56,12 +56,12 @@ export function HeroSlideEditorClient({ initialSlide, initialItems, initialSecti
   }
 
   const uploadImage = async (file: File, field: 'image_path' | 'mobile_image_path') => {
-    if (file.size > 15 * 1024 * 1024) { setStatus('File too large. Maximum size is 15MB.'); return }
+    if (file.size > 15 * 1024 * 1024) { setStatus('File too large. Maximum size is 15MB.'); toast({ title: 'Upload failed', description: 'File too large. Maximum size is 15MB.', variant: 'destructive' }); return }
 
     try {
       const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/hero', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
-      if (awsPath) { updateField(field, awsPath); setStatus('Hero image uploaded successfully'); return }
-    } catch (error) { setStatus(error instanceof Error ? error.message : 'Upload failed.'); return }
+      if (awsPath) { updateField(field, awsPath); setStatus('Hero image uploaded successfully'); toast({ title: 'Image uploaded', description: 'Now click Save Changes to publish it.' }); return }
+    } catch (error) { const message = error instanceof Error ? error.message : 'Upload failed.'; setStatus(message); toast({ title: 'Upload failed', description: message, variant: 'destructive' }); return }
 
 
     const { supabase } = await import('@/lib/supabase')
@@ -100,7 +100,9 @@ export function HeroSlideEditorClient({ initialSlide, initialItems, initialSecti
 
     setIsSaving(true)
     setStatus('Saving slide...')
+    // The save schema is strict: send only its fields (not hero_id and similar).
     const items = savedItems.map((item) => item.id === slide.id ? slide : item)
+      .map(({ id, sort_order, image_path, mobile_image_path, headline, subtitle, button_text, button_link }) => ({ id, sort_order, image_path, mobile_image_path, headline, subtitle, button_text, button_link }))
     const saveBody = {
       slider_enabled: initialSection.slider_enabled,
       seo_title: initialSection.seo_title,
