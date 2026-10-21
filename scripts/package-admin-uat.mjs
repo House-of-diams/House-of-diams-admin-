@@ -19,5 +19,5 @@ const publicValues = Object.fromEntries(Object.entries(manifest).filter(([key]) 
 fs.writeFileSync(path.join(output, 'BUILD_PUBLIC_ENV.json'), JSON.stringify(publicValues))
 fs.writeFileSync(path.join(output, 'RELEASE_COMMIT'), sha + '\n')
 // pnpm links remain within the included node_modules/.pnpm tree.
-execFileSync(process.execPath, ['-e', "require.resolve('next');require.resolve('typescript');require.resolve('sharp')"], { cwd: output, stdio: 'inherit' })
+execFileSync(process.execPath, ['-e', "const {createRequire}=require('node:module');require.resolve('next');require.resolve('typescript');require.resolve('sharp');const nextRequire=createRequire(require.resolve('next/package.json'));if(typeof nextRequire('@next/env').loadEnvConfig!=='function')throw Error('Next env loader unavailable')"], { cwd: output, stdio: 'inherit' })
 console.log('Prepared built runtime artifact; no runtime credentials included')

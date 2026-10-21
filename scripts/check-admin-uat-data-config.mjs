@@ -5,7 +5,9 @@ import {createSourceLoader} from './admin-rds-source-loader.mjs'
 const mode=process.argv[2]
 if(!['--local-shape','--hosted-shape'].includes(mode)){console.log('{"ok":false,"code":"EXPLICIT_MODE_REQUIRED"}');process.exit(1)}
 const require=createRequire(import.meta.url)
- require('@next/env').loadEnvConfig(process.cwd(),mode==='--local-shape',{info(){},error(){}})
+// @next/env belongs to Next, not to this package's direct pnpm dependencies.
+const nextRequire=createRequire(require.resolve('next/package.json'))
+nextRequire('@next/env').loadEnvConfig(process.cwd(),mode==='--local-shape',{info(){},error(){}})
 try{
  const load=createSourceLoader(process.cwd())
  const {readAdminAuthProvider}=await import(await load('lib/auth/integration.ts'))

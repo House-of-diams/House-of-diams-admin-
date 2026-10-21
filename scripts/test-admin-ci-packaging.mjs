@@ -19,6 +19,9 @@ function fixture() {
   write('scripts/check-admin-uat-data-config.mjs', '// runtime preflight')
   write('package.json', '{}')
   for (const name of ['next', 'typescript', 'sharp']) write(`node_modules/${name}/index.js`, 'module.exports = {}')
+  write('node_modules/next/package.json', '{"name":"next","main":"index.js"}')
+  // pnpm-style isolation: Next can load its dependency, application root cannot.
+  write('node_modules/next/node_modules/@next/env/index.js', 'exports.loadEnvConfig = () => ({})')
   const output = path.join(root, 'release')
   const run = () => spawnSync(process.execPath, [packager, output], { cwd: root, env: { ...process.env, GITHUB_SHA: 'a'.repeat(40) }, encoding: 'utf8', windowsHide: true })
   return { root, output, run }
@@ -38,4 +41,11 @@ test('packaging refuses a source tree without a completed build', () => {
   const f = fixture()
   try { fs.unlinkSync(path.join(f.root, '.next/BUILD_ID')); assert.notEqual(f.run().status, 0); assert.equal(fs.existsSync(f.output), false) }
   finally { fs.rmSync(f.root, { recursive: true, force: true }) }
+})
+test('artifact validation rejects a missing Next-owned environment loader', () => {
+  const f = fixture()
+  try {
+    fs.rmSync(path.join(f.root, 'node_modules/next/node_modules/@next'), { recursive: true })
+    assert.notEqual(f.run().status, 0)
+  } finally { fs.rmSync(f.root, { recursive: true, force: true }) }
 })
