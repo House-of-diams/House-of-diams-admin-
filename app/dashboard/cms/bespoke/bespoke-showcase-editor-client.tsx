@@ -53,8 +53,8 @@ export function BespokeShowcaseEditorClient({ initialData, initialRevision }: { 
     const accessToken = sessionData.session?.access_token
     if (!accessToken) return setStatus('You are not signed in.')
 
-    if (file.size > 5 * 1024 * 1024) {
-      setStatus('File too large. Max size is 5MB.')
+    if (file.size > 30 * 1024 * 1024) {
+      setStatus('File too large. Max size is 30MB.')
       return
     }
 
