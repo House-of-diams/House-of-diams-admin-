@@ -20,6 +20,8 @@ export async function authorizeProductRequest(request: Request, mutation = false
     const message = error instanceof Error ? error.message : ''
     if (['Session missing', 'Session expired', 'Expired session', 'Session revoked'].includes(message)) throw new ProductSessionError(401)
     if (['Invalid origin', 'Invalid CSRF', 'Invalid method', 'Admin identity denied'].includes(message)) throw new ProductSessionError(403)
+    // Server log only (never sent to the browser): which session step failed, to tell Keycloak, Redis and identity problems apart.
+    console.error('[admin-session]', JSON.stringify({ mutation, reason: message || 'unknown' }))
     throw new ProductSessionError(503)
   }
 }
