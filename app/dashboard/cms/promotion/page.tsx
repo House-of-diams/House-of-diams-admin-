@@ -18,6 +18,9 @@ async function getPromotionInitialData() {
   let questions = snapshot.items as PromotionInitialData['item']['questions']
   if (!questions.length) questions = [{ id: null, field_key: 'email', question: 'What is your email address?', input_type: 'email', options: [], allow_multiple: false, validation_pattern: '', validation_message: 'Enter a valid email address.', is_required: true, is_active: true, sort_order: 0 }]
 
+  // Option questions are stored without a validation pattern (NULL): show an empty box, never null.
+  questions = questions.map((question) => ({ ...question, validation_pattern: question.validation_pattern ?? '', validation_message: question.validation_message ?? '' }))
+
   const parent = snapshot.parent
   const initialData: PromotionInitialData = {
     item: parent ? {
