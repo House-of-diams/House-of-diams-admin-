@@ -1,0 +1,122 @@
+
+name: Deploy Admin UAT
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-uat-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and Deploy Admin UAT
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Prepare deployment archive
+        run: |
+          tar \
+            --exclude=.git \
+            --exclude=node_modules \
+            --exclude=.next/cache \
+            --exclude=config/admin-uat-aws.env \
+            -czf admin-release.tar.gz .
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.ADMIN_UAT_SSH_KEY }}
+          SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
+        run: |
+          set -eu
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/admin_uat_key
+          chmod 600 ~/.ssh/admin_uat_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release archive
+        env:
+          SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
+          SSH_USER: ${{ secrets.ADMIN_UAT_USER }}
+        run: |
+          scp -i ~/.ssh/admin_uat_key \
+            admin-release.tar.gz \
+            "$SSH_USER@$SSH_HOST:/tmp/admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}.tar.gz"
+
+      - name: Deploy to Admin UAT
+        env:
+          SSH_HOST: ${{ secrets.ADMIN_UAT_HOST }}
+          SSH_USER: ${{ secrets.ADMIN_UAT_USER }}
+        run: |
+          ssh -i ~/.ssh/admin_uat_key "$SSH_USER@$SSH_HOST" \
+            "GITHUB_SHA='$GITHUB_SHA' GITHUB_RUN_ID='$GITHUB_RUN_ID' bash -s" <<'REMOTE'
+          set -eu
+
+          RELEASE="/opt/hod-admin/releases/${GITHUB_SHA}-${GITHUB_RUN_ID}"
+          ARCHIVE="/tmp/admin-release-${GITHUB_SHA}-${GITHUB_RUN_ID}.tar.gz"
+          CURRENT="/opt/hod-admin/releases/111f8c53d738d0b799b38bf0edd4cefa04654d52"
+          SERVICE_DROPIN="/etc/systemd/system/hod-admin-uat.service.d/release.conf"
+
+          # Preserve the current release's UAT configuration.
+          test -f "$CURRENT/config/admin-uat-aws.env"
+          mkdir -p "$RELEASE"
+          tar -xzf "$ARCHIVE" -C "$RELEASE"
+
+          mkdir -p "$RELEASE/config"
+          cp "$CURRENT/config/admin-uat-aws.env" \
+             "$RELEASE/config/admin-uat-aws.env"
+
+          # Install dependencies and build as the application user.
+          chown -R hod-admin:hod-admin "$RELEASE"
+          runuser -u hod-admin -- /opt/node-v24/bin/npm \
+            --prefix "$RELEASE" ci
+          runuser -u hod-admin -- bash -c \
+            "cd '$RELEASE' && /opt/node-v24/bin/npm run build"
+
+          # Point only the Admin UAT service to the new release.
+          printf '[Service]\nWorkingDirectory=%s\n' "$RELEASE" \
+            > "$SERVICE_DROPIN"
+
+          systemctl daemon-reload
+          systemctl restart hod-admin-uat.service
+
+          # Basic local health check.
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent http://127.0.0.1:3101/login >/dev/null; then
+              echo "Admin UAT deployment successful: $GITHUB_SHA"
+              rm -f "$ARCHIVE"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "ERROR: Admin UAT health check failed."
+          exit 1
+          REMOTE
+
+      - name: Remove temporary SSH key
+        if: always()
+        run: rm -f ~/.ssh/admin_uat_key
