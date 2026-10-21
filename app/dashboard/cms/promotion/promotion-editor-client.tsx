@@ -198,7 +198,7 @@ export function PromotionEditorClient({ initialData, initialRevision }: { initia
 
 
       // The save schema is strict: send only its fields (the snapshot also carries step, help_text, etc.).
-      const questions = form.questions.map((question, index) => ({ id: question.id, field_key: question.field_key, question: question.question, input_type: question.input_type, options: question.options, allow_multiple: question.allow_multiple, validation_pattern: question.validation_pattern, validation_message: question.validation_message, is_required: question.is_required, is_active: question.is_active, sort_order: index }))
+      const questions = form.questions.map((question, index) => ({ id: question.id, field_key: question.field_key, question: question.question, input_type: question.input_type, options: question.options, allow_multiple: question.allow_multiple, validation_pattern: question.validation_pattern ?? '', validation_message: question.validation_message ?? '', is_required: question.is_required, is_active: question.is_active, sort_order: index }))
       const parent = { label:form.label,title:form.title,description:form.description,cta_text:form.cta_text,cta_link:form.cta_link,cta_action:form.cta_action,selected_coupon_id:form.selected_coupon_id,image_path:form.image_path,mobile_image_path:form.mobile_image_path,image_alt:form.image_alt,image_only_mode:form.image_only_mode,is_active:form.is_active,show_once_per_session:form.show_once_per_session }
       const response = await cmsFetch('/api/cms/promotion', {
         method: 'POST',
