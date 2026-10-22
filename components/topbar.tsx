@@ -17,7 +17,7 @@ export function Topbar({ notificationCount = 0 }: { notificationCount?: number }
     setLogoutError('')
     try {
       const result = await logoutAdmin()
-      window.location.replace(result.upstreamLogout ? '/login' : '/login?logout=upstream-pending')
+      window.location.replace(result.upstreamLogout ? '/login?logout=complete' : '/login?logout=upstream-pending')
     } catch { setLogoutError('Sign-out could not be confirmed. Please retry.'); setSigningOut(false) }
   }
 
