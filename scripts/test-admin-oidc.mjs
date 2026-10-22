@@ -82,6 +82,7 @@ function fixture(options = {}) {
     const form = new URLSearchParams(init.body)
     assert.equal(form.get('client_secret'), env.ADMIN_OIDC_CLIENT_SECRET)
     if (options.tokenFailure) return Response.json({ error: 'offline' }, { status: 400 })
+    if (options.tokenOutage) return Response.json({ error: 'busy' }, { status: 503 })
     if (form.get('grant_type') === 'authorization_code') {
       assert.equal(digest(form.get('code_verifier')), options.challenge)
       assert.equal(form.get('redirect_uri'), `${origin}/api/auth/callback`)
@@ -275,6 +276,17 @@ test('refresh rotation, role removal, reuse, upstream error, idle/absolute expir
   }
 })
 
+test('a temporary identity-provider outage during refresh keeps the session and releases the claim', async () => {
+  const f = fixture(), { sessionCookie } = await login(f)
+  Object.assign(f.options, { tokenOutage: true })
+  seconds += 61
+  const failed = await f.handlers.session(request('session', 'GET', sessionCookie))
+  assert.equal(failed.status, 503, 'temporary failure is not a logout')
+  assert.equal(f.store.rows.size, 1, 'the session is kept')
+  Object.assign(f.options, { tokenOutage: false })
+  assert.equal((await f.handlers.session(request('session', 'GET', sessionCookie))).status, 200, 'the next request refreshes normally')
+})
+
 test('concurrent refresh consumes rotating token at most once; logout race cannot resurrect', async () => {
   const f = fixture(), { sessionCookie } = await login(f)
   seconds += 61
@@ -314,7 +326,7 @@ test('HOD-022: abandoned refresh claim is taken over; a refresh that never ends 
   const b = fixture({ sleep: async () => { waits++ } }), second = await login(b)
   await claim(b, second.sessionCookie, seconds)
   assert.equal((await b.handlers.session(request('session', 'GET', second.sessionCookie))).status, 503)
-  assert.equal(waits, 20)
+  assert.equal(waits, 40)
   assert.equal(b.calls.filter(v => v.url.endsWith('/token')).length, 1, 'waiting never uses the rotating token')
 })
 
