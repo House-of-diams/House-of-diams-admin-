@@ -63,7 +63,7 @@ export function createAuthHandlers(deps: AuthDependencies) {
         return response({ authenticated: true, actor: { profileId: actor.profileId }, csrfToken: csrf })
       } catch (error) {
         // A refresh still running after the wait is temporary, not a logout (HOD-022).
-        if (error instanceof Error && error.message === 'Refresh in progress') return response({ error: 'Session refresh in progress. Try again.' }, 503)
+        if (error instanceof Error && ['Refresh in progress', 'Refresh unavailable'].includes(error.message)) return response({ error: 'Session refresh in progress. Try again.' }, 503)
         return response({ error: 'Unauthorized' }, 401)
       }
     },

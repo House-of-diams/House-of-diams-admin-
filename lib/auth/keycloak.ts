@@ -30,6 +30,8 @@ export function createKeycloak(config: AuthConfig, fetcher: FetchAdapter = fetch
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
     if (![endpoint('certs'), endpoint('token'), endpoint('logout')].includes(url)) throw new Error('Invalid OIDC endpoint')
     const response = await fetcher(input, { ...init, redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(5000) })
+    // 400/401 from the token endpoint is a definitive refusal (for example an expired refresh token); timeouts and 5xx are temporary.
+    if (!response.ok && (response.status === 400 || response.status === 401)) throw new Error('OIDC request rejected')
     if (!response.ok || (response.url && response.url !== url)) throw new Error('OIDC request failed')
     if (!response.headers.get('content-type')?.includes('application/json') && url !== endpoint('logout')) throw new Error('Invalid OIDC response')
     if (url === endpoint('logout')) return response

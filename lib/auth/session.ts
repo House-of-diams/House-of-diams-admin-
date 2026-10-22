@@ -31,7 +31,8 @@ export type AuthDependencies = { config: AuthConfig; store: SessionStore; oidc: 
 // (up to REFRESH_WAIT_ROUNDS x REFRESH_WAIT_MS) instead of failing; a refresh claim
 // left by a crashed request is taken over after REFRESH_STALE_SECONDS.
 const REFRESH_WAIT_MS = 150
-const REFRESH_WAIT_ROUNDS = 20
+// Keycloak calls time out after 5 s; waiters must outlast that (6 s) or they fail while the refresh is still running.
+const REFRESH_WAIT_ROUNDS = 40
 const REFRESH_STALE_SECONDS = 30
 const RETRY = Symbol('retry')
 
@@ -74,7 +75,15 @@ export function createSessions(deps: AuthDependencies) {
         await mapped(claims)
         session = { ...session, tokens, claims, checkedAt: now(), lastSeen: now(), refreshing: false, refreshStartedAt: undefined }
         if (ttl(session) <= 0 || !await store.replace(key, current.version, session, ttl(session))) throw new Error('Session revoked')
-      } catch {
+      } catch (error) {
+        // A temporary identity-provider problem (timeout, 5xx, network) must not log the person out:
+        // release the claim and let the request be retried. Anything definitive removes the session.
+        const temporary = error instanceof Error && error.name !== 'Error' ? true : error instanceof Error && error.message === 'OIDC request failed'
+        if (temporary) {
+          const released = { ...session, refreshing: false, refreshStartedAt: undefined }
+          await store.replace(key, current.version, released, ttl(session)).catch(() => false)
+          throw new Error('Refresh unavailable')
+        }
         await store.consume(key, current.version)
         throw new Error('Refresh failed')
       }
