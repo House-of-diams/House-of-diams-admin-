@@ -168,9 +168,9 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
     const payload = await response.json().catch(() => null)
     if (response.ok && payload?.path) {
       setFormData((prev) => ({ ...prev, svgName: payload.path }))
-      toast({ title: 'SVG uploaded', description: 'Stone shape SVG uploaded successfully.' })
+      toast({ title: 'Image uploaded', description: 'Stone shape image uploaded successfully.' })
     } else {
-      toast({ title: 'Upload failed', description: payload?.error ?? 'Unable to upload SVG.' })
+      toast({ title: 'Upload failed', description: payload?.error ?? 'Unable to upload the image.' })
     }
 
     setUploading(false)
@@ -201,7 +201,7 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
               <tr className="border-b border-border bg-secondary/30">
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Name</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Slug</th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">SVG</th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Image</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Display Order</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Status</th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold text-foreground">Edit</th>
@@ -213,7 +213,7 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
                 <tr key={shape.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                   <td className="px-6 py-3.5 text-sm font-medium text-foreground">{shape.name}</td>
                   <td className="px-6 py-3.5 text-sm text-muted-foreground">{shape.slug}</td>
-                  <td className="px-6 py-3.5 text-sm text-muted-foreground">{shape.svgName || 'No SVG selected'}</td>
+                  <td className="px-6 py-3.5 text-sm text-muted-foreground">{shape.svgName || 'No image selected'}</td>
                   <td className="px-6 py-3.5 text-sm text-foreground">{shape.displayOrder}</td>
                   <td className="px-6 py-3.5 text-sm">
                     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${shape.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
@@ -249,7 +249,7 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="font-jakarta text-lg font-semibold text-foreground">{editingId ? 'Edit Stone Shape' : 'Add Stone Shape'}</DialogTitle>
-            <DialogDescription>Manage the stone shape record and upload its SVG icon.</DialogDescription>
+            <DialogDescription>Manage the stone shape record and upload its image (SVG, PNG, WebP or JPEG).</DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
             <div>
@@ -277,13 +277,13 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-foreground">SVG Image</label>
+              <label className="mb-2 block text-sm font-medium text-foreground">Shape Image</label>
               <div className="rounded-lg border-2 border-dashed border-border p-4 text-sm text-muted-foreground">
-                <p>Upload SVG</p>
+                <p>Upload an SVG, PNG, WebP or JPEG image</p>
                 <p className="mt-1 text-xs">Uploads to the `catalog/stone-shapes/` folder in your storage bucket.</p>
                 <input
                   type="file"
-                  accept=".svg,image/svg+xml"
+                  accept=".svg,.png,.webp,.jpg,.jpeg,image/svg+xml,image/png,image/webp,image/jpeg"
                   disabled={uploading}
                   onChange={(e) => {
                     const file = e.target.files?.[0]
@@ -291,7 +291,7 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
                   }}
                   className="mt-3 block w-full text-sm"
                 />
-                {uploading ? <p className="mt-2 text-xs font-medium text-foreground">Uploading SVG...</p> : null}
+                {uploading ? <p className="mt-2 text-xs font-medium text-foreground">Uploading image...</p> : null}
               </div>
               {formData.svgName && <p className="mt-2 text-xs text-muted-foreground">Selected: {formData.svgName}</p>}
             </div>
