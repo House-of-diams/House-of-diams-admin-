@@ -36,7 +36,7 @@ const M1 = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 const emptyState = { library: [], links: [], hover: null }
 const frames = Array.from({ length: 24 }, (_, i) => `products/hover/${PRODUCT}/v1/${String(i).padStart(2, '0')}.webp`)
 
-function harness({ state = emptyState, productExists = true, authorizeError = null, provider = 'rds', saveError = null } = {}) {
+function harness({ state = emptyState, productExists = true, authorizeError = null, provider = 'rds', saveError = null, enforceError = null } = {}) {
   const calls = []
   let current = state
   const db = {
@@ -59,6 +59,7 @@ function harness({ state = emptyState, productExists = true, authorizeError = nu
     provider: () => provider,
     authorize: async (_request, mutation) => { calls.push(`authorize:${mutation}`); if (authorizeError) throw authorizeError; return { actor: { profileId: '11111111-1111-4111-8111-111111111111' } } },
     transaction: async run => run(db),
+    enforceVideos: async (_db, next, previous) => { calls.push({ enforce: { next, previous } }); if (enforceError) throw enforceError },
   })
   return { handler, calls }
 }
@@ -66,7 +67,8 @@ const get = (id = PRODUCT) => new Request(`https://admin.test/api/products/${id}
 const put = (body, revision) => new Request(`https://admin.test/api/products/${PRODUCT}/media-extras`, {
   method: 'PUT', headers: { 'content-type': 'application/json', ...(revision ? { [REVISION_HEADER]: revision } : {}) }, body: JSON.stringify(body),
 })
-const valid = { library: [{ id: L1, label: 'Yellow gold', media_path: 'products/videos/y.mp4' }], links: [{ metal_id: M1, library_id: L1 }] }
+const VIDEO_URL = 'https://media.houseofdiams.com/products/videos/11111111-2222-4333-8444-555555555555.mp4'
+const valid = { library: [{ id: L1, label: 'Yellow gold', media_path: VIDEO_URL }], links: [{ metal_id: M1, library_id: L1 }] }
 
 test('GET returns the saved state with a revision, read-only', async () => {
   const { handler, calls } = harness()
@@ -152,10 +154,46 @@ test('database errors are mapped without leaking internals', async () => {
   assert.ok(!JSON.stringify(await internal.json()).includes('secret'))
 })
 
+test('a new video must be an uploaded video on the media CDN, not a pasted or external address', async () => {
+  for (const media_path of ['https://evil.example.com/x.mp4', 'products/videos/y.mp4', 'http://media.houseofdiams.com/products/videos/y.mp4', 'https://media.houseofdiams.com/products/videos/y.mp4?x=1', 'javascript:alert(1)']) {
+    const { handler, calls } = harness()
+    const response = await handler(put({ ...valid, library: [{ ...valid.library[0], media_path }] }, revisionOf(emptyState)), PRODUCT)
+    assert.equal(response.status, 400, media_path)
+    assert.match((await response.json()).error, /admin video uploader/)
+    assert.ok(!calls.some(call => typeof call === 'object' && call.params), 'nothing was saved')
+  }
+})
+
+test('the video admission check runs on the library, and refusals are reported without leaking details', async () => {
+  const { handler, calls } = harness()
+  await handler(put(valid, revisionOf(emptyState)), PRODUCT)
+  const enforced = calls.find(call => typeof call === 'object' && call.enforce).enforce
+  assert.deepEqual(enforced.next.library, [{ id: L1, media_type: 'video', media_path: VIDEO_URL }])
+  assert.deepEqual(enforced.previous.library, [])
+
+  for (const message of ['Video is not admitted.', 'Use an admitted video from the library.', 'Video reference mismatch.', 'Published video identity changed.']) {
+    const refused = await harness({ enforceError: new Error(message) }).handler(put(valid, revisionOf(emptyState)), PRODUCT)
+    assert.equal(refused.status, 400, message)
+  }
+  assert.equal((await harness({ enforceError: new Error('Video admission unavailable.') }).handler(put(valid, revisionOf(emptyState)), PRODUCT)).status, 503)
+  const broken = await harness({ enforceError: Object.assign(new Error('connect ECONNREFUSED 10.0.0.5'), { code: 'ECONNREFUSED' }) }).handler(put(valid, revisionOf(emptyState)), PRODUCT)
+  assert.equal(broken.status, 500)
+  assert.ok(!JSON.stringify(await broken.json()).includes('10.0.0.5'))
+})
+
+test('a video already in the library keeps working even if it is not on the media CDN', async () => {
+  const legacy = { id: L1, label: 'Old', media_path: 'products/videos/legacy.mp4' }
+  const start = { library: [legacy], links: [], hover: null }
+  const { handler } = harness({ state: start })
+  const response = await handler(put({ library: [{ ...legacy, label: 'Renamed' }], links: [] }, revisionOf(start)), PRODUCT)
+  assert.equal(response.status, 200)
+})
+
 test('GET before the SQL is installed reports the feature as unavailable instead of failing', async () => {
   const handler = createMediaExtrasHandlers({
     provider: () => 'rds',
     authorize: async () => ({ actor: { profileId: 'x' } }),
+    enforceVideos: async () => {},
     transaction: async run => run({ query: async sql => { if (/FROM public\.products WHERE id/.test(sql)) return { rows: [{ id: PRODUCT }] }; throw Object.assign(new Error('missing'), { code: '42P01' }) } }),
   })
   const response = await handler(get(), PRODUCT)

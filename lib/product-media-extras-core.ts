@@ -3,6 +3,7 @@ import type { AdminActor } from './auth/admin-identity-core'
 import { ProductSessionError } from './product-session-error'
 import type { AdminTransactionOptions, DbExecutor } from './db/query'
 import { revisionOf, REVISION_HEADER, STALE_EDITOR_MESSAGE } from './revision'
+import { isCanonicalAwsVideoReference } from './video-reference'
 
 // HOD-090: the product's video library, the video each metal option uses, and the 24-frame hover view.
 // These live in their own tables and are saved by their own request, so the existing product save is untouched.
@@ -39,8 +40,16 @@ type Dependencies = {
   provider: () => 'supabase' | 'rds'
   authorize: (request: Request, mutation: boolean) => Promise<{ actor: AdminActor }>
   transaction: <T>(run: (db: DbExecutor) => Promise<T>, options?: AdminTransactionOptions) => Promise<T>
+  /** The same admission check the product save applies to videos: a new or changed video must be one uploaded through the admin uploader. */
+  enforceVideos: (db: DbExecutor, next: unknown, previous: unknown) => Promise<void>
 }
 const response = (value: unknown, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } })
+// Messages raised by the video admission check that mean "this video is not allowed" (not a server fault).
+const NOT_ADMITTED_MESSAGES = new Set(['Use an admitted video from the library.', 'Video is not admitted.', 'Video reference mismatch.', 'Ambiguous video slot.', 'Published video identity changed.'])
+const NOT_SWITCHED_ON_MESSAGES = new Set(['Video admission unavailable.', 'Video admission policy unavailable.'])
+export const VIDEO_NOT_ADMITTED_MESSAGE = 'Use a video uploaded with the admin video uploader. Pasted or external video addresses are not allowed.'
+export const VIDEO_NOT_SWITCHED_ON_MESSAGE = 'Video uploads are not switched on yet, so library videos cannot be saved.'
+const videoProjection = (library: { id: string; media_path: string }[]) => ({ library: library.map((video) => ({ id: video.id, media_type: 'video', media_path: video.media_path.trim() })) })
 const sqlState = (error: unknown) => (typeof error === 'object' && error !== null && 'code' in error ? String((error as { code: unknown }).code) : '')
 
 export async function loadMediaExtras(db: DbExecutor, productId: string): Promise<MediaExtrasState> {
@@ -87,6 +96,18 @@ export function createMediaExtrasHandlers(deps: Dependencies) {
         if (!locked.rows.length) return response({ error: 'Product not found.' }, 404)
         const current = await loadMediaExtras(db, id.data)
         if (!expected || revisionOf(current) !== expected) return response({ error: STALE_EDITOR_MESSAGE }, 409)
+        // A new or changed video must be a permanent address on the media CDN, never a pasted or external address.
+        const known = new Map(current.library.map((video) => [video.id, video.media_path.trim()]))
+        if (parsed.data.library.some((video) => known.get(video.id) !== video.media_path.trim() && !isCanonicalAwsVideoReference(video.media_path.trim()))) {
+          return response({ error: VIDEO_NOT_ADMITTED_MESSAGE }, 400)
+        }
+        try { await deps.enforceVideos(db, videoProjection(parsed.data.library), videoProjection(current.library)) }
+        catch (error) {
+          const message = error instanceof Error ? error.message : ''
+          if (NOT_ADMITTED_MESSAGES.has(message)) return response({ error: VIDEO_NOT_ADMITTED_MESSAGE }, 400)
+          if (NOT_SWITCHED_ON_MESSAGES.has(message)) return response({ error: VIDEO_NOT_SWITCHED_ON_MESSAGE }, 503)
+          throw error
+        }
         const hoverSet = parsed.data.hover !== undefined
         await db.query('SELECT public.admin_product_media_extras_save_v1($1::uuid,$2::uuid,$3::jsonb,$4::jsonb,$5::jsonb,$6::boolean)', [
           actor.profileId, id.data, JSON.stringify(parsed.data.library), JSON.stringify(parsed.data.links),
