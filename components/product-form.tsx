@@ -548,7 +548,7 @@ function ProductFormEditor({
     })
 
   // HOD-054: revision of the product as this editor loaded it; the save sends it back.
-  const editorRevision = useRef<string | null>(null)
+  const editorRevision = useRef<string | null>(matchingInitial?.revision ?? null)
   const applyProduct = (item: ProductEditorItem | null | undefined) => {
     editorRevision.current = item?.revision ?? null
     return applyProductPayload(item, {
