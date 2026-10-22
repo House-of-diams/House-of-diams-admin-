@@ -5,6 +5,7 @@ import { invalidateAwsVideoLibrary } from './video-library'
 import { authorizeProductRequest } from './product-session-runtime'
 import { ProductSessionError } from './product-session-error'
 import { boundedImageForm, ImageBodyTooLarge } from './image-validation'
+import { videoUploadGate } from './video-upload-gate'
 
 const failure = (status: number, error = 'Video service unavailable.') => Response.json({ error }, { status, headers: { 'Cache-Control': 'no-store' } })
 export async function selectedMixedVideo(request: Request, context: 'product' | 'about'): Promise<Response | null> {
@@ -16,6 +17,10 @@ export async function selectedMixedVideo(request: Request, context: 'product' | 
     const length = Number(request.headers.get('content-length'))
     if (!Number.isSafeInteger(length) || length <= 0) return failure(411, 'A valid upload size is required.')
     if (length > MAX_VIDEO_BYTES + 1024 * 1024) return failure(413, 'The upload request is too large.')
+    // At most a couple of videos at once per server; the rest are told to retry (the file is not read yet).
+    const release = videoUploadGate.tryAcquire()
+    if (!release) return Response.json({ error: 'Another video is being uploaded. Please try again in a minute.' }, { status: 429, headers: { 'Cache-Control': 'no-store', 'Retry-After': '30' } })
+    try {
     const form = await boundedImageForm(request, MAX_VIDEO_BYTES + 1024 * 1024)
     const file = form?.get('file'), folder = form?.get('folder')
     if (!form || form.get('kind') !== 'video' || !(file instanceof File) || (context === 'product' && folder !== 'products' && folder !== 'hiphop')) return failure(400, 'Invalid video upload request.')
@@ -33,7 +38,12 @@ export async function selectedMixedVideo(request: Request, context: 'product' | 
         : await createVideoStorage().upload(source, body, file.type as VideoMime)
       invalidateAwsVideoLibrary()
       return Response.json({ provider: 's3', path: stored.url, url: stored.url, admission: policy ? 'admitted' : 'provisional' }, { status: context === 'about' ? 200 : 201, headers: { 'Cache-Control': 'no-store' } })
-    } catch { return failure(500, 'Unable to store the uploaded video.') }
+    } catch (error) {
+      // Server log only (never sent to the browser) so a failed upload can be diagnosed.
+      console.error('[admin-video] upload failed:', error instanceof Error ? `${error.name}: ${error.message.slice(0, 160)}` : 'unknown error')
+      return failure(500, 'Unable to store the uploaded video.')
+    }
+    } finally { release() }
   } catch (error) {
     return failure(error instanceof ProductSessionError ? error.status : error instanceof ImageBodyTooLarge ? 413 : 503)
   }
