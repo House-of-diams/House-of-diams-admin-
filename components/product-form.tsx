@@ -50,6 +50,9 @@ import { FormField } from '@/components/product-form/ProductFormControls'
 import { ProductContentStep } from '@/components/product-form/ProductContentStep'
 import { ProductDetailsStep } from '@/components/product-form/ProductDetailsStep'
 import { VideoLibraryDialog } from '@/components/product-form/VideoLibraryDialog'
+import { ProductVideoLibrary, videoLibraryError, type LibraryVideo } from '@/components/product-form/ProductVideoLibrary'
+import { ProductHoverView, type HoverView } from '@/components/product-form/ProductHoverView'
+import { uploadHoverFrame } from '@/lib/hover-frames-upload'
 import { tryUploadAwsVideo, invalidateClientVideoLibrary } from '@/lib/video-transport'
 import { ProductFormStepActions, ProductFormStepBar } from '@/components/product-form/ProductFormStepNavigation'
 import { ProductFormHeader, ProductFormRedirectOverlay } from '@/components/product-form/ProductFormChrome'
@@ -549,8 +552,70 @@ function ProductFormEditor({
 
   // HOD-054: revision of the product as this editor loaded it; the save sends it back.
   const editorRevision = useRef<string | null>(matchingInitial?.revision ?? null)
+
+  // HOD-090: per-product video library, the video each metal option uses, and the 24-frame hover view.
+  // They are saved by their own request (see saveMediaExtras), so the product save itself is unchanged.
+  const [recordId, setRecordId] = useState<string | null>(matchingInitial?.id ?? (productId != null ? String(productId) : null))
+  const [extrasStatus, setExtrasStatus] = useState<'idle' | 'loading' | 'ready' | 'unavailable' | 'error'>('idle')
+  const [extrasMessage, setExtrasMessage] = useState('')
+  const [libraryVideos, setLibraryVideos] = useState<LibraryVideo[]>([])
+  const [videoLinks, setVideoLinks] = useState<Record<string, string>>({})
+  const [hoverSaved, setHoverSaved] = useState<HoverView | null>(null)
+  const [hoverPending, setHoverPending] = useState<HoverView | null | undefined>(undefined)
+  const extrasRevision = useRef<string | null>(null)
+  const [extrasBaselineJson, setExtrasBaselineJson] = useState('')
+  const extrasJson = (library: LibraryVideo[], links: Record<string, string>) => JSON.stringify({ library, links: Object.entries(links).filter(([, id]) => id).sort(([a], [b]) => a.localeCompare(b)) })
+  const applyExtras = (payload: { library: LibraryVideo[]; links: { metal_id: string; library_id: string }[]; hover: HoverView | null; revision: string }) => {
+    const links = Object.fromEntries(payload.links.map((link) => [link.metal_id, link.library_id]))
+    setLibraryVideos(payload.library)
+    setVideoLinks(links)
+    setHoverSaved(payload.hover)
+    setHoverPending(undefined)
+    extrasRevision.current = payload.revision
+    setExtrasBaselineJson(extrasJson(payload.library, links))
+  }
+  const loadMediaExtras = async (id: string) => {
+    const response = await authedFetch(`/api/products/${id}/media-extras`)
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) throw new Error(payload?.error ?? 'Unable to load the video library.')
+    return payload as { available: boolean; library: LibraryVideo[]; links: { metal_id: string; library_id: string }[]; hover: HoverView | null; revision: string; error?: string }
+  }
+  const saveMediaExtras = async (id: string) => {
+    // A product that was just created has no revision yet: read it first, then save.
+    if (!extrasRevision.current) {
+      const fresh = await loadMediaExtras(id)
+      if (!fresh.available) throw new Error('The video library is not installed on this database yet.')
+      extrasRevision.current = fresh.revision
+    }
+    const links = metalVariants.map((entry) => ({ metal_id: entry.metal_id, library_id: videoLinks[entry.metal_id] || null }))
+    const response = await authedFetch(`/api/products/${id}/media-extras`, {
+      method: 'PUT',
+      headers: { 'x-expected-revision': extrasRevision.current },
+      body: JSON.stringify({ library: libraryVideos, links, ...(hoverPending !== undefined ? { hover: hoverPending } : {}) }),
+    })
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) throw new Error(payload?.error ?? 'Unable to save the video library.')
+    applyExtras(payload)
+  }
+  const extrasDirty = extrasStatus === 'ready' && (hoverPending !== undefined || extrasBaselineJson !== extrasJson(libraryVideos, videoLinks))
+  useEffect(() => {
+    if (!recordId) { setExtrasBaselineJson(extrasJson([], {})); setExtrasStatus((current) => (current === 'idle' ? 'ready' : current)); return }
+    let active = true
+    setExtrasStatus('loading')
+    loadMediaExtras(recordId)
+      .then((payload) => {
+        if (!active) return
+        if (!payload.available) { setExtrasMessage(payload.error ?? ''); setExtrasStatus('unavailable'); return }
+        applyExtras(payload)
+        setExtrasStatus('ready')
+      })
+      .catch((error) => { if (active) { setExtrasMessage(error instanceof Error ? error.message : 'Unable to load the video library.'); setExtrasStatus('error') } })
+    return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordId])
   const applyProduct = (item: ProductEditorItem | null | undefined) => {
     editorRevision.current = item?.revision ?? null
+    if (item?.id) setRecordId(item.id)
     return applyProductPayload(item, {
       setName,
       setSku,
@@ -928,6 +993,11 @@ function ProductFormEditor({
   }
   const getVariantMediaItems = (metalId: string) =>
     metalVariants.find((entry) => entry.metal_id === metalId)?.media_items ?? []
+  const libraryUsedBy: Record<string, string[]> = {}
+  for (const entry of metalVariants) {
+    const videoId = videoLinks[entry.metal_id]
+    if (videoId) (libraryUsedBy[videoId] ??= []).push(getMetalVariantLabel(entry.metal_id))
+  }
   const activeVariantMediaItems =
     activeVariantMediaKey === 'default'
       ? defaultVariantMediaItems
@@ -1347,6 +1417,8 @@ function ProductFormEditor({
         const customDropdownError = validateProductCustomDropdowns(customDropdowns)
         if (customDropdownError) throw new Error(customDropdownError)
       }
+      const libraryProblem = extrasStatus === 'ready' && extrasDirty ? videoLibraryError(libraryVideos) : null
+      if (libraryProblem) throw new Error(libraryProblem)
 
       const saveUrl = productId ? `/api/products/${productId}` : productSlug ? `/api/products/by-slug/${encodeURIComponent(productSlug)}` : '/api/products'
       const response = await authedFetch(saveUrl, {
@@ -1444,7 +1516,16 @@ function ProductFormEditor({
         const payload = await response.json().catch(() => null)
         throw new Error(payload?.error ?? 'Unable to save product.')
       }
-      await response.json().catch(() => null)
+      const savedProduct = (await response.json().catch(() => null)) as { id?: string; item?: { id?: string } } | null
+      let extrasWarning = ''
+      if (extrasStatus === 'ready' && extrasDirty) {
+        const targetId = productId || productSlug ? recordId : savedProduct?.id ?? savedProduct?.item?.id ?? null
+        if (!targetId) extrasWarning = 'The product was saved, but its video library could not be linked to it. Open the product and set the videos again.'
+        else {
+          try { await saveMediaExtras(targetId) }
+          catch (error) { extrasWarning = error instanceof Error ? error.message : 'Unable to save the video library.' }
+        }
+      }
       if (productId || productSlug) {
         // The save response contains only the products row. Relation-backed fields
         // (shapes, materials, variants, links, FAQs, and pricing) are loaded by GET,
@@ -1452,12 +1533,26 @@ function ProductFormEditor({
         deleteCachedQueryData(getProductEditorCacheKey(saveUrl))
       }
 
-      toast({
-        title: productId || productSlug ? 'Product updated' : 'Product created',
-        description: productId || productSlug
-          ? 'The product changes were saved successfully.'
-          : 'The new product was created successfully.',
-      })
+      if (extrasWarning) {
+        toast({ title: 'Product saved, video library not saved', description: extrasWarning, variant: 'destructive' })
+        if (productId || productSlug) {
+          // The product revision moved on with this save; fetch it so pressing Update again works.
+          try {
+            const refreshed = await authedFetch(productLookupUrl ?? saveUrl)
+            const refreshedPayload = await refreshed.json().catch(() => null)
+            if (refreshed.ok && refreshedPayload?.item?.revision) editorRevision.current = refreshedPayload.item.revision
+          } catch { /* the next save will ask the administrator to reload */ }
+          return
+        }
+      }
+      if (!extrasWarning) {
+        toast({
+          title: productId || productSlug ? 'Product updated' : 'Product created',
+          description: productId || productSlug
+            ? 'The product changes were saved successfully.'
+            : 'The new product was created successfully.',
+        })
+      }
 
       shouldRedirect = true
       edits.reset()
@@ -1799,62 +1894,33 @@ function ProductFormEditor({
                 </div>
               </div>
 
-                <div className="mt-6">
-                  <div className="mb-3">
-                    <p className="text-sm font-semibold text-foreground">Base Image Carousel</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Shared fallback media when a metal variant does not have its own images.</p>
+                {extrasStatus === 'unavailable' || extrasStatus === 'error' ? (
+                  <div className="mt-6 rounded-lg border border-dashed border-border px-4 py-4 text-sm text-muted-foreground" role="status">
+                    {extrasStatus === 'unavailable'
+                      ? 'The product video library will appear here once the database update has been applied.'
+                      : `The video library could not be loaded: ${extrasMessage || 'please reload the page.'}`}
                   </div>
-                  <div className="flex flex-wrap gap-3">
-                    {['Image 1', 'Image 2', 'Image 3', 'Image 4'].map((label, index) => (
-                      <MediaThumbnailSlot
-                        key={label}
-                        inputId={`base-media-${index}`}
-                        label={label}
-                        path={imagePaths[index]}
-                        visible={showImageSlots[index]}
-                        uploading={Boolean(uploadingSlots[`base-image-${index}`])}
-                        onVisibleChange={(next) => setShowImageSlots((prev) => prev.map((entry, slotIndex) => (slotIndex === index ? next : entry)))}
-                        onClear={() => {
-                          setImageSlots((prev) => prev.map((entry, slotIndex) => (slotIndex === index ? '' : entry)))
-                          setImagePaths((prev) => prev.map((entry, slotIndex) => (slotIndex === index ? null : entry)))
-                          setImageAlts((prev) => prev.map((entry, slotIndex) => (slotIndex === index ? '' : entry)))
-                        }}
-                        onUpload={async (file) => {
-                          setUploadingSlots((prev) => ({ ...prev, [`base-image-${index}`]: true }))
-                          try {
-                            const { path, provider } = await uploadMedia(file, 'image', isHiphopProduct ? 'hiphop' : 'products')
-                            setImageSlots((prev) => prev.map((entry, slotIndex) => (slotIndex === index ? path : entry)))
-                            setImagePaths((prev) => prev.map((entry, slotIndex) => (slotIndex === index ? path : entry)))
-                            toast({
-                              title: 'Uploaded',
-                              description: `${label} uploaded successfully to ${provider === 's3' ? 'AWS S3' : provider === 'r2' ? 'Cloudflare R2' : 'Supabase Storage'}.`,
-                            })
-                          } catch (error) {
-                            toast({
-                              title: 'Upload failed',
-                              description: error instanceof Error ? error.message : `Unable to upload ${label.toLowerCase()}.`,
-                              variant: 'destructive',
-                            })
-                          } finally {
-                            setUploadingSlots((prev) => ({ ...prev, [`base-image-${index}`]: false }))
-                          }
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {['Image 1 Alt Text', 'Image 2 Alt Text', 'Image 3 Alt Text', 'Image 4 Alt Text'].map((label, index) => (
-                      <FormField key={label} label={label}>
-                        <input
-                          value={imageAlts[index] ?? ''}
-                          onChange={(event) => setImageAlts((prev) => prev.map((entry, slotIndex) => (slotIndex === index ? event.target.value : entry)))}
-                          className={inputClassName}
-                          placeholder="Optional image description for SEO/accessibility"
-                        />
-                      </FormField>
-                    ))}
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <ProductVideoLibrary
+                      videos={libraryVideos}
+                      onChange={setLibraryVideos}
+                      usedBy={libraryUsedBy}
+                      uploadVideo={async (file) => (await uploadMedia(file, 'video', isHiphopProduct ? 'hiphop' : 'products')).path}
+                      previewUrl={toStoragePreviewUrl}
+                      disabled={extrasStatus === 'loading' || saving}
+                    />
+                    <ProductHoverView
+                      saved={hoverSaved}
+                      pending={hoverPending}
+                      onChange={setHoverPending}
+                      uploadFrame={(blob, index, version) => uploadHoverFrame(recordId ?? '', blob, index, version)}
+                      previewUrl={toStoragePreviewUrl}
+                      productReady={Boolean(recordId)}
+                      disabled={extrasStatus === 'loading' || saving}
+                    />
+                  </>
+                )}
 
                 <div className="mt-4">
                   <MediaVideoUrlRow
@@ -1936,6 +2002,25 @@ function ProductFormEditor({
                             : 'This media is shown when the shopper selects this combined option.'}
                         </p>
                       </div>
+
+                      {!isDefaultFallback && extrasStatus === 'ready' ? (
+                        <div className="mb-4">
+                          <label htmlFor={`library-video-${activeVariantMediaKey}`} className="mb-1 block text-xs font-semibold text-foreground">Product video for this option</label>
+                          <select
+                            id={`library-video-${activeVariantMediaKey}`}
+                            value={videoLinks[activeVariantMediaKey] ?? ''}
+                            onChange={(event) => setVideoLinks((prev) => ({ ...prev, [activeVariantMediaKey]: event.target.value }))}
+                            className={inputClassName}
+                            disabled={libraryVideos.length === 0}
+                          >
+                            <option value="">{libraryVideos.length === 0 ? 'Upload a video in Product Videos first' : 'No library video (use the items below)'}</option>
+                            {libraryVideos.map((video) => (
+                              <option key={video.id} value={video.id}>{video.label || 'Untitled video'}</option>
+                            ))}
+                          </select>
+                          <p className="mt-1 text-xs text-muted-foreground">Several metal options can use the same video. A video added below always shows first.</p>
+                        </div>
+                      ) : null}
 
                       <div className="flex flex-wrap gap-3">
                         {items.map((item, itemIndex) => {
