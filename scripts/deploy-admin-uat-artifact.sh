@@ -32,7 +32,8 @@ for(const [key,value] of Object.entries(built)) {
  const actual=runtime[key] ?? (key==='NEXT_PUBLIC_HOD_DEPLOYMENT'?'uat':undefined);
  if(actual!==value)throw Error('Build/runtime public configuration mismatch: '+key);
 }
-if(runtime.ADMIN_VIDEO_IMMUTABILITY_VERIFIED!=='false')throw Error('Video acceptance must remain disabled for this rollout');
+if(!['false','true'].includes(runtime.ADMIN_VIDEO_IMMUTABILITY_VERIFIED))throw Error('ADMIN_VIDEO_IMMUTABILITY_VERIFIED must be exactly true or false');
+if(runtime.ADMIN_VIDEO_IMMUTABILITY_VERIFIED==='true'&&(runtime.ADMIN_VIDEO_ADMISSION_PROVIDER!=='rds'||runtime.ADMIN_VIDEO_ROUTING_VERIFIED!=='true'||!runtime.ADMIN_VIDEO_ADMISSION_POLICY))throw Error('Video publication needs RDS admission, verified video routing and a named policy');
 JS
 chown -R hod-admin:hod-admin "$release"
 # The private file remains on EC2. Never copy it into a release or CI artifact.
