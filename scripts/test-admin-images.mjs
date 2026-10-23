@@ -229,3 +229,12 @@ test('owned image clients have no eager Supabase import; actual selected upload 
   let uploaded=0;const fn=Function('uploadAwsImage','uploadAwsVideo',js+'\nreturn selected')(async()=>{uploaded++;return target.baseUrl+'/'+key},async()=>{throw new Error('unexpected video upload')});assert.deepEqual(await fn(...args),expected);assert.equal(uploaded,1)
  }
 })
+
+test('stored relative media keys resolve against the AWS media CDN (never the page origin or Supabase)',()=>{
+ // Regression: a key such as catalog/styles/x.svg used to resolve relative to /dashboard/catalog/ and 404 in the admin.
+ assert.equal(reference.resolveStoredImage('catalog/styles/x.svg'),'https://media.houseofdiams.com/catalog/styles/x.svg')
+ assert.equal(reference.resolveStoredImage('/images/local.png'),'/images/local.png')
+ assert.equal(reference.resolveStoredImage('https://content.houseofdiams.com/hero/a.webp'),'https://content.houseofdiams.com/hero/a.webp')
+ assert.equal(reference.resolveStoredImage('../x'),null)
+ assert.equal(reference.resolveStoredImage(''),null)
+})

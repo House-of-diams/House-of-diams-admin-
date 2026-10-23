@@ -10,9 +10,12 @@ export function isCanonicalAwsImageReference(value: unknown): value is string {
   } catch { return false }
 }
 
-export function resolveStoredImage(input: string | null | undefined, bucket = process.env.NEXT_PUBLIC_SUPABASE_COLLECTION_BUCKET || 'hod') {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, '')
-  return resolveImageReference(input, base ? `${base}/storage/v1/object/public/${bucket}` : undefined)
+/** Origin that serves stored relative media keys (the AWS media CDN, same as the storefront). */
+export const MEDIA_CDN_BASE = (process.env.NEXT_PUBLIC_MEDIA_CDN_BASE_URL?.trim() || 'https://media.houseofdiams.com').replace(/\/+$/, '')
+
+/** Stored images are absolute AWS URLs or relative keys; relative keys resolve against the media CDN. */
+export function resolveStoredImage(input: string | null | undefined) {
+  return resolveImageReference(input, MEDIA_CDN_BASE)
 }
 
 export function resolveImageReference(input: string | null | undefined, legacyBase?: string): string | null {
