@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { catalogMutation, catalogReader, readCatalog, type CatalogAccess, type CatalogReader } from './catalog-command'
-import { invalidateProductListReferenceData } from './product-list-reference-cache'
 
 export type CatalogHierarchyKind = 'category' | 'subcategory' | 'option'
 type Access = CatalogAccess
@@ -69,7 +68,6 @@ export async function saveCatalogHierarchy(access: Access, kind: CatalogHierarch
   if (!item.success) return NextResponse.json({ error: item.error.issues[0]?.message ?? 'Invalid catalog details.' }, { status: 400 })
   const { data, error } = await catalogMutation(access, 'catalog_hierarchy_save_v1', { p_request_id: envelope.data.request_id, p_expected_revision: envelope.data.expected_revision, p_kind: kind, p_id: parsedId === null ? null : parsedId.data, p_item: item.data })
   if (error) return catalogHierarchyErrorResponse(error, 'save')
-  invalidateProductListReferenceData()
   const snapshot = data as Snapshot
   return NextResponse.json({ ok: true, item: snapshot.item, revision: snapshot.revision }, { headers: { 'Cache-Control': 'no-store' } })
 }
@@ -80,6 +78,5 @@ export async function deleteCatalogHierarchy(access: Access, kind: CatalogHierar
   if (!parsedId.success || !envelope.success) return NextResponse.json({ error: 'A valid record ID, request ID, and revision are required.' }, { status: 400 })
   const { data, error } = await catalogMutation(access, 'catalog_hierarchy_delete_v1', { p_request_id: envelope.data.request_id, p_expected_revision: envelope.data.expected_revision, p_kind: kind, p_id: parsedId.data })
   if (error) return catalogHierarchyErrorResponse(error, 'delete')
-  invalidateProductListReferenceData()
   return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } })
 }

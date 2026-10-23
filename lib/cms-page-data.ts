@@ -4,19 +4,19 @@ import { readCmsDataProvider } from './cms-provider'
 import { authorizeProductPage } from './product-server-request'
 import { adminQuery } from './db/pool'
 import { createCmsRepository } from './db/admin-repositories/cms'
-import { createSupabaseAdminClient } from './admin-supabase'
 import type { CmsReader } from './cms-command'
 export async function cmsPageReader(): Promise<CmsReader> {
-  if (readCmsDataProvider(process.env) === 'supabase') return createSupabaseAdminClient()
+  readCmsDataProvider(process.env)
   await authorizeProductPage()
   return createCmsRepository({ query: async (sql, values) => ({ rows: await adminQuery(sql, values) }) })
 }
 export async function authorizeCmsPage() {
-  if (readCmsDataProvider(process.env) === 'rds') await authorizeProductPage()
+  readCmsDataProvider(process.env)
+  await authorizeProductPage()
 }
 
 export async function loadRdsBespokePageData() {
-  if (readCmsDataProvider(process.env) === 'supabase') return null
+  readCmsDataProvider(process.env)
   await authorizeProductPage()
   const { adminTransaction } = await import('./db/pool')
   const { createBespokeRepository } = await import('./db/admin-repositories/bespoke')
@@ -37,7 +37,7 @@ export async function loadRdsBespokePageData() {
   })
 }
 export async function loadRdsBespokeSubmission(id: string) {
-  if (readCmsDataProvider(process.env) === 'supabase') return null
+  readCmsDataProvider(process.env)
   await authorizeProductPage()
   const { createBespokeRepository } = await import('./db/admin-repositories/bespoke')
   return {item:await createBespokeRepository({query:async(sql,values)=>({rows:await adminQuery(sql,values)})}).submission(id)}

@@ -13,7 +13,6 @@ import { portfolioMutationError } from './bespoke-portfolio-validation'
 import type { AdminActor } from './auth/admin-identity-core'
 import type { DbExecutor } from './db/query'
 import type { CmsAccess } from './cms-command'
-import { assertAdmin } from './cms-auth'
 import { adminTransaction } from './db/pool'
 import { mapAdminDbError } from './db/errors'
 import { authorizeProductRequest } from './product-session-runtime'
@@ -22,10 +21,9 @@ import { createCmsRepository } from './db/admin-repositories/cms'
 import { readCmsDataProvider } from './cms-provider'
 
 type Dependencies = {
-  provider: () => 'supabase' | 'rds'
+  provider: () => 'rds'
   authorize: (request: Request, mutation: boolean) => Promise<{ actor: AdminActor }>
   transaction: <T>(run: (db: DbExecutor) => Promise<T>) => Promise<T>
-  legacy: typeof assertAdmin
 }
 export function cmsErrorResponse(error: unknown, request?: Request) {
   const mapped = mapAdminDbError(error)
@@ -61,11 +59,7 @@ export function cmsErrorResponse(error: unknown, request?: Request) {
 export function createCmsDataRoute(deps: Dependencies) {
   return async (request: Request, run: (access: CmsAccess) => Promise<Response>): Promise<Response> => {
     try {
-      if (deps.provider() === 'supabase') {
-        const access = await deps.legacy(request)
-        if ('error' in access) return access.error ?? cmsErrorResponse(new Error('Authorization unavailable'))
-        return run(access)
-      }
+      deps.provider()
       const { actor } = await deps.authorize(request, !['GET','HEAD'].includes(request.method))
       const result = await deps.transaction(async db => {
         // A caught read failure must still roll back; never commit an aborted/partial operation.
@@ -82,4 +76,4 @@ export function createCmsDataRoute(deps: Dependencies) {
     } catch (error) { return cmsErrorResponse(error, request) }
   }
 }
-export const withCmsDataRoute = createCmsDataRoute({ provider: () => readCmsDataProvider(process.env), authorize: authorizeProductRequest, transaction: adminTransaction, legacy: assertAdmin })
+export const withCmsDataRoute = createCmsDataRoute({ provider: () => readCmsDataProvider(process.env), authorize: authorizeProductRequest, transaction: adminTransaction })

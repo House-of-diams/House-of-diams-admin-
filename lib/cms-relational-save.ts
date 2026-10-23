@@ -66,9 +66,7 @@ export async function saveCmsRelational(access: Access, kind: CmsRelationalKind,
     if (promotion.cta_action === 'redirect' && !promotion.cta_link.trim()) return NextResponse.json({ error: 'A destination link is required for Redirect mode.' }, { status: 400 })
     if (promotion.cta_action === 'reveal_coupon') {
       if (!promotion.selected_coupon_id) return NextResponse.json({ error: 'Select an active coupon for Reveal coupon mode.' }, { status: 400 })
-      const coupon = 'provider' in access
-        ? (await access.db.query<{ id: number; usage_limit: number | null; usage_count: number | null }>('SELECT id,usage_limit,usage_count FROM public.coupons WHERE id=$1::bigint AND is_active=true', [promotion.selected_coupon_id])).rows[0]
-        : (await access.adminClient.from('coupons').select('id,usage_limit,usage_count').eq('id', promotion.selected_coupon_id).eq('is_active', true).maybeSingle()).data
+      const coupon = (await access.db.query<{ id: number; usage_limit: number | null; usage_count: number | null }>('SELECT id,usage_limit,usage_count FROM public.coupons WHERE id=$1::bigint AND is_active=true', [promotion.selected_coupon_id])).rows[0]
       if (!coupon || (coupon.usage_limit != null && Number(coupon.usage_count ?? 0) >= Number(coupon.usage_limit))) return NextResponse.json({ error: 'The selected coupon is unavailable or has reached its usage limit.' }, { status: 400 })
     }
   }

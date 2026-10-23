@@ -119,8 +119,8 @@ export async function uploadProductVideoToR2({
   folder: ProductMediaFolder
   contentType?: string | null
 }) {
-  // AWS mode must use the verified S3/admission path, never legacy R2 fallback.
-  if (readVideoProvider() !== 'legacy') throw new Error('Legacy video upload is disabled in AWS mode.')
+  // Legacy R2 uploads are disabled; the verified S3/admission path is the only video route.
+  throw new Error('Legacy video upload is disabled.')
   const safeExtension = extension.trim().toLowerCase() || 'mp4'
   const objectKey = buildVideoObjectKey(folder, safeExtension)
 

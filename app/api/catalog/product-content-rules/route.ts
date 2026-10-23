@@ -1,12 +1,11 @@
 import { runCatalogRdsRoute } from '@/lib/catalog-rds-handlers'
-import { assertAdmin } from '@/lib/cms-auth'
-import { listCatalogMasters, saveCatalogMaster } from '@/lib/catalog-master-save'
 
 export async function GET(request: Request) {
-  const rds = await runCatalogRdsRoute(request, undefined); if (rds) return rds
- const access = await assertAdmin(request); if ('error' in access) return access.error; return listCatalogMasters(access, 'content_rule') }
+  return runCatalogRdsRoute(request, undefined)
+}
+
 export async function POST(request: Request) {
-  const rds = await runCatalogRdsRoute(request, undefined); if (rds) return rds
- const access = await assertAdmin(request); if ('error' in access) return access.error; return saveCatalogMaster(access, 'content_rule', null, await request.json().catch(() => null)) }
+  return runCatalogRdsRoute(request, undefined)
+}
 
 export const runtime = 'nodejs'

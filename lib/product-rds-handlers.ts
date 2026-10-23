@@ -21,16 +21,15 @@ import { adminMutationError, inventoryUpdateSchema } from './order-inventory-val
 
 type Action = 'product-all' | 'bootstrap' | 'create' | 'read-id' | 'read-slug' | 'save-id' | 'save-slug' | 'single-delete' | 'product-list' | 'inventory-list' | 'inventory-stock' | 'price' | 'delete' | 'activate' | 'duplicate' | 'status'
 type Dependencies = {
-  provider: () => 'supabase' | 'rds'
+  provider: () => 'rds'
   authorize: (request: Request, mutation: boolean) => Promise<{ actor: AdminActor }>
   transaction: <T>(run: (db: DbExecutor) => Promise<T>, options?: AdminTransactionOptions) => Promise<T>
 }
 const response = (value: unknown, status = 200) => Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } })
 
-/** Returning null is permitted only before an operation starts, in explicit legacy mode. */
 export function createProductRdsHandlers(deps: Dependencies) {
-  return async (action: Action, request: Request, rawId?: string): Promise<Response | null> => {
-    try { if (deps.provider() === 'supabase') return null } catch { return response({ error: 'Product service unavailable.' }, 503) }
+  return async (action: Action, request: Request, rawId?: string): Promise<Response> => {
+    try { deps.provider() } catch { return response({ error: 'Product service unavailable.' }, 503) }
     let actor: AdminActor
     try { ({ actor } = await deps.authorize(request, !['GET', 'HEAD'].includes(request.method))) }
     catch (error) {
