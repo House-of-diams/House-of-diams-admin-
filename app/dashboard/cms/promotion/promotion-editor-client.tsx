@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCmsAtomicListSave } from '@/hooks/use-cms-atomic-list-save'
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
+import { resolveStoredImage } from '@/lib/image-reference'
 
 export type PromotionInitialData = {
   item: {
@@ -83,11 +84,7 @@ function createInitialOptions() {
 }
 
 function publicAssetUrl(path: string) {
-  if (!path) return ''
-  if (/^https?:\/\//.test(path)) return path
-  const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const bucket = process.env.NEXT_PUBLIC_SUPABASE_COLLECTION_BUCKET || 'hod'
-  return projectUrl ? `${projectUrl}/storage/v1/object/public/${bucket}/${path}` : path
+  return resolveStoredImage(path) ?? ''
 }
 
 export function PromotionEditorClient({ initialData, initialRevision }: { initialData: PromotionInitialData; initialRevision: string }) {

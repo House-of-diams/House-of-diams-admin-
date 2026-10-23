@@ -6,7 +6,6 @@ import type { AdminActor } from './auth/admin-identity-core'
 import { boundedImageForm, ImageBodyTooLarge, validateAwsSvg } from './image-validation'
 
 export type UploadConfig = {
-  bucket: string
   maxBytes: number
   rasterWidth: number | ((form: FormData) => number)
   rasterHeight?: number

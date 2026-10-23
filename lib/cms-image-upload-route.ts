@@ -12,7 +12,6 @@ type CmsImageUploadConfig = {
 
 export async function handleCmsImageUpload(request: Request, config: CmsImageUploadConfig) {
   return handleImageUpload(request, {
-    bucket: process.env.SUPABASE_COLLECTION_BUCKET ?? 'hod',
     maxBytes: config.maxBytes,
     rasterWidth: config.width,
     preserveAspectRatio: true,

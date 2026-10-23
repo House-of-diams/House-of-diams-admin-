@@ -8,7 +8,6 @@ export async function selectedMixedImage(request: Request, context: 'product' | 
   try { readImageProvider() }
   catch { return Response.json({ error: 'Image service unavailable.' }, { status: 503 }) }
   return handleImageUpload(request, {
-    bucket: process.env.SUPABASE_COLLECTION_BUCKET ?? 'hod',
     maxBytes: (context === 'product' ? 25 : context === 'bespoke' ? 10 : 8) * 1024 * 1024,
     rasterWidth: context === 'about' ? 2400 : 2200,
     preserveAspectRatio: context === 'about',

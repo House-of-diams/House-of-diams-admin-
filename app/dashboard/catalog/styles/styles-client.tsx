@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { catalogMasterDeleteBody, catalogMasterSaveBody } from '@/lib/catalog-master-client'
+import { resolveStoredImage } from '@/lib/image-reference'
 
 export type CatalogStyleItem = {
   id: string
@@ -25,14 +26,7 @@ async function uploadStyleSvg(file: File) {
 }
 
 function resolveStyleIconUrl(path: string | null | undefined) {
-  if (!path) return null
-  if (/^https?:\/\//i.test(path)) return path
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const collectionBucket = process.env.NEXT_PUBLIC_SUPABASE_COLLECTION_BUCKET || 'hod'
-  if (!supabaseUrl) return path
-
-  return `${supabaseUrl}/storage/v1/object/public/${collectionBucket}/${path}`
+  return resolveStoredImage(path)
 }
 
 export function StylesClient({ initialItems }: { initialItems: CatalogStyleItem[] }) {
