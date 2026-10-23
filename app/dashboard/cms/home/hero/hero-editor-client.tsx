@@ -11,6 +11,7 @@ import { CmsSaveAction } from '@/components/cms-save-action'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useEditGuard } from '@/hooks/use-unsaved-changes'
+import { seoLengthStatus, type SeoLengthKind } from '@/lib/seo-length'
 
 type SlideItem = {
   clientId: string
@@ -23,6 +24,17 @@ type SlideItem = {
   subtitle: string
   button_text: string
   button_link: string
+}
+
+const SEO_TONE_CLASS = { empty: 'text-muted-foreground', short: 'text-amber-600', long: 'text-red-600', good: 'text-emerald-700' } as const
+
+function SeoMeter({ value, kind }: { value: string; kind: SeoLengthKind }) {
+  const status = seoLengthStatus(value, kind)
+  return (
+    <span className={`text-right text-xs ${SEO_TONE_CLASS[status.tone]}`} aria-live="polite">
+      {status.characters}/{status.max} characters &middot; {status.words} {status.words === 1 ? 'word' : 'words'} &middot; {status.message}
+    </span>
+  )
 }
 
 export type HeroEditorInitialData = {
@@ -253,7 +265,7 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
           <div>
             <div className="mb-2 flex items-center justify-between gap-4">
               <label className="text-sm font-semibold text-foreground" htmlFor="seo_title">SEO title</label>
-              <span className={`text-xs ${formData.seo_title.length > 60 ? 'text-amber-600' : 'text-muted-foreground'}`}>{formData.seo_title.length}/60</span>
+              <SeoMeter value={formData.seo_title} kind="title" />
             </div>
             <input id="seo_title" type="text" name="seo_title" maxLength={120} value={formData.seo_title} onChange={handleTextChange} placeholder="Luxury Diamond Jewellery" className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm" />
           </div>
@@ -261,7 +273,7 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
           <div>
             <div className="mb-2 flex items-center justify-between gap-4">
               <label className="text-sm font-semibold text-foreground" htmlFor="seo_description">Meta description</label>
-              <span className={`text-xs ${formData.seo_description.length > 160 ? 'text-amber-600' : 'text-muted-foreground'}`}>{formData.seo_description.length}/160</span>
+              <SeoMeter value={formData.seo_description} kind="description" />
             </div>
             <textarea id="seo_description" name="seo_description" maxLength={320} value={formData.seo_description} onChange={handleTextChange} rows={3} placeholder="Describe the homepage for search results." className="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm" />
           </div>

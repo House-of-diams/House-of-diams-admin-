@@ -35,7 +35,8 @@ export function readAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig
     if (!raw || !/^\d+$/.test(raw) || !Number.isSafeInteger(value) || value < 1 || value > maximum) throw new AuthUnavailable()
     return value
   }
-  const sessionMaxSeconds = seconds('ADMIN_SESSION_MAX_SECONDS', 86400)
+  // Admins stay signed in for up to 7 days; the configured value may be shorter.
+  const sessionMaxSeconds = seconds('ADMIN_SESSION_MAX_SECONDS', 604800)
   const sessionIdleSeconds = seconds('ADMIN_SESSION_IDLE_SECONDS', sessionMaxSeconds)
   const revalidateSeconds = seconds('ADMIN_SESSION_REVALIDATE_SECONDS', Math.min(300, sessionIdleSeconds))
   return Object.freeze({ issuer, clientId, clientSecret, origin, roleLocation, tokenAuthMethod,
