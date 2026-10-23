@@ -274,7 +274,8 @@ test('browser transport follows server contract, protects auth/CSRF, excludes me
     forget();calls.length=0;sessionOk=false;assert.equal((await catalogFetch('/api/catalog/styles',{method:'POST',body:'{}'})).status,503);assert.deepEqual(calls.map(([u])=>u),['/api/catalog/provider','/api/auth/session']);assert.equal(globalThis.__b4Legacy,0)
     forget();calls.length=0;contractOk=false;assert.equal((await catalogFetch('/api/catalog/styles')).status,503);assert.equal(calls.length,1)
     forget();calls.length=0;contractOk=true;provider='invalid';assert.equal((await catalogFetch('/api/catalog/styles')).status,503);assert.equal(calls.length,1)
-    forget();provider='supabase';operationOk=true;await catalogFetch('/api/catalog/styles',{method:'POST',body:'{}'});assert.equal(globalThis.__b4Legacy,1);assert.equal(calls.at(-1)[1].headers.get('authorization'),'Bearer legacy-token');assert.equal(calls.at(-1)[1].headers.has('x-admin-csrf'),false)
+    // The legacy Supabase provider no longer exists: it is rejected like any other invalid provider, with no token lookup.
+    forget();calls.length=0;provider='supabase';operationOk=true;assert.equal((await catalogFetch('/api/catalog/styles',{method:'POST',body:'{}'})).status,503);assert.equal(calls.length,1);assert.equal(globalThis.__b4Legacy,0)
     for(const bad of ['https://evil.example/api/catalog/styles','/api/products','/api/catalog/styles/upload','/api/navbar/featured-image','/api/navbar/section-icon'])await assert.rejects(()=>catalogFetch(bad))
   } finally {globalThis.fetch=original;delete globalThis.__b4Legacy}
 })

@@ -195,10 +195,10 @@ test('client RDS transport follows server contract, cookie/CSRF, strips caller b
  globalThis.fetch=async(url,options={})=>{calls.push([url,options]);return Response.json(url==='/api/cms/provider'?{provider:'rds'}:url==='/api/auth/session'?{authenticated:true,csrfToken:'server-csrf'}:{ok:true})}
  try{const r=await cmsFetch('/api/cms/about/values',{method:'POST',headers:{authorization:'Bearer attacker','x-admin-csrf':'attacker'},body:'{}'});assert.equal(r.status,200);const options=calls.at(-1)[1];assert.equal(options.credentials,'same-origin');assert.equal(options.headers.get('authorization'),null);assert.equal(options.headers.get('x-admin-csrf'),'server-csrf');assert.equal(globalThis.__b5LegacyCalls,0)}finally{globalThis.fetch=original;delete globalThis.__b5LegacyCalls}
 })
-test('client legacy transport retains bearer and rejects media, B6 and traversal paths',async()=>{
+test('client rejects the removed legacy provider and still rejects media, B6 and traversal paths',async()=>{
  const {cmsFetch,forgetCmsRequestContext}=await get('lib/cms-transport.ts');forgetCmsRequestContext();const original=globalThis.fetch;const calls=[];globalThis.__b5LegacyCalls=0
  globalThis.fetch=async(url,options={})=>{calls.push([url,options]);return Response.json(url==='/api/cms/provider'?{provider:'supabase'}:{items:[]})}
- try{await cmsFetch('/api/bespoke/portfolio-items');assert.equal(calls.at(-1)[1].headers.get('authorization'),'Bearer legacy-token');assert.equal(globalThis.__b5LegacyCalls,1)
+ try{assert.equal((await cmsFetch('/api/bespoke/portfolio-items')).status,503);assert.equal(globalThis.__b5LegacyCalls,0);assert.equal(calls.length,1)
   for(const url of ['/api/bespoke/media','/api/cms/uploads/hero','/api/cms/contact/submissions','/api/cms/../../orders','https://evil.test/api/cms/about/hero'])await assert.rejects(()=>cmsFetch(url))
  }finally{globalThis.fetch=original;delete globalThis.__b5LegacyCalls}
 })

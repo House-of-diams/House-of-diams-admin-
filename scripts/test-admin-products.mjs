@@ -254,8 +254,8 @@ test('browser transport follows server contract, uses cookie CSRF, never exposes
     calls.length=0;await transport.productFetch('/api/products/'+id(2),{method:'PATCH',body:'{}'});assert.deepEqual(calls.map(([u])=>u),['/api/products/'+id(2)])
     transport.forgetProductRequestContext();sessionOk=false;await assert.rejects(()=>transport.productFetch('/api/products',{method:'POST',body:'{}'}));assert.equal(legacyCalls,0);assert.equal(calls.filter(([url])=>url==='/api/products').length,0)
     transport.forgetProductRequestContext();provider='bogus';await assert.rejects(()=>transport.productRequestHeaders());assert.equal(legacyCalls,0)
-    transport.forgetProductRequestContext();provider='supabase';const headers=await transport.productRequestHeaders();assert.equal(headers.get('authorization'),'Bearer legacy-token');assert.equal(headers.get('x-admin-csrf'),null);assert.equal(legacyCalls,1)
-    await assert.rejects(()=>transport.productFetch('https://attacker.example/api/products',{method:'POST'}));assert.equal(legacyCalls,1)
+    transport.forgetProductRequestContext();provider='supabase';await assert.rejects(()=>transport.productRequestHeaders());assert.equal(legacyCalls,0)
+    await assert.rejects(()=>transport.productFetch('https://attacker.example/api/products',{method:'POST'}));assert.equal(legacyCalls,0)
   }finally{globalThis.fetch=original;delete globalThis.__b3TransportLegacy}
 })
 

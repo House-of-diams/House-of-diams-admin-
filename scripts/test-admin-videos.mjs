@@ -187,17 +187,17 @@ test('canonical video URLs reject temporary URLs/host confusion while accepting 
 async function withFetch(fn, run) { const old = globalThis.fetch; globalThis.fetch = fn; try { return await run() } finally { globalThis.fetch = old } }
 test('client selected upload uses cookie/CSRF marker, no bearer/sign/legacy and invalidates cache', async () => {
   reset(); const calls = []
-  const result = await withFetch(async (endpoint, options) => { calls.push([endpoint, options]); if (endpoint === '/api/videos/provider') return Response.json({ provider: 'aws', namespace: 'a' }); if (endpoint === '/api/auth/session') return Response.json({ authenticated: true, csrfToken: 'csrf' }); return Response.json({ provider: 's3', path: url, url }) }, () => client.tryUploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video', folder: 'products' }))
+  const result = await withFetch(async (endpoint, options) => { calls.push([endpoint, options]); if (endpoint === '/api/videos/provider') return Response.json({ provider: 'aws', namespace: 'a' }); if (endpoint === '/api/auth/session') return Response.json({ authenticated: true, csrfToken: 'csrf' }); return Response.json({ provider: 's3', path: url, url }) }, () => client.uploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video', folder: 'products' }))
   assert.equal(result, url); assert.equal(calls.length, 3); assert.deepEqual(calls[2][1].headers, { 'x-admin-csrf': 'csrf', 'x-admin-video-upload': '1' }); assert.equal(calls[2][1].credentials, 'same-origin')
 })
 for (const mode of ['bad-provider', 'bad-session', 'storage-failure', 'bad-url']) test('client failure does not fall back: ' + mode, async () => {
   reset(); const calls = []
-  await withFetch(async endpoint => { calls.push(endpoint); if (endpoint === '/api/videos/provider') return Response.json({ provider: mode === 'bad-provider' ? 'invalid' : 'aws', namespace: 'a' }); if (endpoint === '/api/auth/session') return Response.json(mode === 'bad-session' ? {} : { authenticated: true, csrfToken: 'csrf' }); return mode === 'bad-url' ? Response.json({ provider: 's3', path: url + '?signed=1', url: url + '?signed=1' }) : Response.json({ error: 'fail' }, { status: 500 }) }, () => assert.rejects(client.tryUploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video', folder: 'products' })))
+  await withFetch(async endpoint => { calls.push(endpoint); if (endpoint === '/api/videos/provider') return Response.json({ provider: mode === 'bad-provider' ? 'invalid' : 'aws', namespace: 'a' }); if (endpoint === '/api/auth/session') return Response.json(mode === 'bad-session' ? {} : { authenticated: true, csrfToken: 'csrf' }); return mode === 'bad-url' ? Response.json({ provider: 's3', path: url + '?signed=1', url: url + '?signed=1' }) : Response.json({ error: 'fail' }, { status: 500 }) }, () => assert.rejects(client.uploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video', folder: 'products' })))
   assert.ok(calls.length <= 3); assert.ok(!calls.some(x => x.includes('/sign')))
 })
-test('client legacy upload explicitly returns null before session/sign/storage', async () => {
+test('client rejects the removed legacy provider before session/sign/storage', async () => {
   reset(); let count = 0
-  await withFetch(async () => { count++; return Response.json({ provider: 'legacy', namespace: 'r2' }) }, async () => assert.equal(await client.tryUploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video' }), null)); assert.equal(count, 1)
+  await withFetch(async () => { count++; return Response.json({ provider: 'legacy', namespace: 'r2' }) }, async () => assert.rejects(client.uploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video' }))); assert.equal(count, 1)
 })
 test('client library configuration namespace, refresh and upload invalidation', async () => {
   reset(); let namespace = 'a', count = 0

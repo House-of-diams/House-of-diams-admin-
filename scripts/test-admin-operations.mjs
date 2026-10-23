@@ -252,9 +252,9 @@ test('actual coupon, settings, notification and contact routes use scoped RDS re
 test('route-specific SQLSTATE contracts remain safe after rollback',async()=>{
  for(const [path,code,status]of [['/api/orders/'+id(2),'23503',400],['/api/settings','23503',400],['/api/coupons','23505',409],['/api/coupons/1','23503',409]]){const r=operationsError({code,message:'PRIVATE SQL'},req('POST',{},path));assert.equal(r.status,status);assert.equal((await r.text()).includes('PRIVATE'),false)}
 })
-test('client legacy contract lazily obtains bearer and selected provider failures never retry',async()=>{forgetOperationsRequestContext()
+test('client rejects the removed legacy provider without a token lookup or retry',async()=>{forgetOperationsRequestContext()
  const original=globalThis.fetch;const calls=[];globalThis.__b6LegacyCalls=0
- try{globalThis.fetch=async(url,options)=>{calls.push([url,options]);return url==='/api/operations/provider'?Response.json({provider:'supabase'}):Response.json({error:'conflict'},{status:409})};const result=await operationsFetch('/api/coupons',{method:'POST',body:'{}'});assert.equal(result.status,409);assert.equal(globalThis.__b6LegacyCalls,1);assert.equal(calls.length,2);assert.equal(calls[1][1].headers.get('authorization'),'Bearer legacy-token')}finally{globalThis.fetch=original}
+ try{globalThis.fetch=async(url,options)=>{calls.push([url,options]);return url==='/api/operations/provider'?Response.json({provider:'supabase'}):Response.json({error:'conflict'},{status:409})};const result=await operationsFetch('/api/coupons',{method:'POST',body:'{}'});assert.equal(result.status,503);assert.equal(globalThis.__b6LegacyCalls,0);assert.equal(calls.length,1)}finally{globalThis.fetch=original}
 })
 test('notification required marker failure and promotion-question failure cannot masquerade as empty',async()=>{
  const f=dbFake(sql=>{if(sql.includes('to_regclass'))return [{present:false}];if(sql.includes('admin_notification_reads'))throw {code:'42P01'};return []});await assert.rejects(()=>createNotificationsRepository(f.db,actor).read())
