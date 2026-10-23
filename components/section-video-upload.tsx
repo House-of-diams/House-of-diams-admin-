@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { Film, Loader2 } from 'lucide-react'
-import { tryUploadAwsVideo } from '@/lib/video-transport'
+import { uploadAwsVideo } from '@/lib/video-transport'
 import { SECTION_VIDEO_MAX_BYTES, sectionVideoProblem } from '@/lib/video-limits'
 
 type Props = {
@@ -26,7 +26,7 @@ export function SectionVideoUpload({ label = 'Upload video', onUploaded, onStatu
     setBusy(true)
     onStatus?.('Uploading video…')
     try {
-      const url = await tryUploadAwsVideo(file, '/api/cms/uploads/section-video', { kind: 'video' })
+      const url = await uploadAwsVideo(file, '/api/cms/uploads/section-video', { kind: 'video' })
       if (!url) throw new Error('Video uploads are not available in this mode.')
       onUploaded(url)
       onStatus?.('Video uploaded. Save changes to publish it.')

@@ -2,17 +2,16 @@
 import { isCanonicalAwsImageReference } from './image-reference'
 
 const endpoints = /^\/api\/(?:cms\/uploads\/[a-z-]+|catalog\/(?:categories|subcategories|options|styles|stone-shapes)\/upload|navbar\/(?:section-icon|featured-image)|products\/media|bespoke\/media)$/
-export async function readClientImageProvider(): Promise<'legacy' | 'aws'> {
+/** The admin only supports AWS image storage; any other answer means a misconfigured deployment. */
+export async function assertAwsImageProvider(): Promise<void> {
   const response = await fetch('/api/images/provider', { credentials: 'same-origin', cache: 'no-store' })
   const payload = await response.json().catch(() => null)
-  if (!response.ok || !['legacy', 'aws'].includes(payload?.provider)) throw new Error('Image service unavailable.')
-  return payload.provider
+  if (!response.ok || payload?.provider !== 'aws') throw new Error('Image service unavailable.')
 }
 
-/** null explicitly means legacy mode. Any selected AWS failure propagates without fallback. */
-export async function tryUploadAwsImage(file: File, endpoint: string, fields: Record<string, string> = {}, activity?: { start: () => void; finish: (ok: boolean) => void }): Promise<string | null> {
+export async function uploadAwsImage(file: File, endpoint: string, fields: Record<string, string> = {}, activity?: { start: () => void; finish: (ok: boolean) => void }): Promise<string> {
   if (!endpoints.test(endpoint)) throw new Error('Invalid image endpoint.')
-  if (await readClientImageProvider() === 'legacy') return null
+  await assertAwsImageProvider()
   activity?.start()
   let ok = false
   try {
@@ -31,9 +30,3 @@ export async function tryUploadAwsImage(file: File, endpoint: string, fields: Re
   } finally { activity?.finish(ok) }
 }
 
-/** AWS-only upload: the legacy (Supabase storage) provider no longer exists, so anything but AWS is an error. */
-export async function uploadAwsImage(file: File, endpoint: string, fields: Record<string, string> = {}, activity?: { start: () => void; finish: (ok: boolean) => void }): Promise<string> {
-  const path = await tryUploadAwsImage(file, endpoint, fields, activity)
-  if (path === null) throw new Error('Image service unavailable.')
-  return path
-}
