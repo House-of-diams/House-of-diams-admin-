@@ -1,6 +1,7 @@
 'use client'
 
 import { tryUploadAwsImage } from '@/lib/image-transport'
+import { SectionVideoUpload } from '@/components/section-video-upload'
 import { cmsFetch } from '@/lib/cms-transport'
 
 import Link from 'next/link'
@@ -204,6 +205,7 @@ export function CollectionPageEditorClient({ initialData, initialRevision }: { i
               }} />
             </label>
             <p className="mt-2 text-xs text-muted-foreground">{form.showcase_image_path || 'No desktop image uploaded yet'}</p>
+            <SectionVideoUpload className="mt-3 block" label="Upload video instead" disabled={Boolean(uploadingField)} onStatus={setStatus} onUploaded={(url) => setForm((prev) => ({ ...prev, showcase_image_path: url }))} />
           </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-foreground">Home Page Banner Mobile Image</label>
@@ -216,6 +218,7 @@ export function CollectionPageEditorClient({ initialData, initialRevision }: { i
               }} />
             </label>
             <p className="mt-2 text-xs text-muted-foreground">{form.showcase_mobile_image_path || 'No mobile image uploaded yet'}</p>
+            <SectionVideoUpload className="mt-3 block" label="Upload video instead" disabled={Boolean(uploadingField)} onStatus={setStatus} onUploaded={(url) => setForm((prev) => ({ ...prev, showcase_mobile_image_path: url }))} />
           </div>
         </div>
       </div>

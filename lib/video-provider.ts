@@ -3,7 +3,7 @@ import { readAdminAuthProvider } from './auth/integration'
 import { imageTarget } from './image-provider'
 
 export type VideoProvider = 'legacy' | 'aws'
-export type VideoContext = 'products' | 'hiphop' | 'about'
+export type VideoContext = 'products' | 'hiphop' | 'about' | 'section'
 export type VideoSource = { bucket: string; baseUrl: string; prefix: string }
 export function readVideoProvider(env: NodeJS.ProcessEnv = process.env): VideoProvider {
   readAdminAuthProvider(env)
@@ -15,7 +15,8 @@ export function readVideoProvider(env: NodeJS.ProcessEnv = process.env): VideoPr
 export function videoTarget(context: VideoContext, env: NodeJS.ProcessEnv = process.env): VideoSource {
   if (env.ADMIN_VIDEO_ROUTING_VERIFIED !== 'true') throw new Error('Video service unavailable.')
   const target = imageTarget(context === 'about' ? 'content' : 'product', env)
-  return { ...target, prefix: context === 'about' ? 'about/hero/video/' : `${context}/videos/` }
+  // Banner videos share the product video prefix, so they are covered by the same bucket protections and admission registry.
+  return { ...target, prefix: context === 'about' ? 'about/hero/video/' : context === 'section' ? 'products/videos/' : `${context}/videos/` }
 }
 /** Explicit inventory, never a root bucket scan or a rewrite of historical URLs. */
 export function videoSources(env: NodeJS.ProcessEnv = process.env): VideoSource[] {
