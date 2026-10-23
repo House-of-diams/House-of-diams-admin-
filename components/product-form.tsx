@@ -290,7 +290,6 @@ const emptySection = (): ProductDetailSection => ({
   rows: [emptyRow()],
   visible: true,
 })
-const collectionBucket = process.env.NEXT_PUBLIC_SUPABASE_COLLECTION_BUCKET || 'hod'
 
 export type ProductFormStepId = 'basics' | 'pricing' | 'attributes' | 'content' | 'details' | 'media'
 
@@ -347,7 +346,7 @@ function sanitizeSections(sections: ProductDetailSection[]) {
 }
 
 function toStoragePreviewUrl(path: string | null | undefined) {
-  return resolveStoredImage(path, collectionBucket) ?? ''
+  return resolveStoredImage(path) ?? ''
 }
 
 function isHipHopCategory(category?: CatalogCategory | null) {

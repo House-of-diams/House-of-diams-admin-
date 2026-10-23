@@ -1,13 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { resolveImageReference } from '@/lib/image-reference'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')
-const collectionBucket = process.env.NEXT_PUBLIC_SUPABASE_COLLECTION_BUCKET || 'hod'
+import { resolveStoredImage } from '@/lib/image-reference'
 
 export function resolveCatalogImageUrl(path?: string | null) {
-  return resolveImageReference(path, supabaseUrl ? `${supabaseUrl}/storage/v1/object/public/${collectionBucket}` : undefined)
+  return resolveStoredImage(path)
 }
 
 function isSvgImage(path: string) {
