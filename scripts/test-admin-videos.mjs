@@ -240,7 +240,7 @@ test('actual CMS and product upload consumers select video protocol before legac
   let selected
   function visit(n) { if (ts.isVariableDeclaration(n) && n.name.getText(sf) === 'uploadMedia') selected = n.initializer; ts.forEachChild(n, visit) } visit(sf)
   const js = ts.transpileModule('const selected = (' + selected.getText(sf) + ');', { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
-  const fn = Function('tryUploadAwsVideo', js + '\nreturn selected')(async () => url)
+  const fn = Function('uploadAwsImage', 'uploadAwsVideo', js + '\nreturn selected')(async () => { throw new Error('unexpected image upload') }, async () => url)
   assert.deepEqual(await fn(new File([mp4], 'a', { type: 'video/mp4' }), 'video', 'products'), { path: url, provider: 's3' })
 })
 test('all three container types retain existing magic acceptance and canonical suffix', async () => {

@@ -226,6 +226,6 @@ test('owned image clients have no eager Supabase import; actual selected upload 
  for(const [file,name,args,expected]of cases){const sf=ts.createSourceFile(file,fs.readFileSync(path.join(root,file),'utf8'),ts.ScriptTarget.Latest,true);let selected
   function visit(n){if(ts.isVariableDeclaration(n)&&n.name.getText(sf)===name&&n.initializer&&ts.isArrowFunction(n.initializer))selected=n.initializer;if(ts.isFunctionDeclaration(n)&&n.name?.text===name)selected=n;ts.forEachChild(n,visit)}visit(sf);assert.ok(selected,name)
   const js=ts.transpileModule('const selected = ('+selected.getText(sf)+');',{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
-  let uploaded=0;const fn=Function('tryUploadAwsImage',js+'\nreturn selected')(async()=>{uploaded++;return target.baseUrl+'/'+key});assert.deepEqual(await fn(...args),expected);assert.equal(uploaded,1)
+  let uploaded=0;const fn=Function('uploadAwsImage','uploadAwsVideo',js+'\nreturn selected')(async()=>{uploaded++;return target.baseUrl+'/'+key},async()=>{throw new Error('unexpected video upload')});assert.deepEqual(await fn(...args),expected);assert.equal(uploaded,1)
  }
 })
