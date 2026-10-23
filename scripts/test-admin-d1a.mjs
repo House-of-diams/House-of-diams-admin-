@@ -136,12 +136,19 @@ async function formFixture(props = {}, original = false) {
   const source = fs.readFileSync('components/product-form.tsx', 'utf8')
   // UI leaves are inert JSX components; actual form state/effects/load/save,
   // normalization, serializers, query cache and validation execute unchanged.
-  for (const match of source.matchAll(/import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/g)) {
+  // The pinned original source imports names the current form no longer uses (for example the
+  // legacy upload helpers), so stub the union of both files' imports per module.
+  const stubbed = new Map()
+  const importSources = [source]
+  if (original) importSources.push(JSON.parse(fs.readFileSync('docs/aws-phase-d/D1a-initial-sources.json', 'utf8').replace(/^﻿/, '')).find(f => f.path.split(String.fromCharCode(92)).join('/') === 'components/product-form.tsx').text)
+  for (const text of importSources) for (const match of text.matchAll(/import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/g)) {
     const name = match[2]
     if (['@/lib/product-editor', '@/lib/product-save-payload', '@/lib/product-custom-dropdowns', '@/lib/query-cache'].includes(name)) continue
-    const exports = match[1].split(',').map(v => v.trim()).filter(v => v && !v.startsWith('type '))
-    overrides[name] = exports.map(v => `export const ${v}=()=>null;`).join('')
+    const names = stubbed.get(name) ?? new Set()
+    for (const v of match[1].split(',').map(v => v.trim()).filter(v => v && !v.startsWith('type '))) names.add(v)
+    stubbed.set(name, names)
   }
+  for (const [name, names] of stubbed) overrides[name] = [...names].map(v => `export const ${v}=()=>null;`).join('')
   overrides.react = 'export const useState=(...a)=>globalThis.__d1.hooks.useState(...a);export const useRef=(...a)=>globalThis.__d1.hooks.useRef(...a);export const useEffect=(...a)=>globalThis.__d1.hooks.useEffect(...a);export const useMemo=(...a)=>globalThis.__d1.hooks.useMemo(...a)'
   overrides['next/navigation'] = 'export const useRouter=()=>({prefetch(){},push(){},refresh(){}})'
   overrides['@/hooks/use-toast'] = 'export const useToast=()=>({toast:x=>globalThis.__d1.toast.push(x)})'
