@@ -9,9 +9,8 @@ export async function GET(request: Request) {
   return withCmsDataRoute(request, async access => {
   try {
     const snapshot = await loadCmsRelationalSnapshot(cmsReader(access), 'checkout_result')
-    const bucket = process.env.SUPABASE_COLLECTION_BUCKET ?? 'hod'
     const parent = snapshot.parent
-    const url = (path: unknown) => typeof path === 'string' ? resolveStoredImage(path, bucket) ?? '' : ''
+    const url = (path: unknown) => typeof path === 'string' ? resolveStoredImage(path) ?? '' : ''
     return NextResponse.json({ page: parent ? { ...parent, main_banner_image_url: url(parent.main_banner_image_path), secondary_banner_image_url: url(parent.secondary_banner_image_path) } : null, states: snapshot.items, revision: snapshot.revision }, { headers: { 'Cache-Control': 'no-store' } })
   } catch { return NextResponse.json({ error: 'Unable to load Checkout Result content.' }, { status: 503 }) }
 
