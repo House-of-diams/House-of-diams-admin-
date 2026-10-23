@@ -8,10 +8,10 @@ const json = file => JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/,
 const normal = file => file.replaceAll('\\', '/')
 const owned = [
   'lib/auth/integration.ts', 'lib/auth/admin-session.ts', 'lib/auth/account.ts', 'lib/admin-auth-client.ts',
-  'lib/admin-server.ts', 'lib/cms-auth.ts', 'lib/admin-supabase.ts', 'lib/server-supabase.ts',
+  'lib/admin-server.ts',
   'lib/product-provider.ts', 'lib/catalog-provider.ts', 'lib/cms-provider.ts', 'lib/operations-provider.ts', 'lib/image-provider.ts', 'lib/video-provider.ts',
   'app/api/auth/provider/route.ts', 'app/api/auth/account/route.ts', 'app/api/settings/password/route.ts',
-  'app/login/page.tsx', 'app/login/legacy-login.tsx', 'app/login/keycloak-login.tsx',
+  'app/login/page.tsx', 'app/login/keycloak-login.tsx',
   'components/admin-gate.tsx', 'components/topbar.tsx', 'app/dashboard/page.tsx', 'app/dashboard/layout.tsx',
   'app/dashboard/settings/page.tsx', 'app/dashboard/settings/settings-client.tsx',
   'scripts/test-admin-integration.mjs', 'scripts/verify-admin-integration.mjs',

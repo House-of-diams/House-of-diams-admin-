@@ -26,6 +26,3 @@ export function videoSources(env: NodeJS.ProcessEnv = process.env): VideoSource[
 export function videoNamespace(sources: VideoSource[]) {
   return JSON.stringify(['aws-video-v1', ...sources.map(s => [s.bucket, s.prefix, s.baseUrl])])
 }
-export function legacyVideoNamespace(env: NodeJS.ProcessEnv = process.env) {
-  return JSON.stringify(['legacy-r2-v1', env.CLOUDFLARE_R2_ACCOUNT_ID?.trim() ?? '', env.CLOUDFLARE_R2_BUCKET?.trim() ?? '', env.CLOUDFLARE_R2_PUBLIC_BASE_URL?.trim() ?? '', env.CLOUDFLARE_R2_VIDEO_PREFIX?.trim() || 'products/videos', env.CLOUDFLARE_R2_BESPOKE_VIDEO_PREFIX?.trim() || 'bespoke/videos'])
-}
