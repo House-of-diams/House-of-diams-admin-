@@ -16,7 +16,7 @@ export function accountConsoleUrl(env: Record<string, string | undefined>): stri
 }
 
 export function createAccountHandler(deps: {
-  provider: () => 'supabase' | 'keycloak'
+  provider: () => 'keycloak'
   authorize: typeof authorizeProductRequest
   env: () => Record<string, string | undefined>
 }) {

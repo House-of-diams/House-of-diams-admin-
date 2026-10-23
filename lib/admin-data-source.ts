@@ -18,7 +18,6 @@ export function isAdminDataGroup(value: string | null): value is AdminDataGroup 
 }
 
 export function dataSourcePresentation(source: string, checked: boolean) {
-  if (source === 'supabase') return { text: 'Supabase', tone: 'legacy' as const }
   if (source === 'rds' && checked) return { text: 'RDS read verified', tone: 'verified' as const }
   if (source === 'rds') return { text: 'RDS read unavailable', tone: 'error' as const }
   return { text: 'Data source unavailable', tone: 'error' as const }
