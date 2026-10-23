@@ -32,7 +32,7 @@ async function csrf() {
   return session.csrfToken as string
 }
 export async function tryUploadAwsVideo(file: File, endpoint: string, fields: Record<string, string>): Promise<string | null> {
-  if (!['/api/products/media', '/api/cms/uploads/about-hero'].includes(endpoint) || fields.kind !== 'video') throw new Error('Invalid video endpoint.')
+  if (!['/api/products/media', '/api/cms/uploads/about-hero', '/api/cms/uploads/section-video'].includes(endpoint) || fields.kind !== 'video') throw new Error('Invalid video endpoint.')
   if ((await readClientVideoProvider()).provider === 'legacy') return null
   const form = new FormData()
   form.set('file', file)

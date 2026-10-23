@@ -131,7 +131,7 @@ test('upload invalidation and force refresh cannot be undone by stale pending li
   assert.deepEqual(await cache.get('a', async () => ['refresh'], true), ['refresh']); end(['stale']); await stale
   assert.deepEqual(await cache.get('a', async () => ['bad']), ['refresh'])
 })
-for (const context of ['product', 'about']) test('selected ' + context + ' upload uses B1 mutation auth, exact target, canonical envelope, no legacy', async () => {
+for (const context of ['product', 'about', 'section']) test('selected ' + context + ' upload uses B1 mutation auth, exact target, canonical envelope, no legacy', async () => {
   reset(); const response = await route.selectedMixedVideo(await request(), context)
   assert.equal(response.status, context === 'about' ? 200 : 201); assert.deepEqual(auth, [true]); assert.equal(legacy, 0)
   const result = await response.json(); assert.equal(result.provider, 's3'); assert.equal(result.path, result.url); assert.equal(response.headers.get('cache-control'), 'no-store')
@@ -148,6 +148,15 @@ test('streamed body is bounded even when content-length lies', async () => {
   const body = new ReadableStream({ pull(c) { chunks++; c.enqueue(new Uint8Array(1024 * 1024)) }, cancel() { canceled = true } })
   const req = new Request('https://admin.example/upload', { method: 'POST', headers: { 'x-admin-video-upload': '1', 'content-length': '10', 'content-type': 'multipart/form-data; boundary=a' }, body, duplex: 'half' })
   assert.equal((await route.selectedMixedVideo(req, 'product')).status, 413); assert.equal(canceled, true); assert.ok(chunks <= 104); assert.equal(sent.length, 0)
+})
+test('banner (section) videos need no folder, use the product video prefix and have a 40 MB limit', async () => {
+  reset(); const ok = await route.selectedMixedVideo(await request({ fields: { kind: 'video' } }), 'section')
+  assert.equal(ok.status, 201); assert.match(stored.Key, /^products\/videos\/[0-9a-f-]+\.mp4$/); assert.equal(stored.Bucket, source.bucket)
+  reset(); const big = Buffer.concat([mp4, Buffer.alloc(41 * 1024 * 1024)])
+  const response = await route.selectedMixedVideo(await request({ bytes: big, fields: { kind: 'video' } }), 'section')
+  assert.equal(response.status, 413); assert.match((await response.json()).error, /request is too large|40 MB/); assert.equal(sent.length, 0)
+  reset(); const productSized = await route.selectedMixedVideo(await request({ bytes: big, fields: { kind: 'video', folder: 'products' } }), 'product')
+  assert.equal(productSized.status, 201, 'the 100 MB product limit is unchanged')
 })
 test('selected cloud error has no partial-success envelope, secret or fallback', async () => {
   reset(); dispatchFailure = true; const response = await route.selectedMixedVideo(await request(), 'product'); assert.equal(response.status, 500); assert.equal(sent.length, 1); assert.equal(legacy, 0); assert.ok(!(await response.text()).includes('PRIVATE'))

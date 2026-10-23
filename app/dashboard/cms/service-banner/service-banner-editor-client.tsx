@@ -1,5 +1,7 @@
 'use client'
 import { tryUploadAwsImage } from '@/lib/image-transport'
+import { SectionVideoUpload } from '@/components/section-video-upload'
+import { isVideoAddress } from '@/lib/media-kind'
 
 import { cmsFetch } from '@/lib/cms-transport'
 
@@ -193,13 +195,14 @@ export function ServiceBannerEditorClient() {
             </div>
 
             <div className="relative aspect-[16/6] min-h-[320px] overflow-hidden border border-border bg-secondary/30">
-              {imageUrl ? <Image unoptimized width={1600} height={600} src={imageUrl} alt={imageAlt || 'Service banner preview'} className="h-full w-full object-cover" /> : <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground"><ImagePlus size={28} strokeWidth={1.5} /><span className="text-sm">No banner image uploaded</span></div>}
+              {imageUrl && isVideoAddress(imageUrl) ? <video src={imageUrl} className="h-full w-full object-cover" muted loop playsInline autoPlay controls aria-label={imageAlt || 'Service banner video preview'} /> : imageUrl ? <Image unoptimized width={1600} height={600} src={imageUrl} alt={imageAlt || 'Service banner preview'} className="h-full w-full object-cover" /> : <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground"><ImagePlus size={28} strokeWidth={1.5} /><span className="text-sm">No banner image uploaded</span></div>}
             </div>
 
             <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadImage(file); event.target.value = '' }} />
             <button type="button" disabled={isUploading} onClick={() => fileInputRef.current?.click()} className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">
               <Upload size={16} />{isUploading ? 'Uploading...' : imagePath ? 'Replace image' : 'Upload image'}
             </button>
+            <SectionVideoUpload className="mt-4 ml-3 inline-block align-top" label="Upload video instead" disabled={isUploading} onStatus={setStatus} onUploaded={(url) => { setImagePath(url); setImageUrl(url) }} />
 
             <label className="mt-5 block text-sm font-semibold text-foreground">
               Image alt text

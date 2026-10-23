@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useState, type ChangeEvent } from 'react'
 import { ArrowLeft, Upload } from 'lucide-react'
 import { CmsSaveAction } from '@/components/cms-save-action'
+import { SectionVideoUpload } from '@/components/section-video-upload'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useCmsSingletonSave } from '@/hooks/use-cms-singleton-save'
@@ -181,6 +182,7 @@ export function BespokeShowcaseEditorClient({ initialData, initialRevision }: { 
               }} />
             </label>
             <p className="mt-2 text-xs text-muted-foreground">{form.image_path || 'No desktop image uploaded yet'}</p>
+            <SectionVideoUpload className="mt-3 block" label="Upload video instead" disabled={Boolean(uploadingField)} onStatus={setStatus} onUploaded={(url) => setForm((prev) => ({ ...prev, image_path: url }))} />
           </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-foreground">Mobile Image</label>
@@ -193,6 +195,7 @@ export function BespokeShowcaseEditorClient({ initialData, initialRevision }: { 
               }} />
             </label>
             <p className="mt-2 text-xs text-muted-foreground">{form.mobile_image_path || 'No mobile image uploaded yet'}</p>
+            <SectionVideoUpload className="mt-3 block" label="Upload video instead" disabled={Boolean(uploadingField)} onStatus={setStatus} onUploaded={(url) => setForm((prev) => ({ ...prev, mobile_image_path: url }))} />
           </div>
         </div>
       </div>
