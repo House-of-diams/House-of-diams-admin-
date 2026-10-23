@@ -186,8 +186,20 @@ export const productPayloadSchema = z.object({
 
 export type ProductPayload = z.infer<typeof productPayloadSchema>
 
+// "metal_variants.1.price" -> "Metal variants, item 2, price"
+function describeIssuePath(path: ReadonlyArray<string | number>) {
+  return path
+    .map((part) => (typeof part === 'number' ? `item ${part + 1}` : part.replace(/_/g, ' ')))
+    .join(', ')
+    .replace(/^./, (letter) => letter.toUpperCase())
+}
+
 export function productPayloadErrorMessage(error: z.ZodError) {
-  return error.issues[0]?.message ?? 'Invalid product payload.'
+  const issue = error.issues[0]
+  if (!issue) return 'Invalid product payload.'
+  // Messages written for the admin already say what is wrong; library defaults ("String must contain...") need the field name.
+  if (issue.code === 'custom' || issue.path.length === 0) return issue.message
+  return `${describeIssuePath(issue.path)}: ${issue.message}`
 }
 
 export function safeProductSaveError(error: { code?: string | null } | null | undefined) {
