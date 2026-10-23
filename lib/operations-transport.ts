@@ -1,6 +1,6 @@
 'use client'
 // HOD-066: provider and CSRF reused for 60 s within this page; any 401/403 drops them.
-let context:{provider:'supabase'|'rds';csrf:string;at:number}|null=null
+let context:{provider: 'rds';csrf:string;at:number}|null=null
 const CONTEXT_MS=60_000
 export function forgetOperationsRequestContext(){context=null}
 async function requestContext(){
@@ -8,7 +8,7 @@ async function requestContext(){
   context=null
   const contract=await fetch('/api/operations/provider',{credentials:'same-origin',cache:'no-store'})
   const payload=await contract.json()
-  if(!contract.ok || !['supabase','rds'].includes(payload?.provider))throw new Error('Operations service unavailable.')
+  if(!contract.ok || payload?.provider !== 'rds')throw new Error('Operations service unavailable.')
   let csrf=''
   if(payload.provider==='rds'){
     const response=await fetch('/api/auth/session',{credentials:'same-origin',cache:'no-store'})
@@ -22,14 +22,7 @@ async function requestContext(){
 export async function operationsHeaders(mutation=true):Promise<Headers> {
   const current=await requestContext()
   const headers=new Headers({'content-type':'application/json'})
-  if(current.provider==='rds'){
-    if(mutation)headers.set('x-admin-csrf',current.csrf)
-  }else{
-    const {supabase}=await import('./supabase')
-    const {data}=await supabase.auth.getSession()
-    if(!data.session?.access_token)throw new Error('Please sign in again.')
-    headers.set('authorization',`Bearer ${data.session.access_token}`)
-  }
+  if (mutation) headers.set('x-admin-csrf', current.csrf)
   return headers
 }
 export async function operationsFetch(url:string,options:RequestInit={}) {
