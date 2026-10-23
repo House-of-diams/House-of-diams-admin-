@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { productPayloadSchema } from '../lib/product-payload-validation.ts'
+import { productPayloadSchema, productPayloadErrorMessage } from '../lib/product-payload-validation.ts'
 import { normalizeProductCustomDropdowns, validateProductCustomDropdowns } from '../lib/product-custom-dropdowns.ts'
 
 const id = (suffix) => `00000000-0000-4000-8000-${String(suffix).padStart(12, '0')}`
@@ -117,4 +117,12 @@ test('rejects an invalid enabled custom dropdown', () => {
   value.custom_dropdowns_enabled = true
   value.custom_dropdowns = [{ id: id(3), name: 'chain', label: 'Chain', is_enabled: true, is_required: false, display_order: 0, options: [] }]
   assert.equal(validateProductCustomDropdowns(value.custom_dropdowns), '“Chain” needs at least one enabled option.')
+})
+
+test('validation message names the failing field', () => {
+  const value = payload()
+  value.sku = ''
+  const result = productPayloadSchema.safeParse(value)
+  assert.equal(result.success, false)
+  assert.match(productPayloadErrorMessage(result.error), /^Sku: /)
 })

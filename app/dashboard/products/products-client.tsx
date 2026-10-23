@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Plus, Edit2, Trash2, CheckCircle2, Circle, Copy, MoreHorizontal, EyeOff, Eye, Ban, SlidersHorizontal } from 'lucide-react'
 import { productRequestHeaders } from '@/lib/product-transport'
@@ -101,7 +101,14 @@ export function ProductsClient({
   const [bulkDeleteRequestId, setBulkDeleteRequestId] = useState<string | null>(null)
   const [bulkPriceDialogOpen, setBulkPriceDialogOpen] = useState(false)
 
+  // Only the newest request may update the list: an older, slower response (for example the
+  // unfiltered one) must not overwrite the filtered rows and leave a stale count and page footer.
+  const latestListRequest = useRef(0)
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => { if (searchDebounce.current) clearTimeout(searchDebounce.current) }, [])
+
   const loadProducts = async (nextPage = 1, nextSearch = search) => {
+    const requestId = ++latestListRequest.current
     setLoading(true)
     try {
       const requestHeaders = await productRequestHeaders(false)
@@ -109,16 +116,20 @@ export function ProductsClient({
         headers: requestHeaders,
       })
       const payload = await response.json().catch(() => null)
-      if (response.ok && payload?.items) {
+      if (requestId !== latestListRequest.current) return
+      if (!response.ok || !payload?.items) {
+        toast({ title: 'Product search failed', description: typeof payload?.error === 'string' ? payload.error : 'Unable to load products.', variant: 'destructive' })
+      } else {
         setProducts(payload.items.filter((product: ProductRow) => matchesLane(product, lane)))
         setPage(payload.page)
         setTotal(payload.total)
         setSelectedProductIds([])
       }
     } catch (error) {
+      if (requestId !== latestListRequest.current) return
       toast({ title: 'Product load failed', description: error instanceof Error ? error.message : 'Unable to load products.', variant: 'destructive' })
     } finally {
-      setLoading(false)
+      if (requestId === latestListRequest.current) setLoading(false)
     }
   }
 
@@ -400,7 +411,8 @@ export function ProductsClient({
             onChange={(e) => {
               const nextSearch = e.target.value
               setSearch(nextSearch)
-              void loadProducts(1, nextSearch)
+              if (searchDebounce.current) clearTimeout(searchDebounce.current)
+              searchDebounce.current = setTimeout(() => void loadProducts(1, nextSearch), 300)
             }}
             className="w-full rounded-lg border border-border bg-white py-2.5 pl-10 pr-4 text-sm transition-colors hover:border-input focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
           />

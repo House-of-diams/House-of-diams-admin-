@@ -328,6 +328,12 @@ async function authedFetch(url: string, options: RequestInit = {}) {
   return fetch(url, { ...options, headers })
 }
 
+// Effects that normalise state must hand back the previous value when nothing changed,
+// otherwise a fresh array on every run re-renders the form without end (React error #185).
+function sameList<T>(a: readonly T[], b: readonly T[]) {
+  return a.length === b.length && a.every((item, index) => item === b[index])
+}
+
 function toggleInArray(items: string[], value: string) {
   return items.includes(value) ? items.filter((item) => item !== value) : [...items, value]
 }
@@ -1053,22 +1059,18 @@ function ProductFormEditor({
 
   useEffect(() => {
     if (!loadedBootstrapScopes.has('basics')) return
-    setLinkedSubcategoryIds((prev) =>
-      prev.filter(
-        (id) => id !== subcategoryId && categorySubcategories.some((item) => item.id === id)
-      )
-    )
+    setLinkedSubcategoryIds((prev) => {
+      const next = prev.filter((id) => id !== subcategoryId && categorySubcategories.some((item) => item.id === id))
+      return sameList(prev, next) ? prev : next
+    })
   }, [categorySubcategories, subcategoryId, loadedBootstrapScopes])
 
   useEffect(() => {
     if (!loadedBootstrapScopes.has('basics')) return
-    setLinkedOptionIds((prev) =>
-      prev.filter(
-        (id) =>
-          id !== optionId &&
-          linkedOptionCandidates.some((item) => item.id === id)
-      )
-    )
+    setLinkedOptionIds((prev) => {
+      const next = prev.filter((id) => id !== optionId && linkedOptionCandidates.some((item) => item.id === id))
+      return sameList(prev, next) ? prev : next
+    })
   }, [linkedOptionCandidates, optionId, loadedBootstrapScopes])
 
   useEffect(() => {
@@ -1084,11 +1086,8 @@ function ProductFormEditor({
   }, [detailTemplate, isCollectionProduct])
 
   useEffect(() => {
-    setSelectedPurities(
-      purityPrices
-        .map((entry) => entry.purity_label.trim())
-        .filter(Boolean)
-    )
+    const next = purityPrices.map((entry) => entry.purity_label.trim()).filter(Boolean)
+    setSelectedPurities((prev) => (sameList(prev, next) ? prev : next))
   }, [purityPrices])
 
   const effectiveGemstoneValues = useMemo(() => {
@@ -1132,11 +1131,12 @@ function ProductFormEditor({
       })
 
       const hasDefault = next.some((entry) => entry.is_default)
-      return next.map((entry, index) => ({
-        ...entry,
-        sort_order: index + 1,
-        is_default: hasDefault ? entry.is_default : index === 0,
-      }))
+      const normalised = next.map((entry, index) => {
+        const sort_order = index + 1
+        const is_default = hasDefault ? entry.is_default : index === 0
+        return entry.sort_order === sort_order && entry.is_default === is_default ? entry : { ...entry, sort_order, is_default }
+      })
+      return sameList(prev, normalised) ? prev : normalised
     })
   }, [basePrice, purityPrices, selectedMetalIds])
 
@@ -1194,10 +1194,11 @@ function ProductFormEditor({
         )
       })
 
-      return next.map((entry, index) => ({
-        ...entry,
-        is_default_fallback: entry.is_default_fallback || (!next.some((row) => row.is_default_fallback) && index === 0),
-      }))
+      const normalised = next.map((entry, index) => {
+        const is_default_fallback = entry.is_default_fallback || (!next.some((row) => row.is_default_fallback) && index === 0)
+        return entry.is_default_fallback === is_default_fallback ? entry : { ...entry, is_default_fallback }
+      })
+      return sameList(prev, normalised) ? prev : normalised
     })
   }, [selectedMetalIds])
 

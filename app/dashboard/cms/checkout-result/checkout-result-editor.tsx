@@ -29,9 +29,6 @@ const initialStates = () => stateKeys.map((state) => ({ state, ...defaults[state
 const parentPayload = (page: PageCopy) => ({ main_banner_image_path: page.main_banner_image_path, main_banner_image_alt: page.main_banner_image_alt, secondary_banner_image_path: page.secondary_banner_image_path, secondary_banner_image_alt: page.secondary_banner_image_alt, secondary_eyebrow: page.secondary_eyebrow, secondary_heading: page.secondary_heading, secondary_paragraph: page.secondary_paragraph, is_enabled: page.is_enabled })
 const fingerprint = (page: PageCopy, states: StateCopy[]) => JSON.stringify({ parent: parentPayload(page), states })
 
-async function token() { const { supabase } = await import('@/lib/supabase')
-    return (await supabase.auth.getSession()).data.session?.access_token ?? null }
-
 export function CheckoutResultEditor() {
   const { toast } = useToast()
   const mainInput = useRef<HTMLInputElement>(null)
@@ -53,7 +50,6 @@ export function CheckoutResultEditor() {
     let active = true
     async function load() {
       try {
-        const access = await token();if (!access) throw new Error('You are not signed in.')
         const response = await cmsFetch('/api/cms/checkout-result', { headers: {  } })
         const data = await response.json().catch(() => null) as { error?: string; page?: Partial<PageCopy>; states?: StateCopy[]; revision?: string } | null
         if (!response.ok || !data?.page || !Array.isArray(data.states) || !data.revision) throw new Error(data?.error || 'Unable to load complete checkout result content.')
@@ -73,7 +69,7 @@ export function CheckoutResultEditor() {
 
   async function upload(kind: 'main' | 'secondary', file: File) {
     setUploading(kind); setStatus(`Uploading ${kind} banner...`)
-    try { const awsPath=await tryUploadAwsImage(file,'/api/cms/uploads/checkout-result');if(awsPath){setPage(current=>kind==='main'?{...current,main_banner_image_path:awsPath,main_banner_image_url:awsPath}:{...current,secondary_banner_image_path:awsPath,secondary_banner_image_url:awsPath});setStatus('Image uploaded. Save changes to publish it.');return} const access=await token();if(!access)throw new Error('You are not signed in.');const form=new FormData();form.append('file',file);const response=await fetch('/api/cms/uploads/checkout-result',{method:'POST',headers:{authorization:`Bearer ${access}`},body:form});const data=await response.json().catch(()=>null) as {path?:string;url?:string;error?:string}|null;if(!response.ok||!data?.path)throw new Error(data?.error||'Unable to upload image.');setPage((current)=>kind==='main'?{...current,main_banner_image_path:data.path!,main_banner_image_url:data.url||''}:{...current,secondary_banner_image_path:data.path!,secondary_banner_image_url:data.url||''});setStatus('Image uploaded. Save changes to publish it.') }
+    try { const awsPath=await tryUploadAwsImage(file,'/api/cms/uploads/checkout-result');if(awsPath){setPage(current=>kind==='main'?{...current,main_banner_image_path:awsPath,main_banner_image_url:awsPath}:{...current,secondary_banner_image_path:awsPath,secondary_banner_image_url:awsPath});setStatus('Image uploaded. Save changes to publish it.');return} throw new Error('Unable to upload image.') }
     catch(error){setStatus(error instanceof Error?error.message:'Unable to upload image.')}
     finally{setUploading(null)}
   }
@@ -81,7 +77,6 @@ export function CheckoutResultEditor() {
   async function save() {
     setSaving(true)
     try {
-      const access = await token(); if (!access) throw new Error('You are not signed in.')
       const response = await cmsFetch('/api/cms/checkout-result', { method: 'POST', headers: {  'content-type': 'application/json' }, body: JSON.stringify(prepareSave({ parent: parentPayload(page), items: states }, states)) })
       const data = await response.json().catch(() => null) as { error?: string; parent?: ReturnType<typeof parentPayload>; items?: StateCopy[]; revision?: string } | null
       if (!response.ok) throw new Error(data?.error || 'Unable to save checkout result content.')
