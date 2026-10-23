@@ -61,10 +61,12 @@ const fixtureSource=fs.readFileSync(path.join(root,'scripts/test-product-payload
 const fixture=Function('id',fixtureSource.slice(fixtureSource.indexOf('function payload()'),fixtureSource.indexOf("test('accepts the current"))+';return payload()')(id)
 function payload(){return productPayloadSchema.parse(structuredClone(fixture))}
 
-test('provider defaults legacy and denies unknown activation; no public env fallback',()=>{
-  assert.equal(readProductDataProvider({}),'supabase');assert.equal(readProductDataProvider({ADMIN_PRODUCT_DATA_PROVIDER:'rds'}),'rds')
-  for(const value of ['RDS',' postgres ','bogus'])assert.throws(()=>readProductDataProvider({ADMIN_PRODUCT_DATA_PROVIDER:value}))
-  assert.equal(readProductDataProvider({NEXT_PUBLIC_ADMIN_PRODUCT_DATA_PROVIDER:'rds'}),'supabase')
+test('product provider is exactly RDS; unset, legacy and public variables are rejected',()=>{
+  const full={ADMIN_AUTH_PROVIDER:'keycloak',ADMIN_PRODUCT_DATA_PROVIDER:'rds',ADMIN_CATALOG_DATA_PROVIDER:'rds',ADMIN_CMS_DATA_PROVIDER:'rds',ADMIN_OPERATIONS_DATA_PROVIDER:'rds',ADMIN_IMAGE_PROVIDER:'aws',ADMIN_VIDEO_PROVIDER:'aws'}
+  assert.equal(readProductDataProvider(full),'rds')
+  assert.throws(()=>readProductDataProvider({}));assert.throws(()=>readProductDataProvider({ADMIN_PRODUCT_DATA_PROVIDER:'rds'}));assert.throws(()=>readProductDataProvider({...full,ADMIN_PRODUCT_DATA_PROVIDER:'supabase'}))
+  for(const value of ['RDS',' postgres ','bogus'])assert.throws(()=>readProductDataProvider({...full,ADMIN_PRODUCT_DATA_PROVIDER:value}))
+  assert.throws(()=>readProductDataProvider({NEXT_PUBLIC_ADMIN_PRODUCT_DATA_PROVIDER:'rds'}))
 })
 test('save binds exact audited v1 actor/product/slug/payload; hostile data stays in parameters',async()=>{
   const f=fake();const body=payload();body.name="a'); DROP TABLE products; --"
@@ -150,8 +152,7 @@ test('form bootstrap uses audited read functions only and rejects missing refere
   assert.equal(evidence.reviewed_routines.find(r=>r.name==='catalog_hierarchy_list_v1').arguments,'p_kind text')
   await assert.rejects(()=>loadRdsProductBootstrap(fake(()=>[]).db,'basics'))
 })
-test('legacy branch is chosen before authorization/DB; selected RDS failures never return null',async()=>{
-  const legacy=harness({provider:'supabase'});assert.equal(await legacy.handler('inventory-stock',req({}),id(2)),null);assert.deepEqual(legacy.callsAuth,[])
+test('RDS failures always answer with a response and never touch the DB',async()=>{
   const denied=harness({denied:true});assert.equal((await denied.handler('inventory-stock',req({}),id(2))).status,503);assert.equal(denied.calls.length,0)
   const bad=createProductRdsHandlers({provider:()=>{throw Error('SECRET')},authorize:()=>{throw Error('unexpected')},transaction:()=>{throw Error('unexpected')}});assert.equal((await bad('price',req({}))).status,503)
 })
@@ -194,9 +195,9 @@ test('B2 transaction rollback protects atomic mutations and releases on SQLSTATE
   await assert.rejects(()=>withAdminTransaction({connect:async()=>client},'hod_admin_app',db=>createProductRepository(db).bulkDelete(actor,{requestId:id(2),ids:[id(3)],lane:'standard'})),{sqlState:'40001'})
   assert.equal(calls.at(-1),'ROLLBACK');assert.ok(!calls.includes('COMMIT'));assert.equal(released,false)
 })
-test('all scoped data API methods dispatch before legacy auth; media paths retain original gates',()=>{
+test('all scoped data API methods dispatch to the RDS handler; media paths retain original gates',()=>{
   const routes=['products/route.ts','products/[id]/route.ts','products/by-slug/[slug]/route.ts','products/[id]/duplicate/route.ts','products/[id]/status/route.ts','products/list/route.ts','products/bulk-price/route.ts','products/bulk-delete/route.ts','products/activate-drafts/route.ts','inventory/route.ts','inventory/[id]/route.ts']
-  for(const route of routes){const source=fs.readFileSync(path.join(root,'app/api',route),'utf8');for(const match of source.matchAll(/export async function (GET|POST|PATCH|DELETE)\(/g)){const section=source.slice(match.index);assert.ok(section.indexOf('runProductRdsRoute(')<section.indexOf('await assertAdmin(request)'))}}
+  for(const route of routes){const source=fs.readFileSync(path.join(root,'app/api',route),'utf8');for(const match of source.matchAll(/export async function (GET|POST|PATCH|DELETE)\(/g)){const section=source.slice(match.index);assert.ok(section.indexOf('runProductRdsRoute(')>=0);assert.ok(!section.includes('assertAdmin'))}}
   assert.ok(!fs.readFileSync(path.join(root,'app/api/products/media/route.ts'),'utf8').includes('runProductRdsRoute'))
 })
 

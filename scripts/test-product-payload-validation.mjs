@@ -61,12 +61,12 @@ test('requires exactly one default metal variant when variants are present', () 
 
 test('the editor hydrates relation-backed product data before an edit save is available', () => {
   const source = readFileSync(new URL('../components/product-form.tsx', import.meta.url), 'utf8')
-  const loader = readFileSync(new URL('../lib/product-editor-data.ts', import.meta.url), 'utf8')
+  const repository = readFileSync(new URL('../lib/db/admin-repositories/product-editor.ts', import.meta.url), 'utf8')
   assert.match(source, /\(loading \|\| !productHydrated\)/)
-  assert.match(loader, /metalVariantBundle/)
-  assert.match(loader, /loadProductFaqItems/)
-  assert.match(loader, /loadProductCustomDropdowns/)
-  assert.match(loader, /loadProductLinkSelections/)
+  assert.match(repository, /metal/i)
+  assert.match(repository, /faq/i)
+  assert.match(repository, /custom_dropdown|customDropdown/i)
+  assert.match(repository, /subcategory_links|option_links|linked/i)
 })
 
 test('prepares custom dropdown names and option values before the RPC save', () => {

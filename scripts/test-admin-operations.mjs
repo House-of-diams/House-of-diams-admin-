@@ -60,12 +60,14 @@ function harness(options={}){
  const deps={provider:()=>{if(options.bad)throw Error('config-secret');return options.provider??'rds'},authorize:async(request,mutation)=>{events.push(['auth',mutation]);if(options.denied)throw new ProductSessionError(options.denied);if(mutation){try{assertMutation(request,'https://admin.example','csrf')}catch{throw new ProductSessionError(403)}}return {actor}},legacy:async()=>{events.push(['legacy']);return {error:Response.json({error:'legacy'},{status:401})}},transaction:async run=>{events.push(['begin']);try{const result=await run(f.db);if(options.commitFail)throw Error('commit failed');events.push(['commit']);return result}catch(e){events.push(['rollback']);throw e}}}
  return {...f,events,deps,route:createOperationsRoute(deps)}
 }
-test('exact server-only operations provider default, selected mode and invalid configuration',()=>{
- assert.equal(readOperationsProvider({}),'supabase');assert.equal(readOperationsProvider({ADMIN_OPERATIONS_DATA_PROVIDER:''}),'supabase');assert.equal(readOperationsProvider({ADMIN_OPERATIONS_DATA_PROVIDER:'rds'}),'rds');assert.equal(readOperationsProvider({NEXT_PUBLIC_ADMIN_OPERATIONS_DATA_PROVIDER:'rds'}),'supabase')
- for(const value of ['RDS',' rds','postgres'])assert.throws(()=>readOperationsProvider({ADMIN_OPERATIONS_DATA_PROVIDER:value}))
+test('operations provider is exactly RDS; unset, legacy and client variables are rejected',()=>{
+ const full={ADMIN_AUTH_PROVIDER:'keycloak',ADMIN_PRODUCT_DATA_PROVIDER:'rds',ADMIN_CATALOG_DATA_PROVIDER:'rds',ADMIN_CMS_DATA_PROVIDER:'rds',ADMIN_OPERATIONS_DATA_PROVIDER:'rds',ADMIN_IMAGE_PROVIDER:'aws',ADMIN_VIDEO_PROVIDER:'aws'}
+ assert.equal(readOperationsProvider(full),'rds')
+ assert.throws(()=>readOperationsProvider({}));assert.throws(()=>readOperationsProvider({ADMIN_OPERATIONS_DATA_PROVIDER:'rds'}));assert.throws(()=>readOperationsProvider({NEXT_PUBLIC_ADMIN_OPERATIONS_DATA_PROVIDER:'rds'}))
+ for(const value of ['','supabase','RDS',' rds','postgres'])assert.throws(()=>readOperationsProvider({...full,ADMIN_OPERATIONS_DATA_PROVIDER:value}))
 })
-test('legacy default calls only legacy; config failure never falls back',async()=>{
- for(const options of [{provider:'supabase'},{bad:true}]){const h=harness(options);const response=await h.route(req(),async()=>{throw Error('must not run')});assert.equal(response.status,options.bad?503:401);assert.deepEqual(h.events,options.bad?[]:[['legacy']]);assert.equal(h.calls.length,0)}
+test('operations route: a configuration failure never falls back and never runs the handler',async()=>{
+ const h=harness({bad:true});const response=await h.route(req(),async()=>{throw Error('must not run')});assert.equal(response.status,503);assert.deepEqual(h.events,[]);assert.equal(h.calls.length,0)
 })
 test('real mapped actor is used; bearer/request actor never selects notification owner',async()=>{
  const h=harness();const response=await h.route(req('POST',{actor:id(8)}),async a=>Response.json(await createNotificationsRepository(a.db,a.actor).mark({notificationKey:`order:${id(2)}`})))
@@ -237,7 +239,7 @@ test('selected RDS client transport uses same-origin cookies/CSRF and no Supabas
 })
 test('actual selected RDS password route returns unavailable without privileged Supabase/password calls',async()=>{
  const h=harness();globalThis.__b6={authorize:h.deps.authorize,transaction:h.deps.transaction,legacy:()=>{throw Error('legacy must not run')}};const old=process.env.ADMIN_OPERATIONS_DATA_PROVIDER;process.env.ADMIN_OPERATIONS_DATA_PROVIDER='rds'
- try{const route=await get('app/api/settings/password/route.ts');const response=await route.POST(req('POST',{currentPassword:'secret'},'/api/settings/password'));assert.equal(response.status,503);assert.match((await response.json()).error,/self-service/);assert.equal(h.calls.length,0)}finally{if(old===undefined)delete process.env.ADMIN_OPERATIONS_DATA_PROVIDER;else process.env.ADMIN_OPERATIONS_DATA_PROVIDER=old}
+ try{const route=await get('app/api/settings/password/route.ts');const response=await route.POST(req('POST',{currentPassword:'secret'},'/api/settings/password'));assert.equal(response.status,503);assert.match((await response.json()).error,/unavailable/);assert.equal(h.calls.length,0)}finally{if(old===undefined)delete process.env.ADMIN_OPERATIONS_DATA_PROVIDER;else process.env.ADMIN_OPERATIONS_DATA_PROVIDER=old}
 })
 test('actual order routes execute RDS list/detail/update with committed email result',async()=>{
  const h=harness({query:sql=>sql.startsWith('WITH page')?[{total:'1',items:JSON.stringify([{...order,items:1}])}]:sql.includes('admin_order_status_update_v1')?[json({item:{...order,status:'cancelled'},items:[],statusChanged:true})]:sql.includes('public.orders ')?[json(order)]:[]});const deliveries=[]

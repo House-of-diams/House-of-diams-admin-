@@ -56,9 +56,11 @@ async function request(file=new File([png],'image.png',{type:'image/png'}),field
  return new Request('https://admin.example/api/cms/uploads/hero',{method:'POST',headers:{'content-type':encoded.headers.get('content-type'),'content-length':String(body.byteLength),'origin':'https://admin.example','x-admin-csrf':'real-test-csrf',...headers},body})
 }
 function reset(){legacyS3=false;calls.length=0;legacyCalls=0;authFailure=null;storeFailure=false;Object.assign(process.env,awsEnv)}
-test('server image mode remains legacy by default, independent from all data/public flags',()=>{
- assert.equal(provider.readImageProvider({}),'legacy');assert.equal(provider.readImageProvider({ADMIN_IMAGE_PROVIDER:''}),'legacy');assert.equal(provider.readImageProvider({ADMIN_IMAGE_PROVIDER:'legacy'}),'legacy');assert.equal(provider.readImageProvider({ADMIN_IMAGE_PROVIDER:'aws'}),'aws');assert.equal(provider.readImageProvider({ADMIN_PRODUCT_DATA_PROVIDER:'rds',NEXT_PUBLIC_ADMIN_IMAGE_PROVIDER:'aws'}),'legacy')
- for(const value of ['s3','AWS',' aws ','supabase','unknown'])assert.throws(()=>provider.readImageProvider({ADMIN_IMAGE_PROVIDER:value}))
+test('server image mode is exactly AWS; unset, legacy and public flags are rejected',()=>{
+ const full={ADMIN_AUTH_PROVIDER:'keycloak',ADMIN_PRODUCT_DATA_PROVIDER:'rds',ADMIN_CATALOG_DATA_PROVIDER:'rds',ADMIN_CMS_DATA_PROVIDER:'rds',ADMIN_OPERATIONS_DATA_PROVIDER:'rds',ADMIN_IMAGE_PROVIDER:'aws',ADMIN_VIDEO_PROVIDER:'aws'}
+ assert.equal(provider.readImageProvider(full),'aws')
+ assert.throws(()=>provider.readImageProvider({}));assert.throws(()=>provider.readImageProvider({ADMIN_IMAGE_PROVIDER:'aws'}));assert.throws(()=>provider.readImageProvider({...full,NEXT_PUBLIC_ADMIN_IMAGE_PROVIDER:'aws',ADMIN_IMAGE_PROVIDER:''}))
+ for(const value of ['','legacy','s3','AWS',' aws ','supabase','unknown'])assert.throws(()=>provider.readImageProvider({...full,ADMIN_IMAGE_PROVIDER:value}))
 })
 test('exact product/content targets require independent explicit configuration and content routing review',()=>{
  assert.deepEqual(provider.imageTarget('product',awsEnv),{bucket:'house-of-diams',baseUrl:'https://media.houseofdiams.com'});assert.deepEqual(provider.imageTarget('content',awsEnv),target)
@@ -101,8 +103,8 @@ test('unknown mode and missing selected target fail closed without legacy auth/s
 test('selected write/verification failure gives generic 500 and never calls legacy/fallback',async()=>{
  reset();storeFailure=true;const response=await route.handleImageUpload(await request(),config);assert.equal(response.status,500);assert.equal(legacyCalls,0);assert.equal(calls.filter(c=>c[0]==='upload').length,1);assert.ok(!(await response.text()).includes('PRIVATE'))
 })
-test('legacy default still authenticates and stores using its existing response shape',async()=>{
- reset();delete process.env.ADMIN_IMAGE_PROVIDER;const response=await route.handleImageUpload(await request(),config);assert.equal(response.status,201);assert.deepEqual(await response.json(),{path:key,url:'https://legacy.example/'+key});assert.equal(legacyCalls,1);assert.equal(calls.length,0)
+test('a missing image provider configuration fails closed instead of storing anywhere',async()=>{
+ reset();delete process.env.ADMIN_IMAGE_PROVIDER;const response=await route.handleImageUpload(await request(),config);assert.equal(response.status,503);assert.equal(calls.filter(c=>c[0]==='upload').length,0)
 })
 for(const [name,file,headers,status]of [
  ['missing length',new File([png],'a',{type:'image/png'}),{'content-length':''},411],
@@ -125,12 +127,12 @@ test('real Sharp preserves EXIF orientation, cover dimensions and the 40M input 
  reset();assert.equal((await route.handleImageUpload(await request(),{...config,rasterWidth:4,rasterHeight:5,rasterFit:'cover'})).status,201);const m=await sharp(calls[1][2]).metadata();assert.deepEqual([m.width,m.height],[4,5])
  const huge=await sharp({create:{width:6401,height:6401,channels:3,background:'#fff'}}).png().toBuffer();reset();assert.equal((await route.handleImageUpload(await request(new File([huge],'large',{type:'image/png'})),config)).status,400);assert.equal(calls.filter(c=>c[0]==='upload').length,0)
 })
-test('mixed routes bind folder/kind, use product vs content target, and reject legacy-image bypass',async()=>{
+test('mixed routes bind folder/kind, use product vs content target, and reject any non-AWS image mode',async()=>{
  reset();assert.equal(await mixed.selectedMixedImage(await request(),'product'),null)
  const response=await mixed.selectedMixedImage(await request(undefined,{kind:'image',folder:'hiphop'},{'x-admin-image-upload':'1'}),'product');assert.equal(response.status,201);assert.equal(calls[1][4].bucket,'house-of-diams');assert.match(calls[1][1],/^hiphop\/images\/[0-9a-f-]+\.webp$/)
  reset();assert.equal((await mixed.selectedMixedImage(await request(undefined,{kind:'video',folder:'products'},{'x-admin-image-upload':'1'}),'product')).status,400);assert.equal(calls.filter(c=>c[0]==='upload').length,0);assert.equal(mixed.denyLegacyImageInAwsMode().status,409)
  reset();const about=await mixed.selectedMixedImage(await request(undefined,{kind:'poster'},{'x-admin-image-upload':'1'}),'about');assert.equal(about.status,200);assert.equal(calls[1][4].bucket,target.bucket);assert.match(calls[1][1],/^about\/hero\/poster\//)
- process.env.ADMIN_IMAGE_PROVIDER='legacy';assert.equal(await mixed.selectedMixedImage(await request(),'about'),null);assert.equal(mixed.denyLegacyImageInAwsMode(),null)
+ process.env.ADMIN_IMAGE_PROVIDER='legacy';assert.equal((await mixed.selectedMixedImage(await request(undefined,{kind:'poster'},{'x-admin-image-upload':'1'}),'about')).status,503);assert.equal(mixed.denyLegacyImageInAwsMode().status,503)
 })
 test('AWS direct image signing explicitly denies after authorization and never issues tokens',async()=>{
  reset();const response=await route.denyAwsImageSigning(await request());assert.equal(response.status,503);assert.deepEqual(calls,[['auth',true]]);assert.equal(legacyCalls,0)
@@ -178,21 +180,18 @@ test('selected client upload activity is ended on failure and legacy does not en
  await assert.rejects(withFetch(async url=>url==='/api/images/provider'?Response.json({provider:'aws'}):Response.json({},{status:401}),()=>client.uploadAwsImage(new File([png],'a'),'/api/cms/uploads/hero',{},hooks)));assert.deepEqual(activity,['start',false])
  activity.length=0;await assert.rejects(withFetch(async()=>Response.json({provider:'legacy'}),()=>client.uploadAwsImage(new File([png],'a'),'/api/cms/uploads/hero',{},hooks)));assert.deepEqual(activity,[])
 })
-test('legacy configured S3 still writes and mirrors, rather than being forced back to Supabase',async()=>{
- reset();process.env.ADMIN_IMAGE_PROVIDER='legacy';legacyS3=true;const response=await route.handleImageUpload(await request(),config);assert.equal(response.status,201);assert.deepEqual(await response.json(),{provider:'s3',path:key,url:'https://media.houseofdiams.com/'+key});assert.equal(legacyCalls,1);assert.equal(calls.filter(c=>c[0]==='upload').length,1)
-})
-test('actual mixed product/about/bespoke routes independently use AWS images and leave unmarked video on legacy auth',async()=>{
+test('actual mixed product/about/bespoke routes independently use AWS images and reject unmarked uploads',async()=>{
  for(const [file,fields,prefix]of [['app/api/products/media/route.ts',{kind:'image',folder:'products'},'products/images/'],['app/api/bespoke/media/route.ts',{kind:'image'},'bespoke/images/'],['app/api/cms/uploads/about-hero/route.ts',{kind:'poster'},'about/hero/poster/']]){
   const handler=(await load(file)).exports;reset();const image=await handler.POST(await request(undefined,fields,{'x-admin-image-upload':'1'}));assert.equal(image.status,file.includes('about-hero')?200:201);assert.equal(legacyCalls,0);assert.ok(calls[1][1].startsWith(prefix))
   reset();const bypass=await handler.POST(await request(undefined,fields));assert.equal(bypass.status,409);assert.equal(calls.filter(c=>c[0]==='upload').length,0)
  }
  const mp4=new File([Buffer.from([0,0,0,12,0x66,0x74,0x79,0x70,0,0,0,0])],'video.mp4',{type:'video/mp4'})
- reset();const products=(await load('app/api/products/media/route.ts')).exports;const video=await products.POST(await request(mp4,{kind:'video',folder:'products'}));assert.equal(video.status,201);assert.equal((await video.json()).provider,'r2');assert.equal(legacyCalls,1);assert.equal(calls.length,0);assert.equal(fixture.videoInvalidated,true)
- reset();const about=(await load('app/api/cms/uploads/about-hero/route.ts')).exports;const aboutVideo=await about.POST(await request(mp4,{kind:'video'}));assert.equal(aboutVideo.status,200);assert.equal(legacyCalls,1);assert.equal(calls.length,0)
+ reset();const products=(await load('app/api/products/media/route.ts')).exports;const video=await products.POST(await request(mp4,{kind:'video',folder:'products'}));assert.equal(video.status,409);assert.equal(legacyCalls,0);assert.equal(calls.length,0)
+ reset();const about=(await load('app/api/cms/uploads/about-hero/route.ts')).exports;const aboutVideo=await about.POST(await request(mp4,{kind:'video'}));assert.equal(aboutVideo.status,409);assert.equal(legacyCalls,0);assert.equal(calls.length,0)
 })
-test('all actual image sign routes explicitly deny AWS before legacy token/provider code',async()=>{
- const signFiles=fs.readdirSync(path.join(root,'app/api/cms/uploads')).filter(name=>fs.existsSync(path.join(root,'app/api/cms/uploads',name,'sign/route.ts'))).map(name=>'app/api/cms/uploads/'+name+'/sign/route.ts').concat('app/api/products/media/sign/route.ts')
- for(const file of signFiles){reset();const handler=(await load(file)).exports;const response=await handler.POST(await request());assert.equal(response.status,503,file);assert.equal(legacyCalls,0,file);assert.deepEqual(calls,[['auth',true]],file);assert.ok(!(await response.text()).includes('token'))}
+test('the legacy signed-upload routes no longer exist',()=>{
+ const signed=fs.readdirSync(path.join(root,'app/api/cms/uploads')).filter(name=>fs.existsSync(path.join(root,'app/api/cms/uploads',name,'sign/route.ts')))
+ assert.deepEqual(signed,[]);assert.equal(fs.existsSync(path.join(root,'app/api/products/media/sign/route.ts')),false)
 })
 test('canonical AWS protocol rejects signed URLs, credentials and suffix-host confusion',()=>{
  assert.equal(reference.isCanonicalAwsImageReference(target.baseUrl+'/'+key),true)

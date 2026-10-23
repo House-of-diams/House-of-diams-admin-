@@ -78,10 +78,12 @@ const deleted={sections:[],links:[],source_items:[],featured_cards:[]}
 const navBody={request_id:id(2),expected_revision:revision,item:nav,deleted_ids:deleted}
 function access(db){return {provider:'rds',actor,catalog:createCatalogRepository(db,actor),navbar:createNavbarRepository(db,actor)}}
 
-test('provider defaults legacy, exact RDS only; ignores client activation variables',()=>{
-  assert.equal(readCatalogDataProvider({}),'supabase');assert.equal(readCatalogDataProvider({ADMIN_CATALOG_DATA_PROVIDER:'rds'}),'rds')
-  assert.equal(readCatalogDataProvider({NEXT_PUBLIC_ADMIN_CATALOG_DATA_PROVIDER:'rds'}),'supabase')
-  for(const value of ['RDS',' postgres ','unknown'])assert.throws(()=>readCatalogDataProvider({ADMIN_CATALOG_DATA_PROVIDER:value}))
+test('catalog provider is exactly RDS; unset, legacy or client activation variables are rejected',()=>{
+  const full={ADMIN_AUTH_PROVIDER:'keycloak',ADMIN_PRODUCT_DATA_PROVIDER:'rds',ADMIN_CATALOG_DATA_PROVIDER:'rds',ADMIN_CMS_DATA_PROVIDER:'rds',ADMIN_OPERATIONS_DATA_PROVIDER:'rds',ADMIN_IMAGE_PROVIDER:'aws',ADMIN_VIDEO_PROVIDER:'aws'}
+  assert.equal(readCatalogDataProvider(full),'rds')
+  assert.throws(()=>readCatalogDataProvider({}));assert.throws(()=>readCatalogDataProvider({ADMIN_CATALOG_DATA_PROVIDER:'rds'}))
+  assert.throws(()=>readCatalogDataProvider({...full,ADMIN_CATALOG_DATA_PROVIDER:'supabase'}));assert.throws(()=>readCatalogDataProvider({NEXT_PUBLIC_ADMIN_CATALOG_DATA_PROVIDER:'rds'}))
+  for(const value of ['RDS',' postgres ','unknown'])assert.throws(()=>readCatalogDataProvider({...full,ADMIN_CATALOG_DATA_PROVIDER:value}))
 })
 test('all 18 repository calls match exact deployed names/types/order/jsonb envelopes',async()=>{
   for(const [name,routine] of Object.entries({...catalogRoutines,...navbarRoutines})){
@@ -221,11 +223,10 @@ test('actual B2 transaction rolls back atomic routine failure and releases clien
   await assert.rejects(()=>withAdminTransaction({connect:async()=>client},'hod_admin_app',db=>createCatalogRepository(db,actor).execute('catalog_ring_save_v1',{p_request_id:id(2),p_expected_revision:revision,p_categories:[],p_sizes:[],p_deleted_category_ids:[],p_deleted_size_ids:[]})),{sqlState:'40001'})
   assert.equal(events.at(-2),'ROLLBACK');assert.equal(events.at(-1),'release');assert.ok(!events.includes('COMMIT'))
 })
-test('selected RDS denial/config failure never returns legacy sentinel or touches DB',async()=>{
+test('RDS denial/config failure always answers with an error and never touches the DB',async()=>{
   for(const options of [{denied:401},{denied:403},{denied:503},{badProvider:true}]){
     const h=harness(options);const r=await h.handler(req('catalog/styles',{}));assert.ok(r);assert.equal(r.status,options.denied??503);assert.equal(h.calls.length,0)
   }
-  const legacy=harness({provider:'supabase'});assert.equal(await legacy.handler(req('catalog/styles',{})),null);assert.deepEqual(legacy.events,[])
 })
 test('real mutation origin/CSRF guard is mandatory before queries; browser actor never used',async()=>{
   for(const headers of [{origin:'https://evil.example'},{'x-admin-csrf':'bad'}]){
@@ -240,13 +241,13 @@ test('bad result envelopes deny rather than return apparent success',async()=>{
   }
   const h=harness({run:()=>({revision})});assert.equal((await h.handler(req('navbar',undefined,'GET'))).status,503)
 })
-test('B3 legacy bootstrap explicitly bypasses B4 provider, and all data route handlers branch',()=>{
-  const product=fs.readFileSync(path.join(root,'app/api/products/bootstrap/route.ts'),'utf8');assert.ok(product.includes("@/lib/catalog-bootstrap-legacy"))
-  const legacy=fs.readFileSync(path.join(root,'lib/catalog-bootstrap-legacy.ts'),'utf8');assert.ok(!legacy.includes('runCatalogRdsRoute'))
+test('bootstrap and all data route handlers go through the RDS handler only',()=>{
+  const product=fs.readFileSync(path.join(root,'app/api/products/bootstrap/route.ts'),'utf8');assert.ok(product.includes("runProductRdsRoute('bootstrap', request)"));assert.ok(!product.includes('legacy'))
+  assert.equal(fs.existsSync(path.join(root,'lib/catalog-bootstrap-legacy.ts')),false)
   for(const name of ['categories','subcategories','options','metals','styles','certificates','ring-catalog','ring-categories','ring-category-sizes','ring-sizes','gst-slabs','product-content-rules','material-values','stone-shapes']){
     for(const suffix of ['route.ts','[id]/route.ts']){
       const file=path.join(root,'app/api/catalog',name,suffix);if(!fs.existsSync(file))continue
-      const source=fs.readFileSync(file,'utf8');assert.ok(source.includes("runtime = 'nodejs'"));const handlers=[...source.matchAll(/export async function (GET|POST|PATCH|PUT|DELETE)/g)];assert.equal(source.split('await runCatalogRdsRoute').length-1,handlers.length,file)
+      const source=fs.readFileSync(file,'utf8');assert.ok(source.includes("runtime = 'nodejs'"));const handlers=[...source.matchAll(/export async function (GET|POST|PATCH|PUT|DELETE)/g)];assert.equal(source.split('return runCatalogRdsRoute(').length-1,handlers.length,file)
     }
   }
 })
@@ -301,13 +302,3 @@ test('request ID replays/revisions are forwarded unchanged; app never implements
   }
 })
 
-test('legacy save/read branches retain Supabase actor and PostgREST error contracts',async()=>{
-  const calls=[];let failure=null
-  const legacy={user:{id:id(8)},adminClient:{async rpc(name,args){calls.push([name,args]);return {data:name.includes('_list_')?[]:{item:row,revision},error:failure}}}}
-  const body=envelope({name:'Style',status:'active',display_order:1})
-  const r=await saveCatalogMaster(legacy,'style',null,body);assert.equal(r.status,200);assert.deepEqual(await r.json(),{ok:true,item:row,revision})
-  assert.equal(calls[0][0],'catalog_save_master_v1');assert.equal(calls[0][1].p_actor_id,id(8))
-  failure={code:'PGRST202'};assert.equal((await saveCatalogMaster(legacy,'style',null,body)).status,503)
-  failure={code:'40001'};assert.equal((await saveCatalogMaster(legacy,'style',null,body)).status,409)
-  failure=null;assert.deepEqual(await (await listCatalogMasters(legacy,'style')).json(),{items:[]})
-})
