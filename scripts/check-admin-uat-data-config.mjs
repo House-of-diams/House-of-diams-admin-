@@ -23,7 +23,7 @@ try{
  if(readAdminAuthProvider()!=='keycloak')throw Error()
  if(readImageProvider()!=='aws'||readVideoProvider()!=='aws')throw Error()
  const auth=readAuthConfig(),db=readAdminDbConfig(process.env,p=>fs.readFileSync(p,'utf8'))
- if(auth.origin!=='https://manage-uat.houseofdiams.com'||db.pool.database!=='hod_staging'||db.loginRole!=='hod_admin_login_uat')throw Error()
+ if(auth.origin!=='https://manage.houseofdiams.com'||db.pool.database!=='hod_staging'||db.loginRole!=='hod_admin_login_uat')throw Error()
  createSessionStore();imageTarget('product');imageTarget('content');videoSources()
  if(mode==='--hosted-shape'&&['localhost','127.0.0.1','::1'].includes(String(db.pool.host)))throw Error()
  console.log(JSON.stringify({ok:true,mode,auth:'keycloak',data:'rds',media:'aws',origin:auth.origin,

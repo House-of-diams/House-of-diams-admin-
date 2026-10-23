@@ -13,8 +13,8 @@ load the manifest. Supply NEXT_PUBLIC_MEDIA_CDN_BASE_URL at build time too.
 Run `pnpm build`, then the hosting platform runs `pnpm start` after deployment
 approval. These instructions do not start a local server.
 
-The fixed UAT origin is https://manage-uat.houseofdiams.com and callback is
-https://manage-uat.houseofdiams.com/api/auth/callback. Use the isolated admin
+The fixed UAT origin is https://manage.houseofdiams.com and callback is
+https://manage.houseofdiams.com/api/auth/callback. Use the isolated admin
 RDS login, never the database master account. Do not copy the development tunnel
 URL or a Windows CA-file path into hosting. Keep order-email SMTP settings and
 the intended storefront URL configured privately as well.

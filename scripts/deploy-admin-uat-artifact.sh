@@ -80,7 +80,7 @@ done
 [[ "$healthy" = true ]] || { echo 'Admin health check failed'; exit 1; }
 pid=$(systemctl show "$service" -p MainPID --value)
 [[ $(readlink "/proc/$pid/cwd") = "$release" ]] || exit 1
-curl --fail --silent --max-time 20 https://manage-uat.houseofdiams.com/api/health | grep -q '"ok":true'
+curl --fail --silent --max-time 20 https://manage.houseofdiams.com/api/health | grep -q '"ok":true'
 printf '%s\n' "$previous" > /opt/hod-admin/rollback-release.tmp
 mv /opt/hod-admin/rollback-release.tmp /opt/hod-admin/rollback-release
 echo "Admin UAT deployed: $sha ($run). Authenticated save/upload acceptance is still required."

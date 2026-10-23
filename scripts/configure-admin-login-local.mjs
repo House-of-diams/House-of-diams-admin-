@@ -68,7 +68,7 @@ async function main() {
       ADMIN_OIDC_ISSUER:'https://auth-uat.houseofdiams.com/realms/houseofdiams',
       ADMIN_OIDC_CLIENT_ID:'hod-admin',ADMIN_OIDC_CLIENT_SECRET:clientSecret,
       ADMIN_OIDC_ROLE_LOCATION:'realm',ADMIN_OIDC_REQUIRED_ROLE:'hod-admin',
-      ADMIN_AUTH_ORIGIN:'https://manage-uat.houseofdiams.com',
+      ADMIN_AUTH_ORIGIN:'https://manage.houseofdiams.com',
       ADMIN_SESSION_MAX_SECONDS:'36000',ADMIN_SESSION_IDLE_SECONDS:'1800',ADMIN_SESSION_REVALIDATE_SECONDS:'300',
       UPSTASH_REDIS_REST_URL:rest.url,UPSTASH_REDIS_REST_TOKEN:rest.token,
       ADMIN_SESSION_NAMESPACE:'hod-admin:uat-local',ADMIN_SESSION_ENCRYPTION_KEY:randomBytes(32).toString('base64')}

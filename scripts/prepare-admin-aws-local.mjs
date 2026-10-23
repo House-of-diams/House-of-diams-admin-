@@ -40,7 +40,7 @@ try{
  const proven={ADMIN_OIDC_ISSUER:'https://auth-uat.houseofdiams.com/realms/houseofdiams',ADMIN_OIDC_CLIENT_ID:'hod-admin',
   ...(policyReviewed?{ADMIN_AUTH_POLICY_VERIFIED:'true'}:{}),
   ADMIN_OIDC_TOKEN_AUTH_METHOD:'client_secret_basic',ADMIN_OIDC_ROLE_LOCATION:'realm',ADMIN_OIDC_REQUIRED_ROLE:'hod-admin',
-  ADMIN_AUTH_ORIGIN:'https://manage-uat.houseofdiams.com',ADMIN_SESSION_MAX_SECONDS:'36000',ADMIN_SESSION_IDLE_SECONDS:'1800',
+  ADMIN_AUTH_ORIGIN:'https://manage.houseofdiams.com',ADMIN_SESSION_MAX_SECONDS:'36000',ADMIN_SESSION_IDLE_SECONDS:'1800',
   ADMIN_SESSION_REVALIDATE_SECONDS:'300',ADMIN_SESSION_STORAGE_VERIFIED:'true',ADMIN_VIDEO_ROUTING_VERIFIED:'true',ADMIN_IMAGE_CONTENT_ROUTING_VERIFIED:'true',
   AWS_REGION:'us-east-1',AWS_MEDIA_BUCKET:'house-of-diams',NEXT_PUBLIC_MEDIA_CDN_BASE_URL:'https://media.houseofdiams.com',
   AWS_CONTENT_BUCKET:'house-of-diams-hod',AWS_CONTENT_CDN_BASE_URL:'https://content.houseofdiams.com'}

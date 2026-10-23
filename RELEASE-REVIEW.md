@@ -45,7 +45,7 @@ issues; runtime files were preserved rather than rewritten for packaging.
 ## DevOps handoff before hosted acceptance
 
 1. Configure the hosting service, fixed UAT DNS/HTTPS and forwarded host/protocol
-   so Next.js sees https://manage-uat.houseofdiams.com. Preserve the configured
+   so Next.js sees https://manage.houseofdiams.com. Preserve the configured
    Keycloak callback and confidential-client settings.
 2. Apply the manifest and inject private RDS/TLS, Keycloak, Redis/session and SMTP
    settings. Use the isolated admin RDS account, not the master login. Do not use

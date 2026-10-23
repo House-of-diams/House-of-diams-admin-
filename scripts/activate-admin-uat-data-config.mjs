@@ -37,7 +37,7 @@ try{
  stage='configuration_validation'
  if(readAdminAuthProvider(target)!=='keycloak')throw Error()
  const auth=readAuthConfig(target)
- if(auth.origin!=='https://manage-uat.houseofdiams.com')throw Error()
+ if(auth.origin!=='https://manage.houseofdiams.com')throw Error()
  createSessionStore(target);imageTarget('product',target);imageTarget('content',target)
  if(videoSources(target).length!==5)throw Error()
  let publishingBlocked=false;try{admissionPolicy(target)}catch{publishingBlocked=true}
