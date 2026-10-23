@@ -4,6 +4,7 @@ import { catalogFetch } from '@/lib/catalog-transport'
 import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
 import { useMemo, useState } from 'react'
+import { useToast } from '@/hooks/use-toast'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { CatalogGstSlab } from '@/lib/product-catalog'
@@ -40,6 +41,7 @@ export function GstClient({ initialItems }: { initialItems: CatalogGstSlab[] }) 
   const [form, setForm] = useState<GstFormState>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
 
   const nextDisplayOrder = useMemo(() => String((items.at(-1)?.display_order ?? items.length) + 1), [items])
 
@@ -74,7 +76,16 @@ export function GstClient({ initialItems }: { initialItems: CatalogGstSlab[] }) 
   }
 
   async function saveItem() {
-    if (!form.name.trim() || !form.code.trim()) return
+    if (!form.name.trim() || !form.code.trim()) {
+      toast({ title: 'Name and code are required', variant: 'destructive' })
+      return
+    }
+    // The slab percentage is a tax rate: reject anything outside 0-100 before the request, with the reason shown.
+    const percentage = Number(form.percentage || 0)
+    if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
+      toast({ title: 'Invalid GST percentage', description: 'Enter a percentage between 0 and 100.', variant: 'destructive' })
+      return
+    }
     setSaving(true)
     try {
       const response = await authedFetch(editingId ? `/api/catalog/gst-slabs/${editingId}` : '/api/catalog/gst-slabs', {
@@ -82,7 +93,7 @@ export function GstClient({ initialItems }: { initialItems: CatalogGstSlab[] }) 
         body: catalogMasterSaveBody({
           name: form.name,
           code: form.code,
-          percentage: Number(form.percentage || 0),
+          percentage,
           description: form.description || null,
           display_order: Number(form.display_order || 0),
           status: form.status,
@@ -92,6 +103,9 @@ export function GstClient({ initialItems }: { initialItems: CatalogGstSlab[] }) 
       if (response.ok) {
         await loadItems()
         setIsDialogOpen(false)
+      } else {
+        const payload = await response.json().catch(() => null)
+        toast({ title: 'GST slab not saved', description: payload?.error ?? 'Please check the details and try again.', variant: 'destructive' })
       }
     } finally {
       setSaving(false)
@@ -103,6 +117,10 @@ export function GstClient({ initialItems }: { initialItems: CatalogGstSlab[] }) 
     if (!revision) return
     const response = await authedFetch(`/api/catalog/gst-slabs/${id}`, { method: 'DELETE', body: catalogMasterDeleteBody(revision) })
     if (response.ok) await loadItems()
+    else {
+      const payload = await response.json().catch(() => null)
+      toast({ title: 'GST slab not deleted', description: payload?.error ?? 'Please try again.', variant: 'destructive' })
+    }
   }
 
   return (

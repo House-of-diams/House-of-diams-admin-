@@ -28,7 +28,9 @@ export function operationsError(error: unknown,request?:Request) {
   const status = error instanceof OperationsError ? error.status : error instanceof ProductSessionError ? error.status : error instanceof ZodError ? 400
     : mapped.kind==='permission' ? 403 : mapped.sqlState==='P0002' ? 404 : mapped.kind==='conflict' || mapped.sqlState==='23503' ? 409
     : mapped.kind==='invalid' || ['22023','23502'].includes(mapped.sqlState ?? '') ? 400 : 503
-  const message = error instanceof OperationsError ? error.message : status===401 ? 'Unauthorized.' : status===403 ? 'Administrator access is required.' : status===400 ? 'Invalid operation details.' : status===409 ? 'The record changed or is still referenced. Reload before continuing.' : status===404 ? 'Record not found.' : 'Operations service unavailable. No fallback was attempted.'
+  // Validation messages are written for the admin (coupon/GST rules); other Zod issues stay generic.
+  const issue = error instanceof ZodError ? error.issues.find(item => ['custom','too_small','too_big','invalid_string'].includes(item.code)) : undefined
+  const message = error instanceof OperationsError ? error.message : issue ? issue.message : status===401 ? 'Unauthorized.' : status===403 ? 'Administrator access is required.' : status===400 ? 'Invalid operation details.' : status===409 ? 'The record changed or is still referenced. Reload before continuing.' : status===404 ? 'Record not found.' : 'Operations service unavailable. No fallback was attempted.'
   // Server log only: lets the operator see why a request failed without exposing database text to the browser.
   if(status>=500)console.error('[admin-operations]',JSON.stringify({method:request?.method??null,path,status,kind:mapped.kind,sqlState:mapped.sqlState??null,source:error instanceof ProductSessionError?'session':error instanceof OperationsError?'operations':error instanceof ZodError?'validation':'database'}))
   return Response.json({error:message},{status,headers:{'Cache-Control':'no-store'}})
