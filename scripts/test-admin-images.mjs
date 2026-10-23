@@ -1,3 +1,4 @@
+import './offline-test-env.mjs'
 // Actual-source, in-process C1 tests. No sockets, listeners, cloud, credential resolution or live storage.
 import test from 'node:test'
 import assert from 'node:assert/strict'
