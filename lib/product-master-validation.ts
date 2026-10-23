@@ -1,5 +1,4 @@
 import 'server-only'
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type ProductMasterValidationPayload = {
   main_category_id?: string | null
@@ -31,12 +30,6 @@ function invalid(label: string): ValidationResult {
     ok: false,
     message: `${label} no longer exists in master data. Please refresh the product form and choose a valid value.`,
   }
-}
-
-async function loadRowsByIds<T extends { id: string }>(adminClient: SupabaseClient, table: string, ids: string[], columns: string) {
-  if (ids.length < 1) return { rows: [] as T[], error: null }
-  const { data, error } = await adminClient.from(table).select(columns).in('id', ids)
-  return { rows: (data ?? []) as unknown as T[], error }
 }
 
 export type ProductMasterRowLoader = <T extends { id: string }>(table: string, ids: string[], columns: string) => Promise<{ rows: T[]; error: unknown }>
@@ -130,6 +123,3 @@ export async function validateProductMasterRows(
   return { ok: true }
 }
 
-export async function validateProductMasterReferences(adminClient: SupabaseClient, payload: ProductMasterValidationPayload): Promise<ValidationResult> {
-  return validateProductMasterRows((table, ids, columns) => loadRowsByIds(adminClient, table, ids, columns), payload)
-}

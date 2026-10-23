@@ -61,8 +61,8 @@ Real hosted login, refresh/logout, feature saves, customer email, admin-to-store
 visibility, concurrent writes, reservation lifecycle, media reconciliation and
 rollback acceptance remain. Video publishing is disabled in this upload. After AWS
 review, engineering must verify protection and database/application activation;
-this may require a later configuration/source update. Supabase is not approved for
-retirement by this upload.
+this may require a later configuration/source update. The admin no longer contains
+any Supabase code or configuration.
 
 ## Git handoff
 

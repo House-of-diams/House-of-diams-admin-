@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { resolveStoredImage } from '@/lib/image-reference'
 import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -53,7 +53,7 @@ import { VideoLibraryDialog } from '@/components/product-form/VideoLibraryDialog
 import { ProductVideoLibrary, videoLibraryError, type LibraryVideo } from '@/components/product-form/ProductVideoLibrary'
 import { ProductHoverView, type HoverView } from '@/components/product-form/ProductHoverView'
 import { uploadHoverFrame } from '@/lib/hover-frames-upload'
-import { tryUploadAwsVideo, invalidateClientVideoLibrary } from '@/lib/video-transport'
+import { uploadAwsVideo } from '@/lib/video-transport'
 import { ProductFormStepActions, ProductFormStepBar } from '@/components/product-form/ProductFormStepNavigation'
 import { ProductFormHeader, ProductFormRedirectOverlay } from '@/components/product-form/ProductFormChrome'
 import { ProductFormLoadingShell, ProductFormSkeleton } from '@/components/product-form/ProductFormLoadingStates'
@@ -310,21 +310,11 @@ function productFormDebug(label: string, startedAt: number) {
   console.info(`[ProductForm] ${label}: ${Math.round(performance.now() - startedAt)}ms`)
 }
 
-async function getAccessToken() {
-  const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
-
 async function authedFetch(url: string, options: RequestInit = {}) {
   if (url.startsWith('/api/catalog/bootstrap')) return productFetch(url.replace('/api/catalog/bootstrap', '/api/products/bootstrap'), options)
   if (url.startsWith('/api/products/') && !url.startsWith('/api/products/media') && !url.startsWith('/api/products/videos')) return productFetch(url, options)
   if (url === '/api/products') return productFetch(url, options)
-  const token = await getAccessToken()
-  const headers = new Headers(options.headers)
-  if (token) headers.set('authorization', `Bearer ${token}`)
-  if (!(options.body instanceof FormData)) headers.set('content-type', 'application/json')
-  return fetch(url, { ...options, headers })
+  throw new Error('Unsupported product editor request.')
 }
 
 // Effects that normalise state must hand back the previous value when nothing changed,
@@ -839,103 +829,11 @@ function ProductFormEditor({
     return () => cancel(handle)
   }, [])
 
-  const prepareDirectImageUpload = async (file: File) => {
-    if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) {
-      throw new Error('Unsupported image type.')
-    }
-
-    const bitmap = await createImageBitmap(file)
-    try {
-      const scale = Math.min(1, 2200 / bitmap.width)
-      const width = Math.max(1, Math.round(bitmap.width * scale))
-      const height = Math.max(1, Math.round(bitmap.height * scale))
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const context = canvas.getContext('2d')
-      if (!context) throw new Error('Image processing is unavailable.')
-      context.drawImage(bitmap, 0, 0, width, height)
-
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.84))
-      if (!blob) throw new Error('Unable to prepare image for upload.')
-      return new File([blob], `${crypto.randomUUID()}.webp`, { type: 'image/webp' })
-    } finally {
-      bitmap.close()
-    }
-  }
-
-  const uploadImageDirectly = async (file: File, folder: 'products' | 'hiphop') => {
-    const preparedFile = await prepareDirectImageUpload(file)
-    const signResponse = await authedFetch('/api/products/media/sign', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        folder,
-        contentType: preparedFile.type,
-        declaredSize: preparedFile.size,
-        productKey: productId || productSlug || 'draft',
-      }),
-    })
-    const signed = await signResponse.json().catch(() => null)
-    if (!signResponse.ok || !signed?.path) {
-      throw new Error(signed?.error ?? 'Unable to prepare direct image upload.')
-    }
-
-    if (signed.provider !== 'r2' || !signed.uploadUrl) throw new Error('Direct upload credentials were not returned.')
-    const uploadResponse = await fetch(signed.uploadUrl, {
-      method: 'PUT',
-      headers: { 'content-type': preparedFile.type },
-      body: preparedFile,
-    })
-    if (!uploadResponse.ok) throw new Error('Cloudflare image upload failed.')
-    return { path: signed.url as string, provider: 'r2' as const }
-  }
-
-  const uploadMediaThroughServer = async (file: File, kind: 'image' | 'video', folder: 'products' | 'hiphop') => {
-    const body = new FormData()
-    body.append('file', file)
-    body.append('kind', kind)
-    body.append('folder', folder)
-
-    const response = await authedFetch('/api/products/media', {
-      method: 'POST',
-      body,
-    })
-
-    const payload = await response.json().catch(() => null)
-    if (!response.ok || !payload?.path) {
-      throw new Error(payload?.error ?? `Unable to upload ${kind}.`)
-    }
-    if (kind === 'video') invalidateClientVideoLibrary()
-
-    return {
-      path: payload.path as string,
-      provider: payload.provider === 's3' ? 's3' as const : payload.provider === 'r2' ? 'r2' as const : 'supabase' as const,
-    }
-  }
-
   const uploadMedia = async (file: File, kind: 'image' | 'video', folder: 'products' | 'hiphop') => {
-    if (kind === 'video') {
-      const awsPath = await tryUploadAwsVideo(file, '/api/products/media', { kind, folder })
-      if (awsPath) return { path: awsPath, provider: 's3' as const }
-    }
-    if (kind === 'image') {
-
-      const awsPath = await tryUploadAwsImage(file, '/api/products/media', {kind, folder})
-      if (awsPath) { return {path: awsPath, provider: 's3' as const} }
-
-    }
-
-    if (kind === 'image') {
-      if (process.env.NEXT_PUBLIC_MEDIA_CDN_BASE_URL) return uploadMediaThroughServer(file, kind, folder)
-      try {
-        return await uploadImageDirectly(file, folder)
-      } catch {
-        return uploadMediaThroughServer(file, kind, folder)
-      }
-    }
-
-    return uploadMediaThroughServer(file, kind, folder)
+    const path = kind === 'video'
+      ? await uploadAwsVideo(file, '/api/products/media', { kind, folder })
+      : await uploadAwsImage(file, '/api/products/media', { kind, folder })
+    return { path, provider: 's3' as const }
   }
 
   const mainCategory = categories.find((item) => item.id === mainCategoryId)
@@ -2097,7 +1995,7 @@ function ProductFormEditor({
                                   setActiveVariantMediaIndex(itemIndex)
                                   setUploadingSlots((prev) => ({ ...prev, [uploadKey]: true }))
                                   try {
-                                    const { path: uploadedPath, provider } = await uploadMedia(
+                                    const { path: uploadedPath } = await uploadMedia(
                                       file,
                                       item.media_type === 'video' ? 'video' : 'image',
                                       isHiphopProduct ? 'hiphop' : 'products'
@@ -2108,7 +2006,7 @@ function ProductFormEditor({
                                     }))
                                     toast({
                                       title: 'Uploaded',
-                                      description: `${sectionLabel} ${item.media_type} uploaded successfully to ${provider === 's3' ? 'AWS S3' : provider === 'r2' ? 'Cloudflare R2' : 'Supabase Storage'}.`,
+                                      description: `${sectionLabel} ${item.media_type} uploaded successfully to AWS S3.`,
                                     })
                                   } catch (error) {
                                     toast({
@@ -2284,7 +2182,7 @@ function ProductFormEditor({
                                           if (!file) return
                                           setUploadingSlots((prev) => ({ ...prev, [uploadKey]: true }))
                                           try {
-                                            const { path: uploadedPath, provider } = await uploadMedia(
+                                            const { path: uploadedPath } = await uploadMedia(
                                               file,
                                               activeItem.media_type === 'video' ? 'video' : 'image',
                                               isHiphopProduct ? 'hiphop' : 'products'
@@ -2295,7 +2193,7 @@ function ProductFormEditor({
                                             }))
                                             toast({
                                               title: 'Uploaded',
-                                              description: `${sectionLabel} ${activeItem.media_type} uploaded successfully to ${provider === 's3' ? 'AWS S3' : provider === 'r2' ? 'Cloudflare R2' : 'Supabase Storage'}.`,
+                                              description: `${sectionLabel} ${activeItem.media_type} uploaded successfully to AWS S3.`,
                                             })
                                           } catch (error) {
                                             toast({
@@ -2378,93 +2276,6 @@ function ProductFormEditor({
       }}
     />
     </>
-  )
-}
-
-function MediaThumbnailSlot({
-  inputId,
-  label,
-  path,
-  visible,
-  uploading = false,
-  onVisibleChange,
-  onUpload,
-  onClear,
-}: {
-  inputId: string
-  label: string
-  path: string | null | undefined
-  visible: boolean
-  uploading?: boolean
-  onVisibleChange: (next: boolean) => void
-  onUpload: (file: File) => void | Promise<void>
-  onClear?: () => void
-}) {
-  return (
-    <div className="group relative h-24 w-24">
-      <label htmlFor={inputId} className="block h-full w-full cursor-pointer overflow-hidden rounded-xl border border-border bg-white transition-colors hover:border-primary">
-        {path ? (
-          // Native img is intentional for temporary upload previews with unknown dimensions.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={toStoragePreviewUrl(path)} alt={`${label} preview`} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center border-2 border-dashed border-border text-muted-foreground">
-            <Plus size={18} />
-          </div>
-        )}
-        {uploading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-foreground">
-            <div className="flex flex-col items-center gap-1">
-              <Loader2 size={18} className="animate-spin" />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">Uploading</span>
-            </div>
-          </div>
-        ) : null}
-      </label>
-
-      <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault()
-            event.stopPropagation()
-            onVisibleChange(!visible)
-          }}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-foreground"
-          aria-label={visible ? `Hide ${label}` : `Show ${label}`}
-        >
-          {visible ? <Eye size={14} /> : <EyeOff size={14} />}
-        </button>
-        {path && onClear && !uploading ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              onClear()
-            }}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-foreground"
-            aria-label={`Delete ${label}`}
-          >
-            <Trash2 size={14} />
-          </button>
-        ) : null}
-      </div>
-
-      <input
-        id={inputId}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/avif"
-        className="hidden"
-        onChange={(event) => {
-          const input = event.currentTarget
-          const file = input.files?.[0]
-          if (!file) return
-          void onUpload(file)
-          if (input) input.value = ''
-        }}
-      />
-    </div>
   )
 }
 

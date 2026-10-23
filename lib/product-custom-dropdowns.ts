@@ -1,4 +1,3 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type ProductCustomDropdownOption = {
   id: string
@@ -97,43 +96,3 @@ export function validateProductCustomDropdowns(groups: ProductCustomDropdown[]) 
   return null
 }
 
-export async function loadProductCustomDropdowns(adminClient: SupabaseClient, productId: string): Promise<{ data?: ProductCustomDropdown[]; error?: string }> {
-  const groupsResult = await adminClient.from('product_custom_dropdowns').select('*').eq('product_id', productId).order('display_order')
-  if (groupsResult.error) return { error: groupsResult.error.message }
-  const groups = groupsResult.data ?? []
-  if (!groups.length) return { data: [] }
-  const typedGroups = groups as Array<Omit<ProductCustomDropdown, 'options'>>
-  const optionsResult = await adminClient.from('product_custom_dropdown_options').select('*').in('dropdown_id', typedGroups.map((row) => row.id)).order('display_order')
-  if (optionsResult.error) return { error: optionsResult.error.message }
-  const options = (optionsResult.data ?? []) as Array<ProductCustomDropdownOption & { dropdown_id: string }>
-  return { data: typedGroups.map((group) => ({ ...group, options: options.filter((option) => option.dropdown_id === group.id) })) }
-}
-
-export async function syncProductCustomDropdowns(adminClient: SupabaseClient, productId: string, groups: ProductCustomDropdown[], validateEnabledGroups = true) {
-  const normalizedGroups = normalizeProductCustomDropdowns(groups)
-  const validationError = validateEnabledGroups ? validateProductCustomDropdowns(normalizedGroups) : null
-  if (validationError) return { error: validationError }
-
-  const parentRows = normalizedGroups.map((group, index) => ({ id: group.id, product_id: productId, name: group.name, label: group.label, is_enabled: group.is_enabled, is_required: group.is_required, display_order: index }))
-  if (parentRows.length) {
-    const result = await adminClient.from('product_custom_dropdowns').upsert(parentRows, { onConflict: 'id' })
-    if (result.error) return { error: result.error.message }
-  }
-  for (const group of normalizedGroups) {
-    const children = group.options.map((option, index) => ({ id: option.id, dropdown_id: group.id, label: option.label, value: option.value, is_enabled: option.is_enabled, display_order: index }))
-    if (children.length) {
-      const result = await adminClient.from('product_custom_dropdown_options').upsert(children, { onConflict: 'id' })
-      if (result.error) return { error: result.error.message }
-    }
-    const keep = children.map((row) => row.id)
-    let stale = adminClient.from('product_custom_dropdown_options').delete().eq('dropdown_id', group.id)
-    if (keep.length) stale = stale.not('id', 'in', `(${keep.join(',')})`)
-    const staleResult = await stale
-    if (staleResult.error) return { error: staleResult.error.message }
-  }
-  const keepParents = parentRows.map((row) => row.id)
-  let staleParents = adminClient.from('product_custom_dropdowns').delete().eq('product_id', productId)
-  if (keepParents.length) staleParents = staleParents.not('id', 'in', `(${keepParents.join(',')})`)
-  const staleParentResult = await staleParents
-  return staleParentResult.error ? { error: staleParentResult.error.message } : { error: null }
-}

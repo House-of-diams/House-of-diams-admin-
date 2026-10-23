@@ -37,7 +37,7 @@ export type MediaExtrasState = {
 export const MEDIA_EXTRAS_UNAVAILABLE_MESSAGE = 'The video library is not installed on this database yet.'
 
 type Dependencies = {
-  provider: () => 'supabase' | 'rds'
+  provider: () => 'rds'
   authorize: (request: Request, mutation: boolean) => Promise<{ actor: AdminActor }>
   transaction: <T>(run: (db: DbExecutor) => Promise<T>, options?: AdminTransactionOptions) => Promise<T>
   /** The same admission check the product save applies to videos: a new or changed video must be one uploaded through the admin uploader. */

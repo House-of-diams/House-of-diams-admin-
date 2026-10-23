@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { handleImageUpload } from '@/lib/image-route'
 import { HOVER_FRAME_COUNT } from '@/lib/product-media-extras'
 
-const bucket = process.env.SUPABASE_COLLECTION_BUCKET ?? 'hod'
 const frameFields = z.object({ version: z.coerce.number().int().min(1).max(1_000_000), index: z.coerce.number().int().min(0).max(HOVER_FRAME_COUNT - 1) })
 const readFields = (form: FormData) => frameFields.safeParse({ version: form.get('version'), index: form.get('index') })
 
@@ -13,7 +12,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const id = z.string().uuid().safeParse((await params).id)
   if (!id.success) return NextResponse.json({ error: 'Invalid product ID.' }, { status: 400 })
   return handleImageUpload(request, {
-    bucket,
     maxBytes: 3 * 1024 * 1024,
     rasterWidth: 1000,
     preserveAspectRatio: true,

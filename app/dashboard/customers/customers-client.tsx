@@ -43,7 +43,7 @@ export function CustomersClient({ initialCustomers, identityMode=false, server }
         <div>
           <h1 className="font-jakarta text-3xl font-semibold text-foreground">Customers</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {identityMode ? 'Persisted customer identities. First seen and stored email verification do not indicate current account activity.' : 'Historical registrations from Supabase authentication'}
+            Persisted customer identities. First seen and stored email verification do not indicate current account activity.
           </p>
         </div>
         <div className="rounded-lg border border-border bg-white px-4 py-2 text-sm text-muted-foreground shadow-xs">

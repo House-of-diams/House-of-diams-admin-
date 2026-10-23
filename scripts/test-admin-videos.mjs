@@ -57,10 +57,12 @@ async function request({ mime = 'video/mp4', bytes = mp4, fields = { kind: 'vide
   const encoded = new Response(form), body = await encoded.arrayBuffer()
   return new Request('https://admin.example/api/products/media', { method: 'POST', headers: { 'content-type': encoded.headers.get('content-type'), 'content-length': String(body.byteLength), 'x-admin-video-upload': '1', ...headers }, body })
 }
-test('video default and exact selection are independent of image/data/public flags', () => {
-  for (const value of [undefined, '', 'legacy']) assert.equal(provider.readVideoProvider({ ADMIN_VIDEO_PROVIDER: value, ADMIN_IMAGE_PROVIDER: 'aws', ADMIN_PRODUCT_DATA_PROVIDER: 'rds' }), 'legacy')
-  assert.equal(provider.readVideoProvider(env), 'aws')
-  for (const value of ['AWS', 's3', ' aws ', 'r2', 'supabase']) assert.throws(() => provider.readVideoProvider({ ADMIN_VIDEO_PROVIDER: value }))
+test('video provider is exactly AWS; unset, legacy and unknown selections are rejected', () => {
+  const full = { ADMIN_AUTH_PROVIDER: 'keycloak', ADMIN_PRODUCT_DATA_PROVIDER: 'rds', ADMIN_CATALOG_DATA_PROVIDER: 'rds', ADMIN_CMS_DATA_PROVIDER: 'rds', ADMIN_OPERATIONS_DATA_PROVIDER: 'rds', ADMIN_IMAGE_PROVIDER: 'aws', ADMIN_VIDEO_PROVIDER: 'aws' }
+  assert.equal(provider.readVideoProvider(full), 'aws')
+  assert.throws(() => provider.readVideoProvider({ ADMIN_VIDEO_PROVIDER: 'aws' }))
+  for (const value of [undefined, '', 'legacy']) assert.throws(() => provider.readVideoProvider({ ...full, ADMIN_VIDEO_PROVIDER: value }))
+  for (const value of ['AWS', 's3', ' aws ', 'r2', 'supabase']) assert.throws(() => provider.readVideoProvider({ ...full, ADMIN_VIDEO_PROVIDER: value }))
 })
 test('explicit contexts, prefixes, old hiphop layout and content gate', () => {
   assert.deepEqual(provider.videoTarget('products', env), source)
@@ -69,7 +71,6 @@ test('explicit contexts, prefixes, old hiphop layout and content gate', () => {
   assert.deepEqual(sources.map(s => [s.bucket, s.prefix]), [['house-of-diams', 'products/videos/'], ['house-of-diams', 'hiphop/videos/'], ['house-of-diams', 'bespoke/videos/'], ['house-of-diams', 'about/hero/video/'], ['house-of-diams-hod', 'about/hero/video/']])
   for (const patch of [{ ADMIN_VIDEO_ROUTING_VERIFIED: '' }, { ADMIN_IMAGE_CONTENT_ROUTING_VERIFIED: '' }, { AWS_CONTENT_BUCKET: source.bucket }, { NEXT_PUBLIC_MEDIA_CDN_BASE_URL: 'https://media.houseofdiams.com.evil' }]) assert.throws(() => provider.videoSources({ ...env, ...patch }))
   assert.notEqual(provider.videoNamespace(sources), provider.videoNamespace(sources.slice(1)))
-  assert.notEqual(provider.legacyVideoNamespace({}), provider.legacyVideoNamespace({ CLOUDFLARE_R2_BUCKET: 'changed' }))
 })
 test('actual SDK upload uses exact conditional Put and checksum-enabled Head', async () => {
   const commands = [], checksum = createHash('sha256').update(mp4).digest('base64')
@@ -161,8 +162,9 @@ test('banner (section) videos need no folder, use the product video prefix and h
 test('selected cloud error has no partial-success envelope, secret or fallback', async () => {
   reset(); dispatchFailure = true; const response = await route.selectedMixedVideo(await request(), 'product'); assert.equal(response.status, 500); assert.equal(sent.length, 1); assert.equal(legacy, 0); assert.ok(!(await response.text()).includes('PRIVATE'))
 })
-test('default pass-through, unknown and unavailable settings fail closed', async () => {
-  reset(); process.env.ADMIN_VIDEO_PROVIDER = 'legacy'; assert.equal((await route.selectedMixedVideo(await request(), 'product')).status, 409); assert.equal(await route.selectedMixedVideo(await request({ headers: { 'x-admin-video-upload': '' } }), 'product'), null); assert.equal(route.denyLegacyVideoInAwsMode(), null)
+test('unmarked, unknown and unavailable video settings fail closed', async () => {
+  reset(); assert.equal(await route.selectedMixedVideo(await request({ headers: { 'x-admin-video-upload': '' } }), 'product'), null)
+  process.env.ADMIN_VIDEO_PROVIDER = 'legacy'; assert.equal((await route.selectedMixedVideo(await request(), 'product')).status, 503); assert.equal(route.denyLegacyVideoInAwsMode().status, 503)
   process.env.ADMIN_VIDEO_PROVIDER = 'unknown'; assert.equal((await route.selectedMixedVideo(await request(), 'product')).status, 503); assert.equal(route.denyLegacyVideoInAwsMode().status, 503)
   reset(); delete process.env.ADMIN_VIDEO_ROUTING_VERIFIED; assert.equal((await route.selectedMixedVideo(await request(), 'product')).status, 503); assert.equal(sent.length, 0)
 })
@@ -176,9 +178,8 @@ test('selected library route authenticates read and propagates errors, not empty
   reset(); denied = new ProductSessionError(401); assert.equal((await mod.GET(new Request('https://admin.example/api/products/videos'))).status, 401); assert.equal(sent.length, 0)
   reset(); assert.equal((await mod.GET(new Request('https://admin.example/api/products/videos?folder=unknown'))).status, 400); assert.equal(sent.length, 0)
 })
-test('about signing selected video mode denies before legacy; legacy remains pass through', async () => {
-  reset(); const mod = (await load('app/api/cms/uploads/about-hero/sign/route.ts')).exports
-  assert.equal((await mod.POST(await request())).status, 503); assert.equal(legacy, 0); assert.equal(sent.length, 0)
+test('the legacy about-hero signing route no longer exists', () => {
+  assert.equal(fs.existsSync(path.join(root, 'app/api/cms/uploads/about-hero/sign/route.ts')), false)
 })
 test('canonical video URLs reject temporary URLs/host confusion while accepting encoded historical names', () => {
   for (const value of [url, 'https://content.houseofdiams.com/about/hero/video/old%20name.mov']) assert.equal(reference.isCanonicalAwsVideoReference(value), true)
@@ -187,17 +188,17 @@ test('canonical video URLs reject temporary URLs/host confusion while accepting 
 async function withFetch(fn, run) { const old = globalThis.fetch; globalThis.fetch = fn; try { return await run() } finally { globalThis.fetch = old } }
 test('client selected upload uses cookie/CSRF marker, no bearer/sign/legacy and invalidates cache', async () => {
   reset(); const calls = []
-  const result = await withFetch(async (endpoint, options) => { calls.push([endpoint, options]); if (endpoint === '/api/videos/provider') return Response.json({ provider: 'aws', namespace: 'a' }); if (endpoint === '/api/auth/session') return Response.json({ authenticated: true, csrfToken: 'csrf' }); return Response.json({ provider: 's3', path: url, url }) }, () => client.tryUploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video', folder: 'products' }))
+  const result = await withFetch(async (endpoint, options) => { calls.push([endpoint, options]); if (endpoint === '/api/videos/provider') return Response.json({ provider: 'aws', namespace: 'a' }); if (endpoint === '/api/auth/session') return Response.json({ authenticated: true, csrfToken: 'csrf' }); return Response.json({ provider: 's3', path: url, url }) }, () => client.uploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video', folder: 'products' }))
   assert.equal(result, url); assert.equal(calls.length, 3); assert.deepEqual(calls[2][1].headers, { 'x-admin-csrf': 'csrf', 'x-admin-video-upload': '1' }); assert.equal(calls[2][1].credentials, 'same-origin')
 })
 for (const mode of ['bad-provider', 'bad-session', 'storage-failure', 'bad-url']) test('client failure does not fall back: ' + mode, async () => {
   reset(); const calls = []
-  await withFetch(async endpoint => { calls.push(endpoint); if (endpoint === '/api/videos/provider') return Response.json({ provider: mode === 'bad-provider' ? 'invalid' : 'aws', namespace: 'a' }); if (endpoint === '/api/auth/session') return Response.json(mode === 'bad-session' ? {} : { authenticated: true, csrfToken: 'csrf' }); return mode === 'bad-url' ? Response.json({ provider: 's3', path: url + '?signed=1', url: url + '?signed=1' }) : Response.json({ error: 'fail' }, { status: 500 }) }, () => assert.rejects(client.tryUploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video', folder: 'products' })))
+  await withFetch(async endpoint => { calls.push(endpoint); if (endpoint === '/api/videos/provider') return Response.json({ provider: mode === 'bad-provider' ? 'invalid' : 'aws', namespace: 'a' }); if (endpoint === '/api/auth/session') return Response.json(mode === 'bad-session' ? {} : { authenticated: true, csrfToken: 'csrf' }); return mode === 'bad-url' ? Response.json({ provider: 's3', path: url + '?signed=1', url: url + '?signed=1' }) : Response.json({ error: 'fail' }, { status: 500 }) }, () => assert.rejects(client.uploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video', folder: 'products' })))
   assert.ok(calls.length <= 3); assert.ok(!calls.some(x => x.includes('/sign')))
 })
-test('client legacy upload explicitly returns null before session/sign/storage', async () => {
+test('client rejects the removed legacy provider before session/sign/storage', async () => {
   reset(); let count = 0
-  await withFetch(async () => { count++; return Response.json({ provider: 'legacy', namespace: 'r2' }) }, async () => assert.equal(await client.tryUploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video' }), null)); assert.equal(count, 1)
+  await withFetch(async () => { count++; return Response.json({ provider: 'legacy', namespace: 'r2' }) }, async () => assert.rejects(client.uploadAwsVideo(new File([mp4], 'a', { type: 'video/mp4' }), '/api/products/media', { kind: 'video' }))); assert.equal(count, 1)
 })
 test('client library configuration namespace, refresh and upload invalidation', async () => {
   reset(); let namespace = 'a', count = 0
@@ -240,7 +241,7 @@ test('actual CMS and product upload consumers select video protocol before legac
   let selected
   function visit(n) { if (ts.isVariableDeclaration(n) && n.name.getText(sf) === 'uploadMedia') selected = n.initializer; ts.forEachChild(n, visit) } visit(sf)
   const js = ts.transpileModule('const selected = (' + selected.getText(sf) + ');', { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
-  const fn = Function('tryUploadAwsVideo', js + '\nreturn selected')(async () => url)
+  const fn = Function('uploadAwsImage', 'uploadAwsVideo', js + '\nreturn selected')(async () => { throw new Error('unexpected image upload') }, async () => url)
   assert.deepEqual(await fn(new File([mp4], 'a', { type: 'video/mp4' }), 'video', 'products'), { path: url, provider: 's3' })
 })
 test('all three container types retain existing magic acceptance and canonical suffix', async () => {

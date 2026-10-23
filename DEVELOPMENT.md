@@ -4,7 +4,7 @@
 
 - Node.js 22 (the current deployment runtime)
 - pnpm 10.28.0 (pinned in `package.json`)
-- A local `.env.local` containing the required Supabase and storage variables
+- A local `.env.local` with the AWS configuration: `ADMIN_DATABASE_URL` (RDS, reached through the SSM tunnel), the Keycloak/OIDC settings, the `ADMIN_*_PROVIDER` selectors (`keycloak`, `rds`, `aws`) and the AWS media bucket and CDN variables
 
 Do not commit environment files or credentials.
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { catalogFetch } from '@/lib/catalog-transport'
 import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
@@ -20,12 +20,6 @@ export type StoneShape = {
   svgName: string | null
   displayOrder: number
   status: 'Active' | 'Hidden'
-}
-
-async function getAccessToken() {
-  const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
 }
 
 export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape[] }) {
@@ -142,38 +136,12 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
   }
 
   const uploadSvg = async (file: File) => {
-
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/catalog/stone-shapes/upload', {},{start:()=>setUploading(true),finish:()=>setUploading(false)})
-      if (awsPath) { setFormData(prev => ({...prev, svgName: awsPath})); return }
-    } catch (error) { toast({title:'Upload failed',description:error instanceof Error ? error.message : 'Upload failed.'}); return }
-
-
-    setUploading(true)
-    const accessToken = await getAccessToken()
-    if (!accessToken) {
-      setUploading(false)
-      return
+      const path = await uploadAwsImage(file, '/api/catalog/stone-shapes/upload', {}, { start: () => setUploading(true), finish: () => setUploading(false) })
+      setFormData((prev) => ({ ...prev, svgName: path }))
+    } catch (error) {
+      toast({ title: 'Upload failed', description: error instanceof Error ? error.message : 'Upload failed.' })
     }
-
-    const uploadData = new FormData()
-    uploadData.append('file', file)
-
-    const response = await fetch('/api/catalog/stone-shapes/upload', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${accessToken}` },
-      body: uploadData,
-    })
-
-    const payload = await response.json().catch(() => null)
-    if (response.ok && payload?.path) {
-      setFormData((prev) => ({ ...prev, svgName: payload.path }))
-      toast({ title: 'Image uploaded', description: 'Stone shape image uploaded successfully.' })
-    } else {
-      toast({ title: 'Upload failed', description: payload?.error ?? 'Unable to upload the image.' })
-    }
-
-    setUploading(false)
   }
 
   return (

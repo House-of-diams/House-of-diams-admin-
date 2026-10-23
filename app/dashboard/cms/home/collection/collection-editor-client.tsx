@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { cmsFetch } from '@/lib/cms-transport'
 
 import Link from 'next/link'
@@ -95,79 +95,11 @@ export function CollectionEditorClient({ initialData }: { initialData: Collectio
   const uploadImage = async (file: File) => {
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/collection', {},{start:()=>setUploadState('uploading'),finish:ok=>setUploadState(ok?'done':'error')})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/collection', {},{start:()=>setUploadState('uploading'),finish:ok=>setUploadState(ok?'done':'error')})
       if (awsPath) { setEditorItem(prev => prev ? {...prev,image_path:awsPath}:prev); setLoadStatus('Image uploaded successfully'); return }
     } catch (error) { setLoadStatus(error instanceof Error ? error.message : 'Upload failed.'); return }
 
 
-    const { supabase } = await import('@/lib/supabase')
-    const { data: sessionData } = await supabase.auth.getSession()
-    const accessToken = sessionData.session?.access_token
-
-    if (!accessToken) {
-      setLoadStatus('You are not signed in.')
-      return
-    }
-
-    if (file.size > 30 * 1024 * 1024) {
-      setUploadState('error')
-      setLoadStatus('File too large. Max size is 30MB.')
-      return
-    }
-
-    setUploadState('uploading')
-    setLoadStatus('Uploading image...')
-
-    let uploadedPath = ''
-    try {
-      const preparedFile = await prepareCollectionCardImage(file)
-      const signResponse = await fetch('/api/cms/uploads/collection/sign', {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${accessToken}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-      })
-      const signed = (await signResponse.json().catch(() => null)) as { bucket?: string; path?: string; token?: string; error?: string } | null
-      if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) {
-        throw new Error(signed?.error ?? 'Unable to prepare upload.')
-      }
-
-      const { error } = await supabase.storage.from(signed.bucket)
-        .uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-      if (error) throw error
-      uploadedPath = signed.path
-    } catch {
-      const fallbackFormData = new FormData()
-      fallbackFormData.append('file', file)
-      const fallbackResponse = await fetch('/api/cms/uploads/collection', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${accessToken}` },
-        body: fallbackFormData,
-      })
-      const fallbackPayload = (await fallbackResponse.json().catch(() => null)) as ApiPayload | null
-      if (!fallbackResponse.ok || !fallbackPayload?.path) {
-        setUploadState('error')
-        setLoadStatus(fallbackPayload?.error ?? 'Unable to upload image.')
-        return
-      }
-      uploadedPath = fallbackPayload.path
-    }
-
-    if (!uploadedPath) {
-      setUploadState('error')
-      setLoadStatus('Unable to upload image.')
-      return
-    }
-
-    setEditorItem((prev) => (prev ? { ...prev, image_path: uploadedPath } : prev))
-    setUploadState('done')
-    setLoadStatus('Image uploaded successfully')
-    toast({
-      title: 'Uploaded',
-      description: 'Collection image uploaded successfully.',
-    })
   }
 
   const handleSave = () => setConfirmOpen(true)
@@ -464,24 +396,3 @@ export function CollectionEditorClient({ initialData }: { initialData: Collectio
   )
 }
 
-async function prepareCollectionCardImage(file: File) {
-  if (file.type === 'image/svg+xml') return file
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) {
-    throw new Error('Invalid image type.')
-  }
-
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  try {
-    const width = Math.min(bitmap.width, 1600)
-    const height = Math.max(1, Math.round(bitmap.height * (width / bitmap.width)))
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.82))
-    if (!blob) throw new Error('Unable to optimize image.')
-    return new File([blob], `${crypto.randomUUID()}.webp`, { type: 'image/webp' })
-  } finally {
-    bitmap.close()
-  }
-}

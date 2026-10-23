@@ -1,14 +1,12 @@
 import 'server-only'
 import { readProductDataProvider } from './product-provider'
 import { authorizeProductPage } from './product-server-request'
-import { createSupabaseAdminClient } from './admin-supabase'
-import { loadProductEditorItem } from './product-editor-data'
 import { adminTransaction } from './db/pool'
 import { findRdsProductId, loadRdsProductEditor } from './db/admin-repositories/product-editor'
 import { revisionOf } from './revision'
 
-export async function loadProductEditorPage(lookup: string): Promise<Awaited<ReturnType<typeof loadProductEditorItem>>> {
-  if (readProductDataProvider(process.env) === 'supabase') return loadProductEditorItem(createSupabaseAdminClient(), lookup)
+export async function loadProductEditorPage(lookup: string): Promise<{ status: 'not_found' } | { status: 'found'; item: Awaited<ReturnType<typeof loadRdsProductEditor>> & { revision: string } }> {
+  readProductDataProvider(process.env)
   await authorizeProductPage()
   return adminTransaction(async db => {
     const id = await findRdsProductId(db, lookup)

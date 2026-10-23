@@ -17,7 +17,7 @@ export function AdminDataSourceStatus() {
         })
         const value = await response.json()
         if (!controller.signal.aborted) setResult({ group,
-          source: ['rds', 'supabase'].includes(value.source) ? value.source : 'unknown',
+          source: value.source === 'rds' ? value.source : 'unknown',
           checked: response.ok && value.checked === true && value.group === group })
       } catch { if (!controller.signal.aborted) setResult({ group, source: 'unknown', checked: false }) }
     }

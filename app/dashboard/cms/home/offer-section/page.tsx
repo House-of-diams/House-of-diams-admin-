@@ -14,9 +14,7 @@ export default async function OfferSectionPage() {
       async (db) => {
         const item = await createOfferSectionRepository(db).read()
         return { item, revision: offerSectionRevision(item) }
-      },
-      async () => { throw new Error('The Offer Section needs the AWS database.') },
-    )
+      })
   } catch (error) {
     notice = error instanceof Error && error.message === OFFER_SECTION_NOT_READY
       ? OFFER_SECTION_NOT_READY

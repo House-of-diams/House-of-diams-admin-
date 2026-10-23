@@ -5,8 +5,8 @@ import { adminTransaction } from './db/pool'
 import type { DbExecutor } from './db/query'
 import type { AdminActor } from './auth/admin-identity-core'
 /** Each loader independently authorizes; shared gate cutover remains central work. */
-export async function operationsPage<R,L=R>(rds:(db:DbExecutor,actor:AdminActor)=>Promise<R>,legacy:()=>Promise<L>):Promise<R|L> {
-  if(readOperationsProvider(process.env)==='supabase')return legacy()
+export async function operationsPage<R>(rds:(db:DbExecutor,actor:AdminActor)=>Promise<R>):Promise<R> {
+  readOperationsProvider(process.env)
   const {actor}=await authorizeProductPage()
   return adminTransaction(db=>rds(db,actor))
 }

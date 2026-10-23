@@ -56,9 +56,11 @@ async function request(file=new File([png],'image.png',{type:'image/png'}),field
  return new Request('https://admin.example/api/cms/uploads/hero',{method:'POST',headers:{'content-type':encoded.headers.get('content-type'),'content-length':String(body.byteLength),'origin':'https://admin.example','x-admin-csrf':'real-test-csrf',...headers},body})
 }
 function reset(){legacyS3=false;calls.length=0;legacyCalls=0;authFailure=null;storeFailure=false;Object.assign(process.env,awsEnv)}
-test('server image mode remains legacy by default, independent from all data/public flags',()=>{
- assert.equal(provider.readImageProvider({}),'legacy');assert.equal(provider.readImageProvider({ADMIN_IMAGE_PROVIDER:''}),'legacy');assert.equal(provider.readImageProvider({ADMIN_IMAGE_PROVIDER:'legacy'}),'legacy');assert.equal(provider.readImageProvider({ADMIN_IMAGE_PROVIDER:'aws'}),'aws');assert.equal(provider.readImageProvider({ADMIN_PRODUCT_DATA_PROVIDER:'rds',NEXT_PUBLIC_ADMIN_IMAGE_PROVIDER:'aws'}),'legacy')
- for(const value of ['s3','AWS',' aws ','supabase','unknown'])assert.throws(()=>provider.readImageProvider({ADMIN_IMAGE_PROVIDER:value}))
+test('server image mode is exactly AWS; unset, legacy and public flags are rejected',()=>{
+ const full={ADMIN_AUTH_PROVIDER:'keycloak',ADMIN_PRODUCT_DATA_PROVIDER:'rds',ADMIN_CATALOG_DATA_PROVIDER:'rds',ADMIN_CMS_DATA_PROVIDER:'rds',ADMIN_OPERATIONS_DATA_PROVIDER:'rds',ADMIN_IMAGE_PROVIDER:'aws',ADMIN_VIDEO_PROVIDER:'aws'}
+ assert.equal(provider.readImageProvider(full),'aws')
+ assert.throws(()=>provider.readImageProvider({}));assert.throws(()=>provider.readImageProvider({ADMIN_IMAGE_PROVIDER:'aws'}));assert.throws(()=>provider.readImageProvider({...full,NEXT_PUBLIC_ADMIN_IMAGE_PROVIDER:'aws',ADMIN_IMAGE_PROVIDER:''}))
+ for(const value of ['','legacy','s3','AWS',' aws ','supabase','unknown'])assert.throws(()=>provider.readImageProvider({...full,ADMIN_IMAGE_PROVIDER:value}))
 })
 test('exact product/content targets require independent explicit configuration and content routing review',()=>{
  assert.deepEqual(provider.imageTarget('product',awsEnv),{bucket:'house-of-diams',baseUrl:'https://media.houseofdiams.com'});assert.deepEqual(provider.imageTarget('content',awsEnv),target)
@@ -101,8 +103,8 @@ test('unknown mode and missing selected target fail closed without legacy auth/s
 test('selected write/verification failure gives generic 500 and never calls legacy/fallback',async()=>{
  reset();storeFailure=true;const response=await route.handleImageUpload(await request(),config);assert.equal(response.status,500);assert.equal(legacyCalls,0);assert.equal(calls.filter(c=>c[0]==='upload').length,1);assert.ok(!(await response.text()).includes('PRIVATE'))
 })
-test('legacy default still authenticates and stores using its existing response shape',async()=>{
- reset();delete process.env.ADMIN_IMAGE_PROVIDER;const response=await route.handleImageUpload(await request(),config);assert.equal(response.status,201);assert.deepEqual(await response.json(),{path:key,url:'https://legacy.example/'+key});assert.equal(legacyCalls,1);assert.equal(calls.length,0)
+test('a missing image provider configuration fails closed instead of storing anywhere',async()=>{
+ reset();delete process.env.ADMIN_IMAGE_PROVIDER;const response=await route.handleImageUpload(await request(),config);assert.equal(response.status,503);assert.equal(calls.filter(c=>c[0]==='upload').length,0)
 })
 for(const [name,file,headers,status]of [
  ['missing length',new File([png],'a',{type:'image/png'}),{'content-length':''},411],
@@ -125,12 +127,12 @@ test('real Sharp preserves EXIF orientation, cover dimensions and the 40M input 
  reset();assert.equal((await route.handleImageUpload(await request(),{...config,rasterWidth:4,rasterHeight:5,rasterFit:'cover'})).status,201);const m=await sharp(calls[1][2]).metadata();assert.deepEqual([m.width,m.height],[4,5])
  const huge=await sharp({create:{width:6401,height:6401,channels:3,background:'#fff'}}).png().toBuffer();reset();assert.equal((await route.handleImageUpload(await request(new File([huge],'large',{type:'image/png'})),config)).status,400);assert.equal(calls.filter(c=>c[0]==='upload').length,0)
 })
-test('mixed routes bind folder/kind, use product vs content target, and reject legacy-image bypass',async()=>{
+test('mixed routes bind folder/kind, use product vs content target, and reject any non-AWS image mode',async()=>{
  reset();assert.equal(await mixed.selectedMixedImage(await request(),'product'),null)
  const response=await mixed.selectedMixedImage(await request(undefined,{kind:'image',folder:'hiphop'},{'x-admin-image-upload':'1'}),'product');assert.equal(response.status,201);assert.equal(calls[1][4].bucket,'house-of-diams');assert.match(calls[1][1],/^hiphop\/images\/[0-9a-f-]+\.webp$/)
  reset();assert.equal((await mixed.selectedMixedImage(await request(undefined,{kind:'video',folder:'products'},{'x-admin-image-upload':'1'}),'product')).status,400);assert.equal(calls.filter(c=>c[0]==='upload').length,0);assert.equal(mixed.denyLegacyImageInAwsMode().status,409)
  reset();const about=await mixed.selectedMixedImage(await request(undefined,{kind:'poster'},{'x-admin-image-upload':'1'}),'about');assert.equal(about.status,200);assert.equal(calls[1][4].bucket,target.bucket);assert.match(calls[1][1],/^about\/hero\/poster\//)
- process.env.ADMIN_IMAGE_PROVIDER='legacy';assert.equal(await mixed.selectedMixedImage(await request(),'about'),null);assert.equal(mixed.denyLegacyImageInAwsMode(),null)
+ process.env.ADMIN_IMAGE_PROVIDER='legacy';assert.equal((await mixed.selectedMixedImage(await request(undefined,{kind:'poster'},{'x-admin-image-upload':'1'}),'about')).status,503);assert.equal(mixed.denyLegacyImageInAwsMode().status,503)
 })
 test('AWS direct image signing explicitly denies after authorization and never issues tokens',async()=>{
  reset();const response=await route.denyAwsImageSigning(await request());assert.equal(response.status,503);assert.deepEqual(calls,[['auth',true]]);assert.equal(legacyCalls,0)
@@ -142,16 +144,16 @@ test('canonical/legacy preview resolver preserves origins, query strings, blobs 
 })
 async function withFetch(run,fn){const original=globalThis.fetch;globalThis.fetch=run;try{return await fn()}finally{globalThis.fetch=original}}
 test('client selected AWS protocol uses same-origin session CSRF, original file/fields, canonical URL and no signing/bearer',async()=>{
- const sent=[];const result=await withFetch(async(url,init)=>{sent.push([url,init]);if(url==='/api/images/provider')return Response.json({provider:'aws'});if(url==='/api/auth/session')return Response.json({authenticated:true,csrfToken:'csrf'});return Response.json({provider:'s3',path:target.baseUrl+'/'+key,url:target.baseUrl+'/'+key},{status:201})},()=>client.tryUploadAwsImage(new File([png],'a',{type:'image/png'}),'/api/cms/uploads/hero',{kind:'image'}))
+ const sent=[];const result=await withFetch(async(url,init)=>{sent.push([url,init]);if(url==='/api/images/provider')return Response.json({provider:'aws'});if(url==='/api/auth/session')return Response.json({authenticated:true,csrfToken:'csrf'});return Response.json({provider:'s3',path:target.baseUrl+'/'+key,url:target.baseUrl+'/'+key},{status:201})},()=>client.uploadAwsImage(new File([png],'a',{type:'image/png'}),'/api/cms/uploads/hero',{kind:'image'}))
  assert.equal(result,target.baseUrl+'/'+key);assert.deepEqual(sent.map(s=>s[0]),['/api/images/provider','/api/auth/session','/api/cms/uploads/hero']);assert.equal(sent[2][1].credentials,'same-origin');assert.equal(sent[2][1].headers['x-admin-csrf'],'csrf');assert.equal(sent[2][1].headers.authorization,undefined);assert.equal(sent[2][1].body.get('kind'),'image')
 })
 for(const mode of ['unknown','failed-session','failed-upload','invalid-canonical'])test('client '+mode+' fails without fallback or Supabase import',async()=>{
  const sent=[];await assert.rejects(withFetch(async(url)=>{sent.push(url);if(url==='/api/images/provider')return Response.json({provider:mode==='unknown'?'unknown':'aws'});if(url==='/api/auth/session')return Response.json(mode==='failed-session'?{}:{authenticated:true,csrfToken:'csrf'});if(mode==='invalid-canonical')return Response.json({provider:'s3',path:'https://evil.example/x',url:'https://evil.example/x'});return Response.json({error:'Upload failed'},{status:500})},()=>cmsClient.uploadCmsAssetDirectWithFallback({file:new File([png],'a',{type:'image/png'}),signEndpoint:'/api/cms/uploads/hero/sign',fallbackEndpoint:'/api/cms/uploads/hero'})))
  assert.ok(!sent.some(s=>s.endsWith('/sign')));assert.ok(sent.length<=3)
 })
-test('client default explicitly yields legacy and rejects external/traversal endpoint before fetch',async()=>{
- await withFetch(async()=>Response.json({provider:'legacy'}),async()=>{assert.equal(await client.tryUploadAwsImage(new File([png],'a'),'/api/cms/uploads/hero'),null)})
- await assert.rejects(client.tryUploadAwsImage(new File([png],'a'),'https://evil.example/api/cms/uploads/hero'));await assert.rejects(client.tryUploadAwsImage(new File([png],'a'),'/api/cms/uploads/../hero'))
+test('client rejects the removed legacy provider and rejects external/traversal endpoint before fetch',async()=>{
+ await withFetch(async()=>Response.json({provider:'legacy'}),async()=>{await assert.rejects(client.uploadAwsImage(new File([png],'a'),'/api/cms/uploads/hero'))})
+ await assert.rejects(client.uploadAwsImage(new File([png],'a'),'https://evil.example/api/cms/uploads/hero'));await assert.rejects(client.uploadAwsImage(new File([png],'a'),'/api/cms/uploads/../hero'))
 })
 // Additional route-family contracts execute real route source with the same injected auth/S3 adapters.
 const cmsCases=[['hero','hero',30,6400,true],['about-wide-banner','about/wide-banner',8,2400],['bespoke-hero','bespoke-hero',5,2200,true],['bespoke-process','bespoke-process',5,1400,true],['bespoke-showcase','bespoke-showcase',30,6400,true],['blog','blogs',5,2200,true],['certifications','certifications',5,800,true],['checkout-result','checkout-result',8,2200],['collection','collection',30,1600,true],['collection-page','collection-page',30,6400,true],['contact','contact',1,512,true,true],['couples','couples',5,1600,true],['discover-rings','home/discover-rings',5,1600],['discover-shapes','home/discover-shapes',5,1600],['education','education',5,2200,true],['faq-category','support/faq-categories',5,1200,true],['hiphop-hero','hiphop-hero',5,2200,true],['hiphop-showcase','hiphop-showcase',5,2200,true],['home-bestsellers','home/bestsellers',5,2200,true],['promotion-popup','promotion-popup',5,1600,true],['service-banner','service-banner',8,1800],['summary-icon','summary-icons',2,512,true]]
@@ -175,24 +177,21 @@ test('actual category and values forms reject missing/hostile selectors, invalid
 })
 test('selected client upload activity is ended on failure and legacy does not enter AWS activity',async()=>{
  const activity=[];const hooks={start:()=>activity.push('start'),finish:ok=>activity.push(ok)}
- await assert.rejects(withFetch(async url=>url==='/api/images/provider'?Response.json({provider:'aws'}):Response.json({},{status:401}),()=>client.tryUploadAwsImage(new File([png],'a'),'/api/cms/uploads/hero',{},hooks)));assert.deepEqual(activity,['start',false])
- activity.length=0;await withFetch(async()=>Response.json({provider:'legacy'}),()=>client.tryUploadAwsImage(new File([png],'a'),'/api/cms/uploads/hero',{},hooks));assert.deepEqual(activity,[])
+ await assert.rejects(withFetch(async url=>url==='/api/images/provider'?Response.json({provider:'aws'}):Response.json({},{status:401}),()=>client.uploadAwsImage(new File([png],'a'),'/api/cms/uploads/hero',{},hooks)));assert.deepEqual(activity,['start',false])
+ activity.length=0;await assert.rejects(withFetch(async()=>Response.json({provider:'legacy'}),()=>client.uploadAwsImage(new File([png],'a'),'/api/cms/uploads/hero',{},hooks)));assert.deepEqual(activity,[])
 })
-test('legacy configured S3 still writes and mirrors, rather than being forced back to Supabase',async()=>{
- reset();process.env.ADMIN_IMAGE_PROVIDER='legacy';legacyS3=true;const response=await route.handleImageUpload(await request(),config);assert.equal(response.status,201);assert.deepEqual(await response.json(),{provider:'s3',path:key,url:'https://media.houseofdiams.com/'+key});assert.equal(legacyCalls,1);assert.equal(calls.filter(c=>c[0]==='upload').length,1)
-})
-test('actual mixed product/about/bespoke routes independently use AWS images and leave unmarked video on legacy auth',async()=>{
+test('actual mixed product/about/bespoke routes independently use AWS images and reject unmarked uploads',async()=>{
  for(const [file,fields,prefix]of [['app/api/products/media/route.ts',{kind:'image',folder:'products'},'products/images/'],['app/api/bespoke/media/route.ts',{kind:'image'},'bespoke/images/'],['app/api/cms/uploads/about-hero/route.ts',{kind:'poster'},'about/hero/poster/']]){
   const handler=(await load(file)).exports;reset();const image=await handler.POST(await request(undefined,fields,{'x-admin-image-upload':'1'}));assert.equal(image.status,file.includes('about-hero')?200:201);assert.equal(legacyCalls,0);assert.ok(calls[1][1].startsWith(prefix))
   reset();const bypass=await handler.POST(await request(undefined,fields));assert.equal(bypass.status,409);assert.equal(calls.filter(c=>c[0]==='upload').length,0)
  }
  const mp4=new File([Buffer.from([0,0,0,12,0x66,0x74,0x79,0x70,0,0,0,0])],'video.mp4',{type:'video/mp4'})
- reset();const products=(await load('app/api/products/media/route.ts')).exports;const video=await products.POST(await request(mp4,{kind:'video',folder:'products'}));assert.equal(video.status,201);assert.equal((await video.json()).provider,'r2');assert.equal(legacyCalls,1);assert.equal(calls.length,0);assert.equal(fixture.videoInvalidated,true)
- reset();const about=(await load('app/api/cms/uploads/about-hero/route.ts')).exports;const aboutVideo=await about.POST(await request(mp4,{kind:'video'}));assert.equal(aboutVideo.status,200);assert.equal(legacyCalls,1);assert.equal(calls.length,0)
+ reset();const products=(await load('app/api/products/media/route.ts')).exports;const video=await products.POST(await request(mp4,{kind:'video',folder:'products'}));assert.equal(video.status,409);assert.equal(legacyCalls,0);assert.equal(calls.length,0)
+ reset();const about=(await load('app/api/cms/uploads/about-hero/route.ts')).exports;const aboutVideo=await about.POST(await request(mp4,{kind:'video'}));assert.equal(aboutVideo.status,409);assert.equal(legacyCalls,0);assert.equal(calls.length,0)
 })
-test('all actual image sign routes explicitly deny AWS before legacy token/provider code',async()=>{
- const signFiles=fs.readdirSync(path.join(root,'app/api/cms/uploads')).filter(name=>fs.existsSync(path.join(root,'app/api/cms/uploads',name,'sign/route.ts'))).map(name=>'app/api/cms/uploads/'+name+'/sign/route.ts').concat('app/api/products/media/sign/route.ts')
- for(const file of signFiles){reset();const handler=(await load(file)).exports;const response=await handler.POST(await request());assert.equal(response.status,503,file);assert.equal(legacyCalls,0,file);assert.deepEqual(calls,[['auth',true]],file);assert.ok(!(await response.text()).includes('token'))}
+test('the legacy signed-upload routes no longer exist',()=>{
+ const signed=fs.readdirSync(path.join(root,'app/api/cms/uploads')).filter(name=>fs.existsSync(path.join(root,'app/api/cms/uploads',name,'sign/route.ts')))
+ assert.deepEqual(signed,[]);assert.equal(fs.existsSync(path.join(root,'app/api/products/media/sign/route.ts')),false)
 })
 test('canonical AWS protocol rejects signed URLs, credentials and suffix-host confusion',()=>{
  assert.equal(reference.isCanonicalAwsImageReference(target.baseUrl+'/'+key),true)
@@ -226,7 +225,7 @@ test('owned image clients have no eager Supabase import; actual selected upload 
  for(const [file,name,args,expected]of cases){const sf=ts.createSourceFile(file,fs.readFileSync(path.join(root,file),'utf8'),ts.ScriptTarget.Latest,true);let selected
   function visit(n){if(ts.isVariableDeclaration(n)&&n.name.getText(sf)===name&&n.initializer&&ts.isArrowFunction(n.initializer))selected=n.initializer;if(ts.isFunctionDeclaration(n)&&n.name?.text===name)selected=n;ts.forEachChild(n,visit)}visit(sf);assert.ok(selected,name)
   const js=ts.transpileModule('const selected = ('+selected.getText(sf)+');',{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText
-  let uploaded=0;const fn=Function('tryUploadAwsImage',js+'\nreturn selected')(async()=>{uploaded++;return target.baseUrl+'/'+key});assert.deepEqual(await fn(...args),expected);assert.equal(uploaded,1)
+  let uploaded=0;const fn=Function('uploadAwsImage','uploadAwsVideo',js+'\nreturn selected')(async()=>{uploaded++;return target.baseUrl+'/'+key},async()=>{throw new Error('unexpected video upload')});assert.deepEqual(await fn(...args),expected);assert.equal(uploaded,1)
  }
 })
 

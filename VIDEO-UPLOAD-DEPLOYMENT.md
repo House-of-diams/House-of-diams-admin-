@@ -62,4 +62,4 @@ node node_modules/eslint/bin/eslint.js lib/r2.ts lib/video-storage.ts lib/video-
 This repository's first commit contains the full reviewed admin UAT snapshot,
 including the video correction. Private ENV, generated diagnostics and the old
 checkout's history are not included. Uploading source is not production cutover
-or approval to retire Supabase. The hosted application is unchanged until deployed.
+The hosted application is unchanged until deployed.

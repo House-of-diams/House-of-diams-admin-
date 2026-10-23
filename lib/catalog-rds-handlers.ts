@@ -18,7 +18,7 @@ import { loadRdsNavbarBuilderData } from './navbar-data'
 import { navbarSaveErrorResponse, saveNavbarItem } from './navbar-save'
 
 type Dependencies = {
-  provider: () => 'supabase' | 'rds'
+  provider: () => 'rds'
   authorize: (request: Request, mutation: boolean) => Promise<{ actor: AdminActor }>
   transaction: <T>(run: (db: DbExecutor) => Promise<T>) => Promise<T>
 }
@@ -26,10 +26,9 @@ const response = (value: unknown, status = 200) => Response.json(value, { status
 const hierarchy = { categories: 'category', subcategories: 'subcategory', options: 'option' } as const
 const masters = { 'gst-slabs': 'gst_slab', certificates: 'certificate', 'material-values': 'material_value', 'ring-sizes': 'ring_size', 'stone-shapes': 'stone_shape', styles: 'style', 'product-content-rules': 'content_rule' } as const
 
-/** Legacy return is permitted only before authorization or DB work starts. */
 export function createCatalogRdsHandlers(deps: Dependencies) {
-  return async (request: Request, rawId?: string): Promise<Response | null> => {
-    try { if (deps.provider() === 'supabase') return null } catch { return response({ error: 'Catalog service unavailable.' }, 503) }
+  return async (request: Request, rawId?: string): Promise<Response> => {
+    try { deps.provider() } catch { return response({ error: 'Catalog service unavailable.' }, 503) }
     const parts = new URL(request.url).pathname.split('/').filter(Boolean)
     const navbar = parts[1] === 'navbar'
     const resource = parts[2] ?? ''

@@ -1,5 +1,5 @@
 'use client'
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { resolveCatalogImageUrl } from '@/components/catalog-image-preview'
 import { readCmsId } from '@/lib/cms-id-safety'
 
@@ -58,7 +58,6 @@ export function SupportFaqEditorClient({ initialData, initialRevision }: { initi
   const sortedCategories = useMemo(() => [...categories].sort((a,b) => a.sort_order-b.sort_order), [categories])
   const dirty = useMemo(() => faqFingerprint(title, subtitle, items) !== savedFingerprint, [title, subtitle, items, savedFingerprint])
   const unsaved = useUnsavedChanges(dirty || editorOpen || categoryOpen)
-  const token = async () => { const { supabase } = await import('@/lib/supabase'); return (await supabase.auth.getSession()).data.session?.access_token }
 
   const saveItem = () => {
     setItems((prev) => { const i=prev.findIndex((x)=>x.clientId===editorItem.clientId); if(i<0)return [...prev,editorItem]; const copy=[...prev]; copy[i]={...copy[i],...editorItem}; return copy })
@@ -88,7 +87,7 @@ export function SupportFaqEditorClient({ initialData, initialRevision }: { initi
   const uploadCategoryImage = async (event: ChangeEvent<HTMLInputElement>) => {
     const file=event.target.files?.[0]; if(!file)return
     setCategorySaving(true)
-    try { const awsPath=await tryUploadAwsImage(file,'/api/cms/uploads/faq-category');if(awsPath){setCategoryDraft(prev=>({...prev,image_path:awsPath}));setStatus('Category image uploaded');return} const accessToken=await token(); if(!accessToken) throw new Error('You are not signed in.'); const form=new FormData(); form.append('file',file); const res=await fetch('/api/cms/uploads/faq-category',{method:'POST',headers:{authorization:`Bearer ${accessToken}`},body:form}); const payload=await res.json().catch(()=>null); if(!res.ok||!payload?.path)throw new Error(payload?.error||'Upload failed.'); setCategoryDraft((prev)=>({...prev,image_path:payload.path})); setStatus('Category image uploaded') } catch(error){setStatus(error instanceof Error?error.message:'Upload failed.')} finally{setCategorySaving(false)}
+    try { const awsPath=await uploadAwsImage(file,'/api/cms/uploads/faq-category');if(awsPath){setCategoryDraft(prev=>({...prev,image_path:awsPath}));setStatus('Category image uploaded');return} throw new Error('Image service unavailable.') } catch(error){setStatus(error instanceof Error?error.message:'Upload failed.')} finally{setCategorySaving(false)}
   }
   const deleteCategory = async () => {
     if (!categoryDeleteTarget) return

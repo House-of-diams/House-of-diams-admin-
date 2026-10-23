@@ -68,10 +68,12 @@ const access=db=>({provider:'rds',actor,cms:createCmsRepository(db,actor),db})
 const env={request_id:id(2),expected_revision:revision}
 const article={...env,post:{slug:'',title:'Title',title_html:'<strong>Title</strong><script>bad()</script>',card_title:'',subtitle:'Subtitle',category:'',catalog_category_id:null,author:'',date_label:'',read_time:'',bg_key:'',bg_color:'',hero_image_path:'',card_image_path:'',hero_image_alt:'',body_html:'<p onclick="bad()">Body</p>',is_published:true,sort_order:1},tags:[],products:[],content_blocks:[{block_type:'text',heading:'',body_html:'<p>First</p>',image_path:'',image_alt:'',image_caption:'',is_enabled:true},{block_type:'text',heading:'',body_html:'<p>Second</p>',image_path:'',image_alt:'',image_caption:'',is_enabled:true}],deleted_tag_ids:[],deleted_product_ids:[],deleted_block_ids:[]}
 
-test('server provider defaults legacy, exact inactive RDS only, unknown denies',()=>{
- assert.equal(readCmsDataProvider({}),'supabase');assert.equal(readCmsDataProvider({ADMIN_CMS_DATA_PROVIDER:'rds'}),'rds')
- assert.equal(readCmsDataProvider({NEXT_PUBLIC_ADMIN_CMS_DATA_PROVIDER:'rds'}),'supabase')
- for(const value of ['RDS','postgres',' rds '])assert.throws(()=>readCmsDataProvider({ADMIN_CMS_DATA_PROVIDER:value}))
+test('server CMS provider is exactly RDS; unset, legacy and client variables are rejected',()=>{
+ const full={ADMIN_AUTH_PROVIDER:'keycloak',ADMIN_PRODUCT_DATA_PROVIDER:'rds',ADMIN_CATALOG_DATA_PROVIDER:'rds',ADMIN_CMS_DATA_PROVIDER:'rds',ADMIN_OPERATIONS_DATA_PROVIDER:'rds',ADMIN_IMAGE_PROVIDER:'aws',ADMIN_VIDEO_PROVIDER:'aws'}
+ assert.equal(readCmsDataProvider(full),'rds')
+ assert.throws(()=>readCmsDataProvider({}));assert.throws(()=>readCmsDataProvider({ADMIN_CMS_DATA_PROVIDER:'rds'}));assert.throws(()=>readCmsDataProvider({NEXT_PUBLIC_ADMIN_CMS_DATA_PROVIDER:'rds'}))
+ assert.throws(()=>readCmsDataProvider({...full,ADMIN_CMS_DATA_PROVIDER:'supabase'}))
+ for(const value of ['RDS','postgres',' rds '])assert.throws(()=>readCmsDataProvider({...full,ADMIN_CMS_DATA_PROVIDER:value}))
 })
 test('22 deployed CMS/bespoke routine names, ordered types and parameter bindings match live metadata',async()=>{
  assert.equal(Object.keys(cmsRoutines).length,22)
@@ -104,8 +106,7 @@ test('malformed or empty repository results cannot masquerade as successful empt
   const f=fake(()=>result);await assert.rejects(()=>createCmsRepository(f.db).execute('cms_singleton_snapshot_v1',{p_kind:'about_hero'}))
  }
 })
-test('legacy mode calls only real legacy authorization; RDS never falls back on failure',async()=>{
- const legacy=harness({provider:'supabase'});assert.equal((await legacy.route(req(),()=>{throw Error('should not run')})).status,401);assert.deepEqual(legacy.events,[['legacy']])
+test('RDS authorization failures never fall back to anything else',async()=>{
  for(const denied of [401,403,503]){const h=harness({denied});assert.equal((await h.route(req(),()=>{throw Error('should not run')})).status,denied);assert.equal(h.calls.length,0);assert.ok(!h.events.some(e=>e[0]==='legacy'))}
  const bad=harness({badProvider:true});assert.equal((await bad.route(req(),()=>{throw Error('should not run')})).status,503)
 })
@@ -195,10 +196,10 @@ test('client RDS transport follows server contract, cookie/CSRF, strips caller b
  globalThis.fetch=async(url,options={})=>{calls.push([url,options]);return Response.json(url==='/api/cms/provider'?{provider:'rds'}:url==='/api/auth/session'?{authenticated:true,csrfToken:'server-csrf'}:{ok:true})}
  try{const r=await cmsFetch('/api/cms/about/values',{method:'POST',headers:{authorization:'Bearer attacker','x-admin-csrf':'attacker'},body:'{}'});assert.equal(r.status,200);const options=calls.at(-1)[1];assert.equal(options.credentials,'same-origin');assert.equal(options.headers.get('authorization'),null);assert.equal(options.headers.get('x-admin-csrf'),'server-csrf');assert.equal(globalThis.__b5LegacyCalls,0)}finally{globalThis.fetch=original;delete globalThis.__b5LegacyCalls}
 })
-test('client legacy transport retains bearer and rejects media, B6 and traversal paths',async()=>{
+test('client rejects the removed legacy provider and still rejects media, B6 and traversal paths',async()=>{
  const {cmsFetch,forgetCmsRequestContext}=await get('lib/cms-transport.ts');forgetCmsRequestContext();const original=globalThis.fetch;const calls=[];globalThis.__b5LegacyCalls=0
  globalThis.fetch=async(url,options={})=>{calls.push([url,options]);return Response.json(url==='/api/cms/provider'?{provider:'supabase'}:{items:[]})}
- try{await cmsFetch('/api/bespoke/portfolio-items');assert.equal(calls.at(-1)[1].headers.get('authorization'),'Bearer legacy-token');assert.equal(globalThis.__b5LegacyCalls,1)
+ try{assert.equal((await cmsFetch('/api/bespoke/portfolio-items')).status,503);assert.equal(globalThis.__b5LegacyCalls,0);assert.equal(calls.length,1)
   for(const url of ['/api/bespoke/media','/api/cms/uploads/hero','/api/cms/contact/submissions','/api/cms/../../orders','https://evil.test/api/cms/about/hero'])await assert.rejects(()=>cmsFetch(url))
  }finally{globalThis.fetch=original;delete globalThis.__b5LegacyCalls}
 })
@@ -221,13 +222,6 @@ test('pending manual retry keeps exact request IDs until changes or successful c
  pending.clear();assert.equal(pending.prepare(first),first)
 })
 
-test('legacy helper preserves actor, RPC envelope and PostgREST migration/conflict responses',async()=>{
- const calls=[];const legacy={user:{id:id(7)},adminClient:{async rpc(name,args){calls.push([name,args]);return {data:{item:null,revision},error:null}}}}
- const item={is_enabled:true,heading:'Blog',paragraph:'',button_label:'',button_link:'',desktop_image_path:'',desktop_image_alt:'',mobile_image_path:'',mobile_image_alt:''}
- assert.equal((await saveCmsSingleton(legacy,'blog_hero',{...env,item})).status,200)
- assert.equal(calls[0][0],'cms_save_singleton_v1');assert.equal(calls[0][1].p_actor_id,id(7));assert.equal(calls[0][1].p_request_id,id(2))
- for(const [code,status]of [['PGRST202',503],['40001',409]]){legacy.adminClient.rpc=async()=>({data:null,error:{code}});assert.equal((await saveCmsSingleton(legacy,'blog_hero',{...env,item})).status,status)}
-})
 test('actual FAQ create accepts its category revision envelope; relational and reference failures deny',async()=>{
  const old=process.env.ADMIN_CMS_DATA_PROVIDER;process.env.ADMIN_CMS_DATA_PROVIDER='rds'
  try{

@@ -5,10 +5,9 @@ import { handleImageUpload } from './image-route'
 /** The marker selects only the image branch; authority still comes from server mode + B1. */
 export async function selectedMixedImage(request: Request, context: 'product' | 'bespoke' | 'about'): Promise<Response | null> {
   if (request.headers.get('x-admin-image-upload') !== '1') return null
-  try { if (readImageProvider() === 'legacy') return null }
+  try { readImageProvider() }
   catch { return Response.json({ error: 'Image service unavailable.' }, { status: 503 }) }
   return handleImageUpload(request, {
-    bucket: process.env.SUPABASE_COLLECTION_BUCKET ?? 'hod',
     maxBytes: (context === 'product' ? 25 : context === 'bespoke' ? 10 : 8) * 1024 * 1024,
     rasterWidth: context === 'about' ? 2400 : 2200,
     preserveAspectRatio: context === 'about',
@@ -28,9 +27,9 @@ export async function selectedMixedImage(request: Request, context: 'product' | 
 }
 
 /** Old callers may still send bearer requests, but selected AWS images never write legacy storage. */
-export function denyLegacyImageInAwsMode(): Response | null {
+export function denyLegacyImageInAwsMode(): Response {
   try {
-    if (readImageProvider() === 'legacy') return null
+    readImageProvider()
     return Response.json({ error: 'Use the authenticated image upload protocol.' }, { status: 409 })
   } catch { return Response.json({ error: 'Image service unavailable.' }, { status: 503 }) }
 }

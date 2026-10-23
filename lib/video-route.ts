@@ -12,7 +12,7 @@ const failure = (status: number, error = 'Video service unavailable.') => Respon
 export async function selectedMixedVideo(request: Request, context: 'product' | 'about' | 'section'): Promise<Response | null> {
   if (request.headers.get('x-admin-video-upload') !== '1') return null
   try {
-    if (readVideoProvider() === 'legacy') return failure(409, 'Video service configuration changed. Reload the uploader.')
+    readVideoProvider()
     if (request.headers.has('x-admin-image-upload')) return failure(400, 'Invalid media protocol.')
     const access = await authorizeProductRequest(request, true)
     const length = Number(request.headers.get('content-length'))
@@ -50,14 +50,14 @@ export async function selectedMixedVideo(request: Request, context: 'product' | 
     return failure(error instanceof ProductSessionError ? error.status : error instanceof ImageBodyTooLarge ? 413 : 503)
   }
 }
-export function denyLegacyVideoInAwsMode(): Response | null {
-  try { return readVideoProvider() === 'legacy' ? null : failure(409, 'Use the authenticated video upload protocol.') }
+export function denyLegacyVideoInAwsMode(): Response {
+  try { readVideoProvider(); return failure(409, 'Use the authenticated video upload protocol.') }
   catch { return failure(503) }
 }
-/** About signing is mixed and legacy-only; selected videos use bounded server uploads. */
-export async function denyAwsVideoSigning(request: Request): Promise<Response | null> {
+/** Direct (signed) video uploads no longer exist; videos use bounded server uploads. */
+export async function denyAwsVideoSigning(request: Request): Promise<Response> {
   try {
-    if (readVideoProvider() === 'legacy') return null
+    readVideoProvider()
     await authorizeProductRequest(request, true)
     return failure(503, 'Use the authenticated media upload endpoint.')
   } catch (error) { return failure(error instanceof ProductSessionError ? error.status : 503) }

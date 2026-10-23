@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
-import { Eye, EyeOff, KeyRound, MessageCircle, Save, ShieldAlert } from 'lucide-react'
+import { KeyRound, MessageCircle, Save, ShieldAlert } from 'lucide-react'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
@@ -24,23 +24,11 @@ type WhatsappForm = {
   localNumber: string
 }
 
-type PasswordForm = {
-  currentPassword: string
-  newPassword: string
-  confirmPassword: string
-}
-
 export type SettingsPageData = {
   settings: SiteSettings
   /** HOD-054: revision of the saved settings this page shows (RDS mode). */
   revision?: string
   gstSlabs: CatalogGstSlab[]
-}
-
-const emptyPasswordForm: PasswordForm = {
-  currentPassword: '',
-  newPassword: '',
-  confirmPassword: '',
 }
 
 const whatsappCountryCodes = [
@@ -83,7 +71,7 @@ function buildStoredWhatsappNumber(form: WhatsappForm) {
   return `${countryDigits}${localDigits}`
 }
 
-export function SettingsClient({ initialData, authProvider = 'supabase' }: { initialData: SettingsPageData; authProvider?: 'supabase' | 'keycloak' }) {
+export function SettingsClient({ initialData, authProvider = 'keycloak' }: { initialData: SettingsPageData; authProvider?: 'keycloak' }) {
   const [accountError, setAccountError] = useState('')
   const [openingAccount, setOpeningAccount] = useState(false)
   const manageAccount = async () => {
@@ -95,7 +83,6 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
   const [savingSettings, setSavingSettings] = useState(false)
-  const [changingPassword, setChangingPassword] = useState(false)
   const [settings, setSettings] = useState<SiteSettings>(initialData.settings)
   const [gstSlabs] = useState<CatalogGstSlab[]>(initialData.gstSlabs)
   const [defaultGstSlabId, setDefaultGstSlabId] = useState(initialData.settings.default_gst_slab_id ?? '')
@@ -108,14 +95,7 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
     initialData.settings.estimated_delivery_text ?? 'Approximately 3 to 4 weeks'
   )
   const [whatsappForm, setWhatsappForm] = useState<WhatsappForm>(splitWhatsappNumber(initialData.settings.whatsapp_number ?? ''))
-  const [passwordForm, setPasswordForm] = useState<PasswordForm>(emptyPasswordForm)
-  const [visiblePasswordFields, setVisiblePasswordFields] = useState<Record<keyof PasswordForm, boolean>>({
-    currentPassword: false,
-    newPassword: false,
-    confirmPassword: false,
-  })
   const [settingsConfirmOpen, setSettingsConfirmOpen] = useState(false)
-  const [passwordConfirmOpen, setPasswordConfirmOpen] = useState(false)
 
   const settingsFingerprint = useMemo(() => JSON.stringify({
     whatsapp_number: buildStoredWhatsappNumber(whatsappForm),
@@ -134,9 +114,7 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
   const [savedSettingsFingerprint, setSavedSettingsFingerprint] = useState(initialSettingsFingerprint)
   const settingsRevision = useRef<string | null>(initialData.revision ?? null)
   const settingsChanged = settingsFingerprint !== savedSettingsFingerprint
-  const passwordChanged = Object.values(passwordForm).some(Boolean)
-  const passwordReady = Boolean(passwordForm.currentPassword && passwordForm.newPassword.length >= 8 && passwordForm.newPassword === passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.currentPassword)
-  useUnsavedChanges(settingsChanged || passwordChanged)
+  useUnsavedChanges(settingsChanged)
 
   const whatsappPreviewLink = useMemo(() => {
     const digits = normalizeWhatsappNumber(buildStoredWhatsappNumber(whatsappForm))
@@ -145,28 +123,6 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
       : ''
   }, [whatsappForm])
 
-  const renderPasswordField = (field: keyof PasswordForm) => {
-    const isVisible = visiblePasswordFields[field]
-    return (
-      <div className="relative">
-        <input
-          type={isVisible ? 'text' : 'password'}
-          value={passwordForm[field]}
-          onChange={(e) => setPasswordForm((prev) => ({ ...prev, [field]: e.target.value }))}
-          className="w-full rounded-lg border border-border bg-white px-4 py-2.5 pr-11 text-sm transition-colors hover:border-input focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-        />
-        <button
-          type="button"
-          onClick={() => setVisiblePasswordFields((prev) => ({ ...prev, [field]: !prev[field] }))}
-          aria-label={isVisible ? 'Hide password' : 'Show password'}
-          aria-pressed={isVisible}
-          className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-        </button>
-      </div>
-    )
-  }
   const saveSettings = async () => {
     setSavingSettings(true)
     try {
@@ -216,40 +172,6 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
     } finally {
       setSavingSettings(false)
       setSettingsConfirmOpen(false)
-    }
-  }
-
-  const changePassword = async () => {
-    setChangingPassword(true)
-    try {
-
-      const response = await operationsFetch('/api/settings/password', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(passwordForm),
-      })
-
-      const payload = await response.json().catch(() => null)
-      if (!response.ok) {
-        throw new Error(payload?.error ?? 'Unable to change password.')
-      }
-
-      setPasswordForm(emptyPasswordForm)
-      toast({
-        title: 'Password changed',
-        description: payload?.message ?? 'Password updated successfully. Please sign in again for a fresh session.',
-      })
-    } catch (error) {
-      toast({
-        title: 'Password change failed',
-        description: error instanceof Error ? error.message : 'Unable to change password.',
-        variant: 'destructive',
-      })
-    } finally {
-      setChangingPassword(false)
-      setPasswordConfirmOpen(false)
     }
   }
 
@@ -430,53 +352,6 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
         </section>
       ) : null}
 
-      {activeTab === 'security' && authProvider === 'supabase' ? (
-        <div className="max-w-3xl space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <div className="mb-6">
-              <h2 className="font-jakarta text-lg font-semibold text-foreground">Change Password</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Your current password is required first. Changing your password keeps the same admin account and role, but you should sign in again after changing it.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">Current Password</label>
-                {renderPasswordField('currentPassword')}
-
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-foreground">New Password</label>
-                  {renderPasswordField('newPassword')}
-
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-foreground">Confirm Password</label>
-                  {renderPasswordField('confirmPassword')}
-
-                </div>
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                Minimum 8 characters. After a successful password change, sign in again for a clean admin session.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setPasswordConfirmOpen(true)}
-              disabled={changingPassword || !passwordReady}
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <KeyRound size={16} />
-              Update Password
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       <ConfirmDialog
         isOpen={settingsConfirmOpen}
@@ -492,19 +367,6 @@ export function SettingsClient({ initialData, authProvider = 'supabase' }: { ini
         }}
       />
 
-      <ConfirmDialog
-        isOpen={passwordConfirmOpen}
-        title="Change your admin password?"
-        description="This updates the password for your current admin account. Your role and RLS access stay tied to the same user, but you should sign in again after this change."
-        confirmText="Change Password"
-        cancelText="Cancel"
-        type="warning"
-        isLoading={changingPassword}
-        onConfirm={() => void changePassword()}
-        onCancel={() => {
-          if (!changingPassword) setPasswordConfirmOpen(false)
-        }}
-      />
     </div>
   )
 }

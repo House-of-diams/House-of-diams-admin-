@@ -1,5 +1,5 @@
 'use client'
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { readCmsId } from '@/lib/cms-id-safety'
 
 import { cmsFetch } from '@/lib/cms-transport'
@@ -16,12 +16,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCmsAtomicListSave } from '@/hooks/use-cms-atomic-list-save'
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
-
-async function getAccessToken() {
-  const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
+import { resolveStoredImage } from '@/lib/image-reference'
 
 export type PromotionInitialData = {
   item: {
@@ -89,11 +84,7 @@ function createInitialOptions() {
 }
 
 function publicAssetUrl(path: string) {
-  if (!path) return ''
-  if (/^https?:\/\//.test(path)) return path
-  const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const bucket = process.env.NEXT_PUBLIC_SUPABASE_COLLECTION_BUCKET || 'hod'
-  return projectUrl ? `${projectUrl}/storage/v1/object/public/${bucket}/${path}` : path
+  return resolveStoredImage(path) ?? ''
 }
 
 export function PromotionEditorClient({ initialData, initialRevision }: { initialData: PromotionInitialData; initialRevision: string }) {
@@ -141,52 +132,9 @@ export function PromotionEditorClient({ initialData, initialRevision }: { initia
   const uploadAsset = async (file: File, field: ImageField) => {
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/promotion-popup', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/promotion-popup', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
       if (awsPath) { setForm(prev => ({...prev,[field]:awsPath})); setStatus('Promotion image uploaded successfully'); return }
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Upload failed.'); return }
-
-
-    const accessToken = await getAccessToken()
-    if (!accessToken) {
-      setStatus('Missing access token.')
-      return
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setStatus('File too large. Max size is 5MB.')
-      return
-    }
-    setUploadingField(field)
-    setStatus(field === 'mobile_image_path' ? 'Uploading mobile promotion image...' : 'Uploading promotion image...')
-    let uploadedPath = ''
-    const { supabase } = await import('@/lib/supabase')
-    try {
-      const preparedFile = await preparePromotionImage(file)
-      const signResponse = await fetch('/api/cms/uploads/promotion-popup/sign', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-      })
-      const signed = await signResponse.json().catch(() => null) as { bucket?: string; path?: string; token?: string; error?: string } | null
-      if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) throw new Error(signed?.error ?? 'Unable to prepare upload.')
-      const { error } = await supabase.storage.from(signed.bucket)
-        .uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-      if (error) throw error
-      uploadedPath = signed.path
-    } catch (directError) {
-      try {
-        const formData = new FormData();formData.append('file', file)
-        const response = await fetch('/api/cms/uploads/promotion-popup', { method: 'POST', headers: { authorization: `Bearer ${accessToken}` }, body: formData })
-        const payload = await response.json().catch(() => null) as { path?: string; error?: string } | null
-        if (!response.ok || !payload?.path) throw new Error(payload?.error ?? (directError instanceof Error ? directError.message : 'Unable to upload image.'))
-        uploadedPath = payload.path
-      } catch (error) {
-        setStatus(error instanceof Error ? error.message : 'Unable to upload image.');setUploadingField(null);return
-      }
-    }
-    setForm((prev) => ({ ...prev, [field]: uploadedPath }))
-    setUploadingField(null)
-    setStatus(field === 'mobile_image_path' ? 'Mobile promotion image uploaded successfully' : 'Promotion image uploaded successfully')
-    toast({ title: 'Uploaded', description: field === 'mobile_image_path' ? 'Mobile promotion image uploaded successfully.' : 'Promotion image uploaded successfully.' })
   }
 
 
@@ -307,21 +255,3 @@ export function PromotionEditorClient({ initialData, initialRevision }: { initia
   )
 }
 
-async function preparePromotionImage(file: File) {
-  if (file.type === 'image/svg+xml') return file
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) throw new Error('Invalid image type.')
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  try {
-    const width = Math.min(bitmap.width, 1600)
-    const height = Math.max(1, Math.round(bitmap.height * (width / bitmap.width)))
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.84))
-    if (!blob) throw new Error('Unable to optimize image.')
-    return new File([blob], `${crypto.randomUUID()}.webp`, { type: 'image/webp' })
-  } finally {
-    bitmap.close()
-  }
-}

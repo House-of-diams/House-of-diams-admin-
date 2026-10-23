@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { cmsFetch } from '@/lib/cms-transport'
 
 import Link from 'next/link'
@@ -77,23 +77,12 @@ export function SummaryInfoEditor({ initialData, initialRevision = '' }: { initi
   const uploadIcon = async (file: File) => {
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/summary-icon', {},{start:()=>setUploading(true),finish:()=>setUploading(false)})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/summary-icon', {},{start:()=>setUploading(true),finish:()=>setUploading(false)})
       if (awsPath) { setDraft(current => current ? {...current,icon_url:awsPath}:current); return }
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Upload failed.'); return }
 
 
     setUploading(true); setMessage('')
-    const { supabase } = await import('@/lib/supabase')
-    try {
-      const { data } = await supabase.auth.getSession()
-      if (!data.session?.access_token) throw new Error('Please sign in again.')
-      const form = new FormData(); form.set('file', file)
-      const response = await fetch('/api/cms/uploads/summary-icon', { method: 'POST', headers: { authorization: `Bearer ${data.session.access_token}` }, body: form })
-      const payload = await response.json().catch(() => null)
-      if (!response.ok || !payload?.url) throw new Error(payload?.error ?? 'Icon upload failed.')
-      setDraft((current) => current ? { ...current, icon_url: payload.url } : current)
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Icon upload failed.') }
-    finally { setUploading(false) }
   }
 
   return <div>

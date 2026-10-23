@@ -4,7 +4,6 @@ import type { AdminActor } from './auth/admin-identity-core'
 import type { DbExecutor } from './db/query'
 import { adminTransaction } from './db/pool'
 import { mapAdminDbError } from './db/errors'
-import { assertAdmin } from './cms-auth'
 import { authorizeProductRequest } from './product-session-runtime'
 import { ProductSessionError } from './product-session-error'
 import { readOperationsProvider } from './operations-provider'
@@ -13,7 +12,7 @@ import { couponDatabaseError } from './coupon-save'
 import { settingsDatabaseError } from './settings-validation'
 import { adminMutationError } from './order-inventory-validation'
 export type OperationsRdsAccess = {provider:'rds';actor:AdminActor;db:DbExecutor;afterCommit:(effect:()=>Promise<Response|void>)=>void}
-export type OperationsAccess = OperationsRdsAccess | Exclude<Awaited<ReturnType<typeof assertAdmin>>,{error:unknown}>
+export type OperationsAccess = OperationsRdsAccess
 export function operationsError(error: unknown,request?:Request) {
   const mapped = mapAdminDbError(error)
   if(request && !['GET','HEAD'].includes(request.method) && mapped.sqlState && !['permission','unavailable'].includes(mapped.kind)){
@@ -35,15 +34,11 @@ export function operationsError(error: unknown,request?:Request) {
   if(status>=500)console.error('[admin-operations]',JSON.stringify({method:request?.method??null,path,status,kind:mapped.kind,sqlState:mapped.sqlState??null,source:error instanceof ProductSessionError?'session':error instanceof OperationsError?'operations':error instanceof ZodError?'validation':'database'}))
   return Response.json({error:message},{status,headers:{'Cache-Control':'no-store'}})
 }
-type Dependencies = {provider:()=> 'rds'|'supabase';authorize:typeof authorizeProductRequest;transaction:<T>(run:(db:DbExecutor)=>Promise<T>)=>Promise<T>;legacy:typeof assertAdmin}
+type Dependencies = {provider:()=> 'rds';authorize:typeof authorizeProductRequest;transaction:<T>(run:(db:DbExecutor)=>Promise<T>)=>Promise<T>}
 export function createOperationsRoute(deps:Dependencies) {
   return async (request:Request,run:(access:OperationsAccess)=>Promise<Response>) => {
     try {
-      if (deps.provider()==='supabase') {
-        const access=await deps.legacy(request)
-        if('error' in access)return access.error
-        return await run(access)
-      }
+      deps.provider()
       const {actor}=await deps.authorize(request,!['GET','HEAD'].includes(request.method))
       const effects:Array<()=>Promise<Response|void>>=[]
       let response=await deps.transaction(async db=>{
@@ -61,5 +56,5 @@ export function createOperationsRoute(deps:Dependencies) {
     }catch(error){return operationsError(error,request)}
   }
 }
-export const withOperationsRoute=createOperationsRoute({provider:()=>readOperationsProvider(process.env),authorize:authorizeProductRequest,transaction:adminTransaction,legacy:assertAdmin})
+export const withOperationsRoute=createOperationsRoute({provider:()=>readOperationsProvider(process.env),authorize:authorizeProductRequest,transaction:adminTransaction})
 export const isOperationsRds=(access:OperationsAccess):access is OperationsRdsAccess=>'provider' in access && access.provider==='rds'

@@ -86,7 +86,7 @@ test('F-03 actual checkout route resolves both banners without any legacy factor
   const previous = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, bucket: process.env.SUPABASE_COLLECTION_BUCKET }
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://legacy.example'; process.env.SUPABASE_COLLECTION_BUCKET = 'checkout-bucket'
   try {
-    for (const [value, expected] of [['folder/a.webp', 'https://legacy.example/storage/v1/object/public/checkout-bucket/folder/a.webp'], ['https://content.houseofdiams.com/a.webp', 'https://content.houseofdiams.com/a.webp'], ['/images/a.webp', '/images/a.webp'], ['', ''], [null, ''], ['javascript:alert(1)', ''], ['../private.webp', ''], ['//unsafe.example/a', '']]) {
+    for (const [value, expected] of [['folder/a.webp', 'https://media.houseofdiams.com/folder/a.webp'], ['https://content.houseofdiams.com/a.webp', 'https://content.houseofdiams.com/a.webp'], ['/images/a.webp', '/images/a.webp'], ['', ''], [null, ''], ['javascript:alert(1)', ''], ['../private.webp', ''], ['//unsafe.example/a', '']]) {
       parent = { main_banner_image_path: value, secondary_banner_image_path: value }
       const response = await GET(new Request(origin + '/api/cms/checkout-result'))
       assert.equal(response.status, 200)
@@ -136,12 +136,19 @@ async function formFixture(props = {}, original = false) {
   const source = fs.readFileSync('components/product-form.tsx', 'utf8')
   // UI leaves are inert JSX components; actual form state/effects/load/save,
   // normalization, serializers, query cache and validation execute unchanged.
-  for (const match of source.matchAll(/import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/g)) {
+  // The pinned original source imports names the current form no longer uses (for example the
+  // legacy upload helpers), so stub the union of both files' imports per module.
+  const stubbed = new Map()
+  const importSources = [source]
+  if (original) importSources.push(JSON.parse(fs.readFileSync('docs/aws-phase-d/D1a-initial-sources.json', 'utf8').replace(/^﻿/, '')).find(f => f.path.split(String.fromCharCode(92)).join('/') === 'components/product-form.tsx').text)
+  for (const text of importSources) for (const match of text.matchAll(/import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/g)) {
     const name = match[2]
     if (['@/lib/product-editor', '@/lib/product-save-payload', '@/lib/product-custom-dropdowns', '@/lib/query-cache'].includes(name)) continue
-    const exports = match[1].split(',').map(v => v.trim()).filter(v => v && !v.startsWith('type '))
-    overrides[name] = exports.map(v => `export const ${v}=()=>null;`).join('')
+    const names = stubbed.get(name) ?? new Set()
+    for (const v of match[1].split(',').map(v => v.trim()).filter(v => v && !v.startsWith('type '))) names.add(v)
+    stubbed.set(name, names)
   }
+  for (const [name, names] of stubbed) overrides[name] = [...names].map(v => `export const ${v}=()=>null;`).join('')
   overrides.react = 'export const useState=(...a)=>globalThis.__d1.hooks.useState(...a);export const useRef=(...a)=>globalThis.__d1.hooks.useRef(...a);export const useEffect=(...a)=>globalThis.__d1.hooks.useEffect(...a);export const useMemo=(...a)=>globalThis.__d1.hooks.useMemo(...a)'
   overrides['next/navigation'] = 'export const useRouter=()=>({prefetch(){},push(){},refresh(){}})'
   overrides['@/hooks/use-toast'] = 'export const useToast=()=>({toast:x=>globalThis.__d1.toast.push(x)})'
@@ -397,7 +404,7 @@ test('R-06 actual order repository permits first cancellation but rejects reopen
   await repo.update(id(1), input('cancelled'))
   assert.equal(credits, 1); assert.equal(updates, 2)
 })
-test('R-06 made-to-order reopen remains supported; legacy stock-backed reopen denies before UPDATE', async () => {
+test('R-06 made-to-order reopen remains supported through the RDS repository', async () => {
   const input = { status: 'processing', expected_status: 'cancelled', expected_courier_name: null, expected_courier_awb_number: null, courier_name: null, courier_awb_number: null }
   let updates = 0
   const repo = createOrdersRepository({ query: async sql => {
@@ -405,17 +412,6 @@ test('R-06 made-to-order reopen remains supported; legacy stock-backed reopen de
     return { rows: [] }
   } },{profileId:id(2),issuer:'https://fixture.invalid',subject:'fixture-admin'})
   await repo.update(id(1), input); assert.equal(updates, 1)
-  globalThis.__d1.legacyDb = { from(table) {
-    const chain = { select() { return chain }, eq() { return chain }, order() { return Promise.resolve({ data: [], error: null }) }, maybeSingle: async () => ({ data: { id: id(1), status: 'cancelled', fulfillment_mode: 'stock', courier_name: null, courier_awb_number: null }, error: null }), update() { throw Error('Unprotected legacy update') } }
-    assert.ok(['orders', 'order_items'].includes(table)); return chain
-  } }
-  const legacyLoad = await loader({
-    '@/lib/operations-route': 'export const withOperationsRoute=(request,run)=>run({adminClient:globalThis.__d1.legacyDb});export const isOperationsRds=()=>false',
-    '@/lib/email': 'export const sendOrderStatusUpdateEmail=()=>{throw Error("unexpected mail")}',
-  })
-  const { PATCH } = (await legacyLoad('app/api/orders/[id]/route.ts')).exports
-  const response = await PATCH(new Request(origin + '/api/orders/' + id(1), { method: 'PATCH', body: JSON.stringify(input) }), { params: Promise.resolve({ id: id(1) }) })
-  assert.equal(response.status, 409); assert.match((await response.json()).error, /Stock-backed cancelled/)
 })
 test('R-04 failed-Head orphan, historical object and later successful upload remain discovery-only on new instances', async () => {
   const source = { bucket: 'fixture', prefix: 'products/videos/', baseUrl: 'https://media.houseofdiams.com' }

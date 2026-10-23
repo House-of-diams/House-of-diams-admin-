@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { SectionVideoUpload } from '@/components/section-video-upload'
 import { cmsFetch } from '@/lib/cms-transport'
 
@@ -48,7 +48,7 @@ export function CollectionPageEditorClient({ initialData, initialRevision }: { i
 
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/collection-page', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/collection-page', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
       if (awsPath) { setForm(prev => ({...prev,[field]:awsPath})); setStatus('Showcase image uploaded successfully'); return }
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Upload failed.'); return }
 
@@ -61,42 +61,6 @@ export function CollectionPageEditorClient({ initialData, initialRevision }: { i
     }
 
     setUploadingField(field)
-    const { supabase } = await import('@/lib/supabase')
-    try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const accessToken = sessionData.session?.access_token
-      if (!accessToken) throw new Error('Your session expired. Sign in again before uploading.')
-
-      let uploadedPath = ''
-      const preparedFile = await prepareCollectionImage(file)
-      try {
-        const signResponse = await fetch('/api/cms/uploads/collection-page/sign', {
-          method: 'POST',
-          headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
-          body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-        })
-        const signed = (await signResponse.json().catch(() => null)) as { bucket?: string; path?: string; token?: string; error?: string } | null
-        if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) throw new Error(signed?.error ?? 'Unable to prepare upload.')
-        const { error } = await supabase.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-        if (error) throw new Error('The direct upload was interrupted.')
-        uploadedPath = signed.path
-      } catch {
-        const fallbackBody = new FormData()
-        fallbackBody.append('file', file)
-        const fallbackResponse = await fetch('/api/cms/uploads/collection-page', { method: 'POST', headers: { authorization: `Bearer ${accessToken}` }, body: fallbackBody })
-        const fallbackPayload = (await fallbackResponse.json().catch(() => null)) as ApiPayload | null
-        if (!fallbackResponse.ok || !fallbackPayload?.path) throw new Error(fallbackPayload?.error ?? 'Upload failed.')
-        uploadedPath = fallbackPayload.path
-      }
-
-      setForm((prev) => ({ ...prev, [field]: uploadedPath }))
-      setStatus(field === 'showcase_mobile_image_path' ? 'Mobile showcase image uploaded. Save changes to publish it.' : 'Showcase image uploaded. Save changes to publish it.')
-      toast({ title: 'Uploaded', description: 'Collection showcase image is ready to save.' })
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Upload failed. Your other changes are still in the form.')
-    } finally {
-      setUploadingField(null)
-    }
   }
 
   const confirmSave = async () => {
@@ -242,24 +206,3 @@ export function CollectionPageEditorClient({ initialData, initialRevision }: { i
   )
 }
 
-async function prepareCollectionImage(file: File) {
-  if (file.type === 'image/svg+xml') return file
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) {
-    throw new Error('Invalid image type.')
-  }
-
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  try {
-    const width = Math.min(bitmap.width, 1600)
-    const height = Math.max(1, Math.round(bitmap.height * (width / bitmap.width)))
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.82))
-    if (!blob) throw new Error('Unable to optimize image.')
-    return new File([blob], `${crypto.randomUUID()}.webp`, { type: 'image/webp' })
-  } finally {
-    bitmap.close()
-  }
-}

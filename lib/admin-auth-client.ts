@@ -2,10 +2,10 @@
 
 import { deploymentProfile } from './deployment-profile'
 
-export async function adminAuthProvider(): Promise<'supabase' | 'keycloak'> {
+export async function adminAuthProvider(): Promise<'keycloak'> {
   const response = await fetch('/api/auth/provider', { credentials: 'same-origin', cache: 'no-store' })
   const data = await response.json()
-  if (!response.ok || !['supabase', 'keycloak'].includes(data?.provider)) throw new Error('Admin authentication unavailable.')
+  if (!response.ok || data?.provider !== 'keycloak') throw new Error('Admin authentication unavailable.')
   return data.provider
 }
 
@@ -29,12 +29,6 @@ export async function openAdminAccount(): Promise<string> {
 }
 
 export async function logoutAdmin(): Promise<{ upstreamLogout: boolean }> {
-  if (await adminAuthProvider() === 'supabase') {
-    const { supabase } = await import('./supabase')
-    const { error } = await supabase.auth.signOut()
-    if (error) throw new Error('Unable to sign out.')
-    return { upstreamLogout: true }
-  }
   let headers: Record<string, string>
   try {
     const session = await adminCookieSession()

@@ -43,4 +43,4 @@ that are intentionally not published.
 
 This is UAT preparation. Hosted login/refresh/logout, SMTP, feature saves,
 storefront visibility, concurrency, media reconciliation and rollback acceptance
-remain required before production cutover or Supabase retirement.
+remain required before production cutover.

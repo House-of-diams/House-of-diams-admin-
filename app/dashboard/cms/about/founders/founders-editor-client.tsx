@@ -1,5 +1,5 @@
 'use client'
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { compareCmsIds } from '@/lib/cms-id-safety'
 
 
@@ -105,57 +105,11 @@ export function FoundersEditorClient({ initialData }: { initialData: FoundersIni
   const uploadImage = async (file: File) => {
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/founders', {},{start:()=>setUploadState('uploading'),finish:()=>setUploadState('idle')})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/founders', {},{start:()=>setUploadState('uploading'),finish:()=>setUploadState('idle')})
       if (awsPath) { setEditorItem(prev => ({...prev,image_path:awsPath})); setStatus('Founder image uploaded successfully'); return }
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Upload failed.'); return }
 
 
-    const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.access_token
-    if (!token) {
-      setStatus('You are not signed in.')
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setStatus('File too large. Max size is 5MB.')
-      return
-    }
-
-    setUploadState('uploading')
-    let uploadedPath = ''
-    try {
-      const preparedFile = await prepareFounderImage(file)
-      const signResponse = await fetch('/api/cms/uploads/founders/sign', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-      })
-      const signed = await signResponse.json().catch(() => null) as { bucket?: string; path?: string; token?: string; error?: string } | null
-      if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) throw new Error(signed?.error ?? 'Unable to prepare upload.')
-      const { error } = await supabase.storage.from(signed.bucket)
-        .uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-      if (error) throw error
-      uploadedPath = signed.path
-    } catch {
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await fetch('/api/cms/uploads/founders', {
-        method: 'POST', headers: { authorization: `Bearer ${token}` }, body: formData,
-      })
-      const payload = await response.json().catch(() => null) as { path?: string; error?: string } | null
-      if (!response.ok || !payload?.path) {
-        setUploadState('idle')
-        setStatus(payload?.error ?? 'Unable to upload founder image.')
-        return
-      }
-      uploadedPath = payload.path
-    }
-
-    setUploadState('idle')
-    setEditorItem((prev) => ({ ...prev, image_path: uploadedPath }))
-    setStatus('Founder image uploaded')
   }
 
   const saveEditor = () => {
@@ -321,24 +275,5 @@ export function FoundersEditorClient({ initialData }: { initialData: FoundersIni
       </Dialog>
     </div>
   )
-}
-
-async function prepareFounderImage(file: File) {
-  if (file.type === 'image/svg+xml') return file
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) throw new Error('Invalid image type.')
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  try {
-    const width = Math.min(bitmap.width, 1200)
-    const height = Math.max(1, Math.round(bitmap.height * (width / bitmap.width)))
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.82))
-    if (!blob) throw new Error('Unable to optimize image.')
-    return new File([blob], `${crypto.randomUUID()}.webp`, { type: 'image/webp' })
-  } finally {
-    bitmap.close()
-  }
 }
 

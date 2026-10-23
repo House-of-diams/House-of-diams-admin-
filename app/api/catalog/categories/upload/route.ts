@@ -1,11 +1,10 @@
 import { handleImageUpload } from '@/lib/image-route'
 
-const bucket = process.env.SUPABASE_COLLECTION_BUCKET ?? 'hod'
 const normalizeSlug = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
 
 export async function POST(request: Request) {
   return handleImageUpload(request, {
-    bucket, maxBytes: 6 * 1024 * 1024, rasterWidth: (form) => form.get('variant') === 'mobile' ? 1400 : 2400, allowSvg: true,
+    maxBytes: 6 * 1024 * 1024, rasterWidth: (form) => form.get('variant') === 'mobile' ? 1400 : 2400, allowSvg: true,
     validateForm: (form) => {
       const slug = form.get('slug')
       const variant = form.get('variant')

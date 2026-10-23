@@ -3,8 +3,6 @@ import { dashboardSources } from '@/lib/db/admin-repositories/dashboard'
 import Link from 'next/link'
 import { TrendingUp, Package, Users, ShoppingCart, ArrowRight } from 'lucide-react'
 import { formatUsd } from '@/lib/money'
-import { createSupabaseAdminClient } from '@/lib/admin-supabase'
-import { getAdminCustomerUsers } from '@/lib/admin-users'
 import { getAdminServerSession } from '@/lib/admin-server'
 import { redirect } from 'next/navigation'
 
@@ -74,31 +72,7 @@ function formatStatus(status: string | null | undefined) {
 
 async function getDashboardData() {
   if (!await getAdminServerSession()) redirect('/login')
-  const {productsCount,ordersCount,revenueResult,recentOrdersResult,orderItemsResult,customerCount,customerLabel,customerNote}=await operationsPage(dashboardSources,async()=>{
-  const supabase = createSupabaseAdminClient()
-
-  const [
-    productsCount,
-    ordersCount,
-    revenueResult,
-    recentOrdersResult,
-    orderItemsResult,
-  ] = await Promise.all([
-    supabase.from('products').select('id', { count: 'exact', head: true }),
-    supabase.from('orders').select('id', { count: 'exact', head: true }),
-    supabase.from('orders').select('total_amount, status'),
-    supabase
-      .from('orders')
-      .select('id, order_number, customer_first_name, customer_last_name, customer_email, total_amount, status, created_at')
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase.from('order_items').select('product_name, quantity, line_total'),
-  ])
-
-  const customers = await getAdminCustomerUsers()
-
-return {productsCount,ordersCount,revenueResult,recentOrdersResult,orderItemsResult,customerCount:customers.length,customerLabel:'Historical registrations',customerNote:'Supabase auth registrations'}
-})
+  const {productsCount,ordersCount,revenueResult,recentOrdersResult,orderItemsResult,customerCount,customerLabel,customerNote}=await operationsPage(dashboardSources)
 
   const revenueRows = (revenueResult.data ?? []) as unknown as RevenueRow[]
   const paidStatuses = new Set(['paid', 'confirmed', 'processing', 'shipped', 'delivered'])

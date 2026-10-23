@@ -1,5 +1,5 @@
 'use client'
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 
 import { cmsFetch } from '@/lib/cms-transport'
 
@@ -69,7 +69,7 @@ export function CheckoutResultEditor() {
 
   async function upload(kind: 'main' | 'secondary', file: File) {
     setUploading(kind); setStatus(`Uploading ${kind} banner...`)
-    try { const awsPath=await tryUploadAwsImage(file,'/api/cms/uploads/checkout-result');if(awsPath){setPage(current=>kind==='main'?{...current,main_banner_image_path:awsPath,main_banner_image_url:awsPath}:{...current,secondary_banner_image_path:awsPath,secondary_banner_image_url:awsPath});setStatus('Image uploaded. Save changes to publish it.');return} throw new Error('Unable to upload image.') }
+    try { const awsPath=await uploadAwsImage(file,'/api/cms/uploads/checkout-result');if(awsPath){setPage(current=>kind==='main'?{...current,main_banner_image_path:awsPath,main_banner_image_url:awsPath}:{...current,secondary_banner_image_path:awsPath,secondary_banner_image_url:awsPath});setStatus('Image uploaded. Save changes to publish it.');return} throw new Error('Unable to upload image.') }
     catch(error){setStatus(error instanceof Error?error.message:'Unable to upload image.')}
     finally{setUploading(null)}
   }

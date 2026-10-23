@@ -12,7 +12,7 @@ export const adminDataReadProbes: Record<AdminDataGroup, string> = {
 
 export function createAdminDataSourceStatus(deps: {
   authorized: () => Promise<boolean>
-  provider: (group: AdminDataGroup) => 'supabase' | 'rds'
+  provider: (group: AdminDataGroup) => 'rds'
   read: (sql: string) => Promise<void>
 }) {
   return async (request: Request) => {
@@ -23,7 +23,6 @@ export function createAdminDataSourceStatus(deps: {
       const group = new URL(request.url).searchParams.get('group')
       if (!isAdminDataGroup(group)) return Response.json({ source, checked: false }, { status: 400, headers })
       source = deps.provider(group)
-      if (source === 'supabase') return Response.json({ source, checked: false, group }, { headers })
       await deps.read(adminDataReadProbes[group])
       return Response.json({ source, checked: true, group }, { headers })
     } catch {

@@ -14,7 +14,6 @@ export default async function EditCollectionProductPage({
     loadProductEditorPage(slug),
   ])
   if (productResult.status === 'not_found') notFound()
-  if (productResult.status === 'error') throw new Error(productResult.message)
 
   return (
     <div className="p-8">

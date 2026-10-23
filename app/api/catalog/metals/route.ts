@@ -1,11 +1,10 @@
 import { runCatalogRdsRoute } from '@/lib/catalog-rds-handlers'
-import { assertAdmin } from '@/lib/cms-auth'
-import { listCatalogMetals,saveCatalogMetal } from '@/lib/catalog-metal-save'
 export async function GET(request:Request){
-  const rds = await runCatalogRdsRoute(request, undefined); if (rds) return rds
-const access=await assertAdmin(request);if('error'in access)return access.error;return listCatalogMetals(access)}
+  return runCatalogRdsRoute(request, undefined)
+}
+
 export async function POST(request:Request){
-  const rds = await runCatalogRdsRoute(request, undefined); if (rds) return rds
-const access=await assertAdmin(request);if('error'in access)return access.error;return saveCatalogMetal(access,null,await request.json().catch(()=>null))}
+  return runCatalogRdsRoute(request, undefined)
+}
 
 export const runtime = 'nodejs'

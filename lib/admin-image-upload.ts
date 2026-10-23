@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server'
 import sharp from 'sharp'
-import type { assertAdmin } from './cms-auth'
 import { validateSafeSvg } from './admin-upload-validation'
-import { isS3MediaConfigured, uploadMediaToS3 } from './s3-media'
+import { uploadMediaToS3 } from './s3-media'
 import type { AdminActor } from './auth/admin-identity-core'
 import { boundedImageForm, ImageBodyTooLarge, validateAwsSvg } from './image-validation'
 
-type Access = Exclude<Awaited<ReturnType<typeof assertAdmin>>, { error: NextResponse }>
 export type UploadConfig = {
-  bucket: string
   maxBytes: number
   rasterWidth: number | ((form: FormData) => number)
   rasterHeight?: number
@@ -32,14 +29,14 @@ const rasterFormats = new Map<string, Set<string>>([
 ])
 
 type AwsAccess = { provider: 'aws'; actor: AdminActor; target: { bucket: string; baseUrl: string } }
-export async function handleAdminImageUpload(request: Request, access: Access | AwsAccess, config: UploadConfig) {
+export async function handleAdminImageUpload(request: Request, access: AwsAccess, config: UploadConfig) {
   const contentLength = Number(request.headers.get('content-length'))
   if (!Number.isFinite(contentLength) || contentLength <= 0) return NextResponse.json({ error: 'A valid upload size is required.' }, { status: 411 })
   if (contentLength > config.maxBytes + 1024 * 1024) return NextResponse.json({ error: 'The upload request is too large.' }, { status: 413 })
 
   let form: FormData | null
   try {
-    form = 'provider' in access ? await boundedImageForm(request, config.maxBytes + 1024 * 1024) : await request.formData().catch(() => null)
+    form = await boundedImageForm(request, config.maxBytes + 1024 * 1024)
   } catch (error) {
     return NextResponse.json({ error: error instanceof ImageBodyTooLarge ? 'The upload request is too large.' : 'Invalid image request.' }, { status: error instanceof ImageBodyTooLarge ? 413 : 400 })
   }
@@ -54,7 +51,7 @@ export async function handleAdminImageUpload(request: Request, access: Access | 
   let extension: 'webp' | 'svg'
   let contentType: 'image/webp' | 'image/svg+xml'
   if (file.type === 'image/svg+xml') {
-    if (!config.allowSvg || !validateSafeSvg(input) || ('provider' in access && !validateAwsSvg(input))) return NextResponse.json({ error: config.allowSvg ? 'The SVG contains unsupported or unsafe content.' : 'SVG images are not allowed here.' }, { status: 400 })
+    if (!config.allowSvg || !validateSafeSvg(input) || !validateAwsSvg(input)) return NextResponse.json({ error: config.allowSvg ? 'The SVG contains unsupported or unsafe content.' : 'SVG images are not allowed here.' }, { status: 400 })
     output = input
     extension = 'svg'
     contentType = 'image/svg+xml'
@@ -76,27 +73,10 @@ export async function handleAdminImageUpload(request: Request, access: Access | 
   }
 
   const path = config.buildPath(extension, form)
-  if ('provider' in access) {
-    try {
-      const stored = await uploadMediaToS3(path, output, contentType, access.target)
-      return NextResponse.json({ provider: 's3', path: stored.url, url: stored.url }, { status: config.successStatus ?? 201, headers: { 'Cache-Control': 'no-store' } })
-    } catch {
-      return NextResponse.json({ error: 'Unable to store the uploaded image.' }, { status: 500 })
-    }
+  try {
+    const stored = await uploadMediaToS3(path, output, contentType, access.target)
+    return NextResponse.json({ provider: 's3', path: stored.url, url: stored.url }, { status: config.successStatus ?? 201, headers: { 'Cache-Control': 'no-store' } })
+  } catch {
+    return NextResponse.json({ error: 'Unable to store the uploaded image.' }, { status: 500 })
   }
-  if (isS3MediaConfigured()) {
-    try {
-      const stored = await uploadMediaToS3(path, output, contentType)
-      // Keep relative-path admin previews working until their URL builders move to the CDN.
-      const { error: mirrorError } = await access.adminClient.storage.from(config.bucket).upload(path, output, { contentType, upsert: false, cacheControl: '86400' })
-      if (mirrorError) throw mirrorError
-      return NextResponse.json({ provider: 's3', ...stored }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
-    } catch {
-      return NextResponse.json({ error: 'Unable to store the uploaded image.' }, { status: 500 })
-    }
-  }
-  const { error } = await access.adminClient.storage.from(config.bucket).upload(path, output, { contentType, upsert: false, cacheControl: '31536000' })
-  if (error) return NextResponse.json({ error: 'Unable to store the uploaded image.' }, { status: 500 })
-  const { data } = access.adminClient.storage.from(config.bucket).getPublicUrl(path)
-  return NextResponse.json({ path, url: data.publicUrl }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
 }

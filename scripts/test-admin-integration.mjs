@@ -79,11 +79,9 @@ async function established() {
   return { ...f, request, cookie, session }
 }
 
-test('legacy defaults do not activate features; exact global selection rejects unknowns', () => {
-  for (const v of [undefined, '', 'supabase']) assert.equal(integration.readAdminAuthProvider({ ADMIN_AUTH_PROVIDER: v }), 'supabase')
-  // HOD-018: a production server must choose explicitly; unset never means legacy there.
+test('Keycloak is the only admin sign-in: unset, legacy or unknown selections are rejected', () => {
+  for (const v of [undefined, '', 'supabase']) assert.throws(() => integration.readAdminAuthProvider({ ...env, ADMIN_AUTH_PROVIDER: v }), /unavailable/)
   for (const v of [undefined, '']) assert.throws(() => integration.readAdminAuthProvider({ NODE_ENV: 'production', ADMIN_AUTH_PROVIDER: v }), /unavailable/)
-  assert.equal(integration.readAdminAuthProvider({ NODE_ENV: 'production', ADMIN_AUTH_PROVIDER: 'supabase' }), 'supabase')
   for (const v of ['Keycloak', ' keycloak ', 'rds', 'aws']) assert.throws(() => integration.readAdminAuthProvider({ ...env, ADMIN_AUTH_PROVIDER: v }))
   assert.equal(integration.readAdminAuthProvider(env), 'keycloak')
 })
@@ -97,7 +95,7 @@ test('all 64 feature combinations: only six explicitly migrated modes permit glo
   }
   for (const name of names) assert.throws(() => integration.readAdminAuthProvider({ ...env, [name]: 'unknown' }))
 })
-test('each actual feature selector rejects invalid global selection before legacy routing', async () => {
+test('each actual feature selector accepts only its AWS provider and rejects everything else', async () => {
   const readers = [
     ['product', 'readProductDataProvider', 'ADMIN_PRODUCT_DATA_PROVIDER', 'rds', 'supabase'],
     ['catalog', 'readCatalogDataProvider', 'ADMIN_CATALOG_DATA_PROVIDER', 'rds', 'supabase'],
@@ -108,9 +106,9 @@ test('each actual feature selector rejects invalid global selection before legac
   ]
   for (const [name, fn, flag, selected, legacy] of readers) {
     const read = (await load(`lib/${name}-provider.ts`)).exports[fn]
-    assert.equal(read({}), legacy)
-    assert.equal(read({ [flag]: selected }), selected)
     assert.equal(read(env), selected)
+    assert.throws(() => read({}))
+    assert.throws(() => read({ [flag]: selected }))
     assert.throws(() => read({ ...env, ADMIN_AUTH_PROVIDER: 'unknown' }))
     assert.throws(() => read({ ...env, [flag]: legacy }))
     assert.throws(() => read({ ADMIN_AUTH_PROVIDER: 'keycloak' }))
@@ -123,25 +121,23 @@ test('actual auth provider endpoint is no-store and fails closed on mixed/unknow
   assert.deepEqual(await selected.json(), { provider: 'keycloak' })
   delete process.env.ADMIN_VIDEO_PROVIDER; assert.equal((await GET()).status, 503)
   process.env.ADMIN_AUTH_PROVIDER = 'unknown'; assert.equal((await GET()).status, 503)
-  delete process.env.ADMIN_AUTH_PROVIDER; assert.deepEqual(await (await GET()).json(), { provider: 'supabase' })
+  delete process.env.ADMIN_AUTH_PROVIDER; assert.equal((await GET()).status, 503)
 })
 test('actual B1 session -> shared SSR bridge returns mapped UUID and no legacy identity', async () => {
   const f = await established()
-  const result = await bridge.resolveAdminServerSession({ provider: () => 'keycloak', authorize: () => f.sessions.authorize(f.request()), legacy: async () => { legacyCalls++; throw Error('legacy') } })
+  const result = await bridge.resolveAdminServerSession({ provider: () => 'keycloak', authorize: () => f.sessions.authorize(f.request()) })
   assert.deepEqual(result, { userId: profileId, email: null, role: 'admin' }); assert.equal(legacyCalls, 0)
 })
 for (const state of ['disable', 'revoke', 'demote']) test('shared SSR bridge denies mapping ' + state, async () => {
   const f = await established(); f[state]()
-  await assert.rejects(bridge.resolveAdminServerSession({ provider: () => 'keycloak', authorize: () => f.sessions.authorize(f.request()), legacy: async () => { throw Error('legacy') } }))
+  await assert.rejects(bridge.resolveAdminServerSession({ provider: () => 'keycloak', authorize: () => f.sessions.authorize(f.request()) }))
 })
 test('SSR missing cookie and bearer-only authority deny', async () => {
   const f = await established()
   for (const headers of [{}, { authorization: 'Bearer fixture' }]) await assert.rejects(f.sessions.authorize(new Request(origin, { headers })))
 })
-test('legacy SSR contract remains unchanged and unknown provider cannot call either adapter', async () => {
-  const value = { userId: profileId, email: 'fixture@example.test', role: 'admin' }
-  assert.equal(await bridge.resolveAdminServerSession({ provider: () => 'supabase', authorize: () => { throw Error('cookie') }, legacy: async () => value }), value)
-  await assert.rejects(bridge.resolveAdminServerSession({ provider: () => integration.readAdminAuthProvider({ ADMIN_AUTH_PROVIDER: 'invalid' }), authorize: () => { throw Error('cookie') }, legacy: async () => { throw Error('legacy') } }), /integration/)
+test('SSR bridge: an unknown provider selection cannot reach the session adapter', async () => {
+  await assert.rejects(bridge.resolveAdminServerSession({ provider: () => integration.readAdminAuthProvider({ ADMIN_AUTH_PROVIDER: 'invalid' }), authorize: () => { throw Error('cookie') } }), /integration/)
 })
 test('actual admin-server selected path uses injected page adapter without Supabase env', async () => {
   select(); const f = await established(); pageAuthorize = () => f.sessions.authorize(f.request())
@@ -150,14 +146,8 @@ test('actual admin-server selected path uses injected page adapter without Supab
   pageAuthorize = async () => { throw new ProductSessionError(401) }; assert.equal(await getAdminServerSession(), null)
   pageAuthorize = async () => { throw new ProductSessionError(503) }; await assert.rejects(getAdminServerSession(), /unavailable/)
 })
-test('legacy cms-auth and server factories refuse global Keycloak before creating clients', async () => {
-  select()
-  const cms = (await load('lib/cms-auth.ts')).exports
-  assert.equal((await cms.assertAdmin(new Request(origin))).error.status, 503)
-  assert.throws(() => cms.buildAdminClient()); assert.throws(() => cms.buildAuthClient('bearer'))
-  assert.throws(() => (modules.get(path.resolve('lib/admin-supabase.ts')).exports.createSupabaseAdminClient)())
-  const server = (await load('lib/server-supabase.ts')).exports
-  assert.throws(() => server.createSupabaseServerClient()); await assert.rejects(server.createSupabaseServerSessionClient())
+test('the legacy Supabase clients and sign-in helpers no longer exist', () => {
+  for (const file of ['lib/cms-auth.ts', 'lib/admin-supabase.ts', 'lib/server-supabase.ts', 'lib/supabase.ts', 'app/login/legacy-login.tsx']) assert.equal(fs.existsSync(path.join(root, file)), false, file)
 })
 test('account inactive by default; exact issuer and reviewed destination only', () => {
   assert.equal(account.accountConsoleUrl({}), null)
@@ -199,7 +189,7 @@ for (const upstreamFailure of [false, true]) test('client logout uses actual B1 
   }
   assert.deepEqual(await client.logoutAdmin(), { upstreamLogout: !upstreamFailure })
   await assert.rejects(f.sessions.authorize(f.request()))
-  assert.deepEqual(calls.map(x => x[0]), ['/api/auth/provider', '/api/auth/session', '/api/auth/logout'])
+  assert.deepEqual(calls.map(x => x[0]), ['/api/auth/session', '/api/auth/logout'])
   assert.ok(calls.every(([, opts]) => opts.credentials === 'same-origin' && opts.cache === 'no-store'))
 })
 test('client account handoff uses actual handler and CSRF; no password or OIDC token sent', async () => {

@@ -33,9 +33,7 @@ export async function enrichArticleSnapshot(access: Access, snapshot: ArticleSna
   const productIds = snapshot.products.map((item) => item.product_id)
   let productsById = new Map<string, Record<string, unknown>>()
   if (productIds.length) {
-    const { data, error } = 'provider' in access
-      ? { data: (await access.db.query<{ item: Record<string, unknown> }>("SELECT to_jsonb(p) AS item FROM (SELECT id,slug,name,base_price,status FROM public.products WHERE id=ANY($1::uuid[])) p", [productIds])).rows.map(row => row.item), error: null }
-      : await access.adminClient.from('products').select('id, slug, name, base_price, status').in('id', productIds)
+    const { data, error } = { data: (await access.db.query<{ item: Record<string, unknown> }>("SELECT to_jsonb(p) AS item FROM (SELECT id,slug,name,base_price,status FROM public.products WHERE id=ANY($1::uuid[])) p", [productIds])).rows.map(row => row.item), error: null }
     if (error) throw new Error('Unable to load linked products.')
     productsById = new Map((data ?? []).map((product) => [String(product.id), product]))
   }

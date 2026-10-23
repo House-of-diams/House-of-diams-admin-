@@ -8,7 +8,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co https://vitals.vercel-insights.com https://vercel.live",
+      "connect-src 'self' https://vitals.vercel-insights.com https://vercel.live",
       "media-src 'self' data: blob: https:",
       "frame-src 'self' blob: https://vercel.live",
       "object-src 'none'",

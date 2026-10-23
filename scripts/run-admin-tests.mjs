@@ -14,10 +14,11 @@ const files=fs.readdirSync(path.join(root,'scripts')).filter(name=>
   && name!=='test-admin-d1e-prior-products.mjs').sort()
 const env={...process.env,PGLITE_MODULE:fileURLToPath(import.meta.resolve('@electric-sql/pglite'))}
 const guard=new URL('./offline-network-guard.mjs',import.meta.url).href
+const testEnv=new URL('./offline-test-env.mjs',import.meta.url).href
 for(const render of [false,true]) {
   const selected=files.filter(name=>renderSuites.has(name)===render).map(name=>path.join(root,'scripts',name))
   process.stdout.write(`\nOffline ${render?'render/integration':'core/SQL'} group: ${selected.length} files\n`)
-  const result=spawnSync(process.execPath,['--import',guard,
+  const result=spawnSync(process.execPath,['--import',guard,'--import',testEnv,
     ...(render?[]:['--conditions=react-server']),'--experimental-strip-types','--test',
     '--test-concurrency=1',...selected],{cwd:root,env,stdio:'inherit',windowsHide:true})
   if(result.status!==0) process.exit(result.status??1)

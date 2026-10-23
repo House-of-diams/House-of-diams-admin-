@@ -2,15 +2,13 @@ import 'server-only'
 import { readAdminAuthProvider } from './auth/integration'
 import { imageTarget } from './image-provider'
 
-export type VideoProvider = 'legacy' | 'aws'
+export type VideoProvider = 'aws'
 export type VideoContext = 'products' | 'hiphop' | 'about' | 'section'
 export type VideoSource = { bucket: string; baseUrl: string; prefix: string }
 export function readVideoProvider(env: NodeJS.ProcessEnv = process.env): VideoProvider {
   readAdminAuthProvider(env)
-  const value = env.ADMIN_VIDEO_PROVIDER
-  if (!value || value === 'legacy') return 'legacy'
-  if (value === 'aws') return 'aws'
-  throw new Error('Video service unavailable.')
+  if (env.ADMIN_VIDEO_PROVIDER !== 'aws') throw new Error('Video service unavailable.')
+  return 'aws'
 }
 export function videoTarget(context: VideoContext, env: NodeJS.ProcessEnv = process.env): VideoSource {
   if (env.ADMIN_VIDEO_ROUTING_VERIFIED !== 'true') throw new Error('Video service unavailable.')
@@ -27,7 +25,4 @@ export function videoSources(env: NodeJS.ProcessEnv = process.env): VideoSource[
 }
 export function videoNamespace(sources: VideoSource[]) {
   return JSON.stringify(['aws-video-v1', ...sources.map(s => [s.bucket, s.prefix, s.baseUrl])])
-}
-export function legacyVideoNamespace(env: NodeJS.ProcessEnv = process.env) {
-  return JSON.stringify(['legacy-r2-v1', env.CLOUDFLARE_R2_ACCOUNT_ID?.trim() ?? '', env.CLOUDFLARE_R2_BUCKET?.trim() ?? '', env.CLOUDFLARE_R2_PUBLIC_BASE_URL?.trim() ?? '', env.CLOUDFLARE_R2_VIDEO_PREFIX?.trim() || 'products/videos', env.CLOUDFLARE_R2_BESPOKE_VIDEO_PREFIX?.trim() || 'bespoke/videos'])
 }

@@ -2,13 +2,11 @@ import 'server-only'
 import { readAdminAuthProvider } from './auth/integration'
 import { deploymentProfile } from './deployment-profile'
 
-export type ImageProvider = 'legacy' | 'aws'
+export type ImageProvider = 'aws'
 export function readImageProvider(env: NodeJS.ProcessEnv = process.env): ImageProvider {
   readAdminAuthProvider(env)
-  const value = env.ADMIN_IMAGE_PROVIDER
-  if (!value || value === 'legacy') return 'legacy'
-  if (value === 'aws') return 'aws'
-  throw new Error('Image service unavailable.')
+  if (env.ADMIN_IMAGE_PROVIDER !== 'aws') throw new Error('Image service unavailable.')
+  return 'aws'
 }
 
 export type ImageContext = 'product' | 'content'

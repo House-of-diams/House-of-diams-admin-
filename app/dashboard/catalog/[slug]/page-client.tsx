@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { catalogFetch } from '@/lib/catalog-transport'
 import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
@@ -104,76 +104,16 @@ function emptyOptionForm(subcategoryId: string, nextOrder: number): OptionFormSt
   }
 }
 
-async function getAccessToken() {
-  const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
-
 async function authedFetch(url: string, options: RequestInit = {}) {
   return catalogFetch(url, options)
 }
 
 async function uploadCatalogImage(kind: 'subcategories' | 'options', file: File) {
-
-
-      const awsPath = await tryUploadAwsImage(file, `/api/catalog/${kind}/upload`, {})
-      if (awsPath) { return awsPath }
-
-
-
-  const accessToken = await getAccessToken()
-  if (!accessToken) {
-    throw new Error('You must be signed in to upload images.')
-  }
-
-  const payload = new FormData()
-  payload.append('file', file)
-
-  const response = await fetch(`/api/catalog/${kind}/upload`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}` },
-    body: payload,
-  })
-
-  const data = await response.json().catch(() => null)
-  if (!response.ok || !data?.path) {
-    throw new Error(data?.error ?? 'Unable to upload image.')
-  }
-
-  return data.path as string
+  return uploadAwsImage(file, `/api/catalog/${kind}/upload`, {})
 }
 
 async function uploadCategoryBanner(file: File, slug: string, variant: 'desktop' | 'mobile') {
-
-
-      const awsPath = await tryUploadAwsImage(file, '/api/catalog/categories/upload', {slug,variant})
-      if (awsPath) { return awsPath }
-
-
-
-  const accessToken = await getAccessToken()
-  if (!accessToken) {
-    throw new Error('You must be signed in to upload banner images.')
-  }
-
-  const payload = new FormData()
-  payload.append('file', file)
-  payload.append('slug', slug)
-  payload.append('variant', variant)
-
-  const response = await fetch('/api/catalog/categories/upload', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}` },
-    body: payload,
-  })
-
-  const data = await response.json().catch(() => null)
-  if (!response.ok || !data?.path) {
-    throw new Error(data?.error ?? 'Unable to upload category banner image.')
-  }
-
-  return data.path as string
+  return uploadAwsImage(file, '/api/catalog/categories/upload', { slug, variant })
 }
 
 async function prepareCategoryBannerFile(file: File, variant: 'desktop' | 'mobile') {
