@@ -71,7 +71,6 @@ test('explicit contexts, prefixes, old hiphop layout and content gate', () => {
   assert.deepEqual(sources.map(s => [s.bucket, s.prefix]), [['house-of-diams', 'products/videos/'], ['house-of-diams', 'hiphop/videos/'], ['house-of-diams', 'bespoke/videos/'], ['house-of-diams', 'about/hero/video/'], ['house-of-diams-hod', 'about/hero/video/']])
   for (const patch of [{ ADMIN_VIDEO_ROUTING_VERIFIED: '' }, { ADMIN_IMAGE_CONTENT_ROUTING_VERIFIED: '' }, { AWS_CONTENT_BUCKET: source.bucket }, { NEXT_PUBLIC_MEDIA_CDN_BASE_URL: 'https://media.houseofdiams.com.evil' }]) assert.throws(() => provider.videoSources({ ...env, ...patch }))
   assert.notEqual(provider.videoNamespace(sources), provider.videoNamespace(sources.slice(1)))
-  assert.notEqual(provider.legacyVideoNamespace({}), provider.legacyVideoNamespace({ CLOUDFLARE_R2_BUCKET: 'changed' }))
 })
 test('actual SDK upload uses exact conditional Put and checksum-enabled Head', async () => {
   const commands = [], checksum = createHash('sha256').update(mp4).digest('base64')

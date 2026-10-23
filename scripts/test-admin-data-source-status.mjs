@@ -20,12 +20,6 @@ test('unauthenticated and invalid-group requests do not inspect configuration or
  }
  assert.equal(reads,0);assert.equal(providers,0)
 })
-test('Supabase label reflects selection without claiming an RDS check or contacting RDS',async()=>{
- const handler=createAdminDataSourceStatus({authorized:async()=>true,provider:()=> 'supabase',read:async()=>assert.fail('legacy selection contacted RDS')})
- const response=await handler(request('products'));const result=await response.json()
- assert.equal(response.status,200);assert.equal(result.checked,false);assert.equal(result.source,'supabase')
- assert.equal(dataSourcePresentation(result.source,result.checked).text,'Supabase')
-})
 test('each RDS section performs its fixed representative read before reporting verified',async()=>{
  for(const group of Object.keys(adminDataReadProbes)){
   const queries=[]

@@ -147,7 +147,7 @@ test('actual admin-server selected path uses injected page adapter without Supab
   pageAuthorize = async () => { throw new ProductSessionError(503) }; await assert.rejects(getAdminServerSession(), /unavailable/)
 })
 test('the legacy Supabase clients and sign-in helpers no longer exist', () => {
-  for (const file of ['lib/cms-auth.ts', 'lib/admin-supabase.ts', 'lib/server-supabase.ts', 'app/login/legacy-login.tsx']) assert.equal(fs.existsSync(path.join(root, file)), false, file)
+  for (const file of ['lib/cms-auth.ts', 'lib/admin-supabase.ts', 'lib/server-supabase.ts', 'lib/supabase.ts', 'app/login/legacy-login.tsx']) assert.equal(fs.existsSync(path.join(root, file)), false, file)
 })
 test('account inactive by default; exact issuer and reviewed destination only', () => {
   assert.equal(account.accountConsoleUrl({}), null)
@@ -189,7 +189,7 @@ for (const upstreamFailure of [false, true]) test('client logout uses actual B1 
   }
   assert.deepEqual(await client.logoutAdmin(), { upstreamLogout: !upstreamFailure })
   await assert.rejects(f.sessions.authorize(f.request()))
-  assert.deepEqual(calls.map(x => x[0]), ['/api/auth/provider', '/api/auth/session', '/api/auth/logout'])
+  assert.deepEqual(calls.map(x => x[0]), ['/api/auth/session', '/api/auth/logout'])
   assert.ok(calls.every(([, opts]) => opts.credentials === 'same-origin' && opts.cache === 'no-store'))
 })
 test('client account handoff uses actual handler and CSRF; no password or OIDC token sent', async () => {
