@@ -1,5 +1,5 @@
 'use client'
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { readCmsId } from '@/lib/cms-id-safety'
 
 
@@ -59,40 +59,11 @@ export function HeroSlideEditorClient({ initialSlide, initialItems, initialSecti
     if (file.size > 30 * 1024 * 1024) { setStatus('File too large. Maximum size is 30MB.'); toast({ title: 'Upload failed', description: 'File too large. Maximum size is 30MB.', variant: 'destructive' }); return }
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/hero', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/hero', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
       if (awsPath) { updateField(field, awsPath); setStatus('Hero image uploaded successfully'); toast({ title: 'Image uploaded', description: 'Now click Save Changes to publish it.' }); return }
     } catch (error) { const message = error instanceof Error ? error.message : 'Upload failed.'; setStatus(message); toast({ title: 'Upload failed', description: message, variant: 'destructive' }); return }
 
 
-    const { supabase } = await import('@/lib/supabase')
-    const token = (await supabase.auth.getSession()).data.session?.access_token
-    if (!token) { setStatus('You are not signed in.'); return }
-    setUploadingField(field)
-    setStatus(field === 'image_path' ? 'Uploading desktop image...' : 'Uploading mobile image...')
-
-    let uploadedPath = ''
-    try {
-      const preparedFile = await prepareHeroImage(file)
-      const signResponse = await fetch('/api/cms/uploads/hero/sign', {
-        method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-      })
-      const signed = await signResponse.json().catch(() => null) as { bucket?: string; path?: string; token?: string; error?: string } | null
-      if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) throw new Error(signed?.error ?? 'Unable to prepare upload.')
-      const { error } = await supabase.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-      if (error) throw error
-      uploadedPath = signed.path
-    } catch {
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await fetch('/api/cms/uploads/hero', { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: formData })
-      const payload = await response.json().catch(() => null) as { path?: string; error?: string } | null
-      if (!response.ok || !payload?.path) { setStatus(payload?.error ?? 'Unable to upload hero image.'); setUploadingField(null); return }
-      uploadedPath = payload.path
-    }
-    updateField(field, uploadedPath)
-    setUploadingField(null)
-    setStatus('Image uploaded. Save changes to publish it.')
   }
 
   const save = async () => {

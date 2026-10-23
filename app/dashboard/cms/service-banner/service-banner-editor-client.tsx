@@ -1,5 +1,5 @@
 'use client'
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { SectionVideoUpload } from '@/components/section-video-upload'
 import { isVideoAddress } from '@/lib/media-kind'
 
@@ -35,12 +35,6 @@ const emptyBlock = (order: number): EditorBlock => ({
   is_active: true,
 })
 const fingerprint = (parent: { image_path: string; image_alt: string; is_enabled: boolean }, blocks: ServiceBannerBlock[]) => JSON.stringify({ parent, blocks: [...blocks].sort((a,b)=>a.sort_order-b.sort_order).map(({id,title,paragraph,sort_order,is_active})=>({id,title,paragraph,sort_order,is_active})) })
-
-async function getAccessToken() {
-  const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
 
 export function ServiceBannerEditorClient() {
   const { toast } = useToast()
@@ -138,7 +132,7 @@ export function ServiceBannerEditorClient() {
   const uploadImage = async (file: File) => {
     setIsUploading(true)
     setStatus('Uploading banner image...')
-    try { const awsPath=await tryUploadAwsImage(file,'/api/cms/uploads/service-banner');if(awsPath){setImagePath(awsPath);setImageUrl(awsPath);setStatus('Banner image uploaded. Save changes to publish.');return} const token=await getAccessToken();if(!token)throw new Error('You are not signed in.');const formData=new FormData();formData.append('file',file);const response=await fetch('/api/cms/uploads/service-banner',{method:'POST',headers:{authorization:`Bearer ${token}`},body:formData});const payload=await response.json().catch(()=>null) as {path?:string;url?:string;error?:string}|null;if(!response.ok||!payload?.path)throw new Error(payload?.error??'Unable to upload the banner image.');setImagePath(payload.path);setImageUrl(payload.url??'');setStatus('Banner image uploaded. Save changes to publish.') }
+    try { const awsPath=await uploadAwsImage(file,'/api/cms/uploads/service-banner');if(awsPath){setImagePath(awsPath);setImageUrl(awsPath);setStatus('Banner image uploaded. Save changes to publish.');return} throw new Error('Image service unavailable.') }
     catch(error){setStatus(error instanceof Error?error.message:'Unable to upload the banner image.')}
     finally{setIsUploading(false)}
   }

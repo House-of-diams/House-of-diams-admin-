@@ -30,3 +30,10 @@ export async function tryUploadAwsImage(file: File, endpoint: string, fields: Re
   return payload.path
   } finally { activity?.finish(ok) }
 }
+
+/** AWS-only upload: the legacy (Supabase storage) provider no longer exists, so anything but AWS is an error. */
+export async function uploadAwsImage(file: File, endpoint: string, fields: Record<string, string> = {}, activity?: { start: () => void; finish: (ok: boolean) => void }): Promise<string> {
+  const path = await tryUploadAwsImage(file, endpoint, fields, activity)
+  if (path === null) throw new Error('Image service unavailable.')
+  return path
+}

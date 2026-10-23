@@ -1,5 +1,5 @@
 'use client'
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { compareCmsIds } from '@/lib/cms-id-safety'
 
 
@@ -138,60 +138,11 @@ export function BespokeManufacturingEditorClient({
   const uploadImage = async (file: File) => {
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/bespoke-process', {},{start:()=>setUploading(true),finish:()=>setUploading(false)})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/bespoke-process', {},{start:()=>setUploading(true),finish:()=>setUploading(false)})
       if (awsPath) { setEditorItem(prev => ({...prev,media_type:'image',media_path:awsPath,image_path:awsPath})); setStatus('Image uploaded successfully'); return }
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Upload failed.'); return }
 
 
-    const { supabase } = await import('@/lib/supabase')
-    const { data: sessionData } = await supabase.auth.getSession()
-    const accessToken = sessionData.session?.access_token
-    if (!accessToken) {
-      setStatus('You are not signed in.')
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setStatus('File too large. Max size is 5MB.')
-      return
-    }
-
-    setUploading(true)
-    try {
-      let uploadedPath = ''
-      try {
-        const preparedFile = await prepareManufacturingImage(file)
-        const signResponse = await fetch('/api/cms/uploads/bespoke-process/sign', {
-          method: 'POST',
-          headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-        })
-        const signed = await signResponse.json().catch(() => null) as { bucket?: string; path?: string; token?: string; error?: string } | null
-        if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) throw new Error(signed?.error ?? 'Unable to prepare upload.')
-        const { error } = await supabase.storage.from(signed.bucket)
-          .uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-        if (error) throw error
-        uploadedPath = signed.path
-      } catch {
-        const formData = new FormData()
-        formData.append('file', file)
-        const response = await fetch('/api/cms/uploads/bespoke-process', {
-          method: 'POST', headers: { authorization: `Bearer ${accessToken}` }, body: formData,
-        })
-        const payload = await response.json().catch(() => null) as { path?: string; error?: string } | null
-        if (!response.ok || !payload?.path) {
-          setStatus(payload?.error ?? 'Unable to upload manufacturing image.')
-          return
-        }
-        uploadedPath = payload.path
-      }
-      setEditorItem((prev) => ({ ...prev, media_type: 'image', media_path: uploadedPath, image_path: uploadedPath }))
-      setStatus('Manufacturing image uploaded')
-    } catch {
-      setStatus('Unable to upload manufacturing image.')
-    } finally {
-      setUploading(false)
-    }
   }
 
   const saveAll = async () => {

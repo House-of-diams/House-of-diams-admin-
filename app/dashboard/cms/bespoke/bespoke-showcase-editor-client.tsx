@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { cmsFetch } from '@/lib/cms-transport'
 
 import Link from 'next/link'
@@ -44,51 +44,11 @@ export function BespokeShowcaseEditorClient({ initialData, initialRevision }: { 
   const uploadAsset = async (file: File, field: 'image_path' | 'mobile_image_path') => {
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/bespoke-showcase', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/bespoke-showcase', {},{start:()=>setUploadingField(field),finish:()=>setUploadingField(null)})
       if (awsPath) { setForm(prev => ({...prev,[field]:awsPath})); setStatus('Image uploaded successfully'); return }
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Upload failed.'); return }
 
 
-    const { supabase } = await import('@/lib/supabase')
-    const { data: sessionData } = await supabase.auth.getSession()
-    const accessToken = sessionData.session?.access_token
-    if (!accessToken) return setStatus('You are not signed in.')
-
-    if (file.size > 30 * 1024 * 1024) {
-      setStatus('File too large. Max size is 30MB.')
-      return
-    }
-
-    setUploadingField(field)
-    try {
-      let uploadedPath = ''
-      try {
-        const preparedFile = await prepareBespokeShowcaseImage(file)
-        const signResponse = await fetch('/api/cms/uploads/bespoke-showcase/sign', {
-          method: 'POST', headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
-          body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-        })
-        const signed = await signResponse.json().catch(() => null) as { bucket?: string; path?: string; token?: string; error?: string } | null
-        if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) throw new Error(signed?.error ?? 'Unable to prepare upload.')
-        const { error } = await supabase.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-        if (error) throw error
-        uploadedPath = signed.path
-      } catch {
-        const body = new FormData()
-        body.append('file', file)
-        const response = await fetch('/api/cms/uploads/bespoke-showcase', { method: 'POST', headers: { authorization: `Bearer ${accessToken}` }, body })
-        const payload = await response.json().catch(() => null) as ApiPayload | null
-        if (!response.ok || !payload?.path) throw new Error(payload?.error ?? 'Upload failed')
-        uploadedPath = payload.path
-      }
-      setForm((prev) => ({ ...prev, [field]: uploadedPath }))
-      setStatus(field === 'mobile_image_path' ? 'Mobile image uploaded' : 'Desktop image uploaded')
-      toast({ title: 'Uploaded', description: 'Bespoke showcase image uploaded successfully.' })
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Upload failed')
-    } finally {
-      setUploadingField(null)
-    }
   }
 
   const confirmSave = async () => {

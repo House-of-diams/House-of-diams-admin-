@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { cmsFetch } from '@/lib/cms-transport'
 
 import Link from 'next/link'
@@ -92,73 +92,11 @@ export function HeroEditorClient({ initialData }: { initialData: HeroEditorIniti
   const uploadImage = async (file: File, field: 'image_path' | 'mobile_image_path') => {
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/hero', {},{start:()=>setUploadState('uploading'),finish:ok=>setUploadState(ok?'done':'error')})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/hero', {},{start:()=>setUploadState('uploading'),finish:ok=>setUploadState(ok?'done':'error')})
       if (awsPath) { setFormData(prev => ({...prev,[field]:awsPath})); setStatus('Hero image uploaded successfully'); return }
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Upload failed.'); return }
 
 
-    const { supabase } = await import('@/lib/supabase')
-    const { data: sessionData } = await supabase.auth.getSession()
-    const accessToken = sessionData.session?.access_token
-
-    if (!accessToken) {
-      setStatus('You are not signed in.')
-      return
-    }
-
-    if (file.size > 30 * 1024 * 1024) {
-      setUploadState('error')
-      setStatus('File too large. Max size is 30MB.')
-      return
-    }
-
-    setUploadState('uploading')
-    setStatus(field === 'mobile_image_path' ? 'Uploading mobile hero image...' : 'Uploading hero image...')
-
-    let uploadedPath = ''
-    try {
-      const preparedFile = await prepareHeroImage(file)
-      const signResponse = await fetch('/api/cms/uploads/hero/sign', {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${accessToken}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-      })
-      const signed = (await signResponse.json().catch(() => null)) as { bucket?: string; path?: string; token?: string; error?: string } | null
-      if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) throw new Error(signed?.error ?? 'Unable to prepare upload.')
-
-      const { error } = await supabase.storage.from(signed.bucket)
-        .uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-      if (error) throw error
-      uploadedPath = signed.path
-    } catch {
-      const fallbackFormData = new FormData()
-      fallbackFormData.append('file', file)
-      const fallbackResponse = await fetch('/api/cms/uploads/hero', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${accessToken}` },
-        body: fallbackFormData,
-      })
-      const fallbackPayload = (await fallbackResponse.json().catch(() => null)) as { path?: string; error?: string } | null
-      if (!fallbackResponse.ok || !fallbackPayload?.path) {
-        setUploadState('error')
-        setStatus(fallbackPayload?.error ?? 'Unable to upload hero image.')
-        return
-      }
-      uploadedPath = fallbackPayload.path
-    }
-
-    if (!uploadedPath) {
-      setUploadState('error')
-      setStatus('Unable to upload hero image.')
-      return
-    }
-
-    setEditorItem((prev) => ({ ...prev, [field]: uploadedPath }))
-    setUploadState('done')
-    setStatus(field === 'mobile_image_path' ? 'Mobile hero image uploaded successfully' : 'Hero image uploaded successfully')
   }
 
   const saveEditor = () => {

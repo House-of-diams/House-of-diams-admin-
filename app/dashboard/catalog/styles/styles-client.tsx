@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { catalogFetch } from '@/lib/catalog-transport'
 import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
@@ -20,40 +20,8 @@ export type CatalogStyleItem = {
   status: 'Active' | 'Hidden'
 }
 
-async function getAccessToken() {
-  const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
-
 async function uploadStyleSvg(file: File) {
-
-
-      const awsPath = await tryUploadAwsImage(file, '/api/catalog/styles/upload', {})
-      if (awsPath) { return awsPath }
-
-
-
-  const accessToken = await getAccessToken()
-  if (!accessToken) {
-    throw new Error('You must be signed in to upload SVG files.')
-  }
-
-  const payload = new FormData()
-  payload.append('file', file)
-
-  const response = await fetch('/api/catalog/styles/upload', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}` },
-    body: payload,
-  })
-
-  const data = await response.json().catch(() => null)
-  if (!response.ok || !data?.path) {
-    throw new Error(data?.error ?? 'Unable to upload SVG.')
-  }
-
-  return data.path as string
+  return uploadAwsImage(file, '/api/catalog/styles/upload', {})
 }
 
 function resolveStyleIconUrl(path: string | null | undefined) {

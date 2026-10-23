@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { catalogFetch } from '@/lib/catalog-transport'
 import { useEditGuard } from '@/hooks/use-unsaved-changes'
 
@@ -132,44 +132,12 @@ function emptyPolicyForm(nextOrder: number): PolicyFormState {
   }
 }
 
-async function getAccessToken() {
-  const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
-
 async function authedFetch(url: string, options: RequestInit = {}) {
   return catalogFetch(url, options)
 }
 
 async function uploadCatalogSvg(kind: 'subcategories' | 'options', file: File) {
-
-
-      const awsPath = await tryUploadAwsImage(file, `/api/catalog/${kind}/upload`, {})
-      if (awsPath) { return awsPath }
-
-
-
-  const accessToken = await getAccessToken()
-  if (!accessToken) {
-    throw new Error('You must be signed in to upload SVG files.')
-  }
-
-  const payload = new FormData()
-  payload.append('file', file)
-
-  const response = await fetch(`/api/catalog/${kind}/upload`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}` },
-    body: payload,
-  })
-
-  const data = await response.json().catch(() => null)
-  if (!response.ok || !data?.path) {
-    throw new Error(data?.error ?? 'Unable to upload SVG.')
-  }
-
-  return data.path as string
+  return uploadAwsImage(file, `/api/catalog/${kind}/upload`, {})
 }
 
 export function CatalogClient({

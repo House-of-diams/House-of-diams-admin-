@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { cmsFetch } from '@/lib/cms-transport'
 
 import Link from 'next/link'
@@ -116,31 +116,11 @@ export function HomeBestSellersEditorClient({ initialData }: { initialData: Home
     if (file.size > 5 * 1024 * 1024) return setStatus('File too large. Max size is 5MB.')
 
     try {
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/home-bestsellers', {},{start:()=>setUploadingProductId(productId),finish:()=>setUploadingProductId(null)})
+      const awsPath = await uploadAwsImage(file, '/api/cms/uploads/home-bestsellers', {},{start:()=>setUploadingProductId(productId),finish:()=>setUploadingProductId(null)})
       if (awsPath) { updateCardOverride(productId,{display_image_path:awsPath}); setStatus('Best Seller card image uploaded'); return }
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Upload failed.'); return }
 
 
-    const { supabase } = await import('@/lib/supabase')
-    const { data: sessionData } = await supabase.auth.getSession()
-    const accessToken = sessionData.session?.access_token
-    if (!accessToken) return setStatus('You are not signed in.')
-
-    setUploadingProductId(productId)
-    setStatus('Uploading Best Seller card image...')
-    try {
-      const upload = new FormData()
-      upload.append('file', file)
-      const response = await fetch('/api/cms/uploads/home-bestsellers', { method: 'POST', headers: { authorization: `Bearer ${accessToken}` }, body: upload })
-      const payload = await response.json().catch(() => null)
-      if (!response.ok || !payload?.path) throw new Error(payload?.error ?? 'Unable to upload image.')
-      updateCardOverride(productId, { display_image_path: payload.path })
-      setStatus('Best Seller card image uploaded')
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Unable to upload image.')
-    } finally {
-      setUploadingProductId(null)
-    }
   }
 
   const handleSave = async () => {
