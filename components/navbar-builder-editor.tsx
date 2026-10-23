@@ -1,6 +1,6 @@
 'use client'
 
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { catalogFetch } from '@/lib/catalog-transport'
 
 import Link from 'next/link'
@@ -23,12 +23,6 @@ import {
 import { navbarItemSaveBody } from '@/lib/navbar-client'
 
 const SECTION_TYPE_OPTIONS: NavbarSectionType[] = ['Subcategory Options', 'Category Link', 'Metal Swatches', 'Stone Shapes', 'Ring Sizes', 'Certificates', 'Styles', 'Manual Links']
-
-async function getAccessToken() {
-  const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
 
 type CatalogPayload = Omit<NavbarBuilderPayload, 'items' | 'revision' | 'itemRevisions'>
 
@@ -121,31 +115,7 @@ function useNavbarBuilderState(initialData: NavbarBuilderInitialData): NavbarBui
 }
 
 async function uploadFeaturedImage(file: File) {
-
-
-      const awsPath = await tryUploadAwsImage(file, '/api/navbar/featured-image', {})
-      if (awsPath) { return awsPath }
-
-
-
-  const accessToken = await getAccessToken()
-  if (!accessToken) throw new Error('Missing access token.')
-
-  const formData = new FormData()
-  formData.append('file', file)
-
-  const response = await fetch('/api/navbar/featured-image', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}` },
-    body: formData,
-  })
-
-  const payload = await response.json().catch(() => null)
-  if (!response.ok || !payload?.path) {
-    throw new Error(payload?.error ?? 'Unable to upload featured image.')
-  }
-
-  return payload.path as string
+  return uploadAwsImage(file, '/api/navbar/featured-image', {})
 }
 
 function sectionSummary(section: NavbarSection) {
@@ -382,31 +352,8 @@ export function NavbarItemEditor({ itemId, initialData }: { itemId: string; init
   }
 
   const uploadSectionIcon = async (file: File) => {
-
-
-      const awsPath = await tryUploadAwsImage(file, '/api/navbar/section-icon', {})
-      if (awsPath) { setSectionDraft(current => current ? {...current, iconSvgPath: awsPath} : current); return }
-
-
-
-    const accessToken = await getAccessToken()
-    if (!accessToken) throw new Error('Missing access token.')
-
-    const uploadData = new FormData()
-    uploadData.append('file', file)
-
-    const response = await fetch('/api/navbar/section-icon', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${accessToken}` },
-      body: uploadData,
-    })
-
-    const payload = await response.json().catch(() => null)
-    if (!response.ok || !payload?.path) {
-      throw new Error(payload?.error ?? 'Unable to upload section SVG.')
-    }
-
-    setSectionDraft((current) => (current ? { ...current, iconSvgPath: payload.path } : current))
+    const path = await uploadAwsImage(file, '/api/navbar/section-icon', {})
+    setSectionDraft((current) => (current ? { ...current, iconSvgPath: path } : current))
   }
 
   const saveNavbar = async () => {

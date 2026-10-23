@@ -1,5 +1,5 @@
 'use client'
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { resolveCatalogImageUrl } from '@/components/catalog-image-preview'
 import { cmsFetch } from '@/lib/cms-transport'
 
@@ -20,25 +20,6 @@ import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
 import { useCmsAtomicListSave } from '@/hooks/use-cms-atomic-list-save'
 
 export type BespokeTab = 'hero' | 'portfolio-categories' | 'portfolio-items' | 'process' | 'form' | 'submissions'
-
-async function prepareBespokeHeroImage(file: File) {
-  if (file.type === 'image/svg+xml') return file
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) throw new Error('Invalid image type.')
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  try {
-    const width = Math.min(bitmap.width, 2200)
-    const height = Math.max(1, Math.round(bitmap.height * (width / bitmap.width)))
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.84))
-    if (!blob) throw new Error('Unable to optimize image.')
-    return new File([blob], `${crypto.randomUUID()}.webp`, { type: 'image/webp' })
-  } finally {
-    bitmap.close()
-  }
-}
 
 export type BespokeHero = {
   id?: string
@@ -132,19 +113,8 @@ export type BespokePageData = {
 
 const PAGE_SIZE = 20
 
-async function getAccessToken() {
-  const { supabase } = await import('@/lib/supabase')
-    const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
-}
-
 async function authedFetch(url: string, options: RequestInit = {}) {
-  if (/^\/api\/(?:cms|bespoke)\//.test(url) && !url.startsWith('/api/bespoke/media') && !url.startsWith('/api/cms/uploads/')) return cmsFetch(url, options)
-  const accessToken = await getAccessToken()
-  const headers = new Headers(options.headers)
-  if (accessToken) headers.set('authorization', `Bearer ${accessToken}`)
-  if (!(options.body instanceof FormData)) headers.set('content-type', 'application/json')
-  return fetch(url, { ...options, headers })
+  return cmsFetch(url, options)
 }
 
 function emptyPortfolioCategory(nextOrder: number): PortfolioCategory {
@@ -390,42 +360,8 @@ function HeroPanel({ hero, setHero, revision, originalItems, onReload }: { hero:
 
   const uploadImage = async (file: File, target: 'desktop' | 'mobile') => {
     if (file.size > 5 * 1024 * 1024) throw new Error('File too large. Max size is 5MB.')
-
-
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/bespoke-hero', {})
-      if (awsPath) { return awsPath }
-
-
-
-    if (target === 'desktop') setDesktopUploadState('uploading')
-    if (target === 'mobile') setMobileUploadState('uploading')
-    const { supabase } = await import('@/lib/supabase')
-    try {
-      try {
-        const preparedFile = await prepareBespokeHeroImage(file)
-        const signResponse = await authedFetch('/api/cms/uploads/bespoke-hero/sign', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-        })
-        const signed = await signResponse.json().catch(() => null) as { bucket?: string; path?: string; token?: string; error?: string } | null
-        if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) throw new Error(signed?.error ?? 'Unable to prepare upload.')
-        const { error } = await supabase.storage.from(signed.bucket)
-          .uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-        if (error) throw error
-        return signed.path
-      } catch {
-        const body = new FormData()
-        body.append('file', file)
-        const response = await authedFetch('/api/cms/uploads/bespoke-hero', { method: 'POST', body })
-        const payload = await response.json().catch(() => null)
-        if (!response.ok || !payload?.path) throw new Error(payload?.error ?? 'Unable to upload image.')
-        return payload.path as string
-      }
-    } finally {
-      if (target === 'desktop') setDesktopUploadState('idle')
-      if (target === 'mobile') setMobileUploadState('idle')
-    }
+    const state = target === 'desktop' ? setDesktopUploadState : setMobileUploadState
+    return uploadAwsImage(file, '/api/cms/uploads/bespoke-hero', {}, { start: () => state('uploading'), finish: () => state('idle') })
   }
 
   const openNewSlide = () => {
@@ -811,22 +747,7 @@ function PortfolioCategoriesPanel({ categories, onReload }: { categories: Portfo
     setOriginalForm({ ...item })
     setDialogOpen(true)
   }
-  const uploadImage = async (file: File) => {
-
-
-      const awsPath = await tryUploadAwsImage(file, '/api/bespoke/media', {kind:'image'})
-      if (awsPath) { return awsPath }
-
-
-
-    const body = new FormData()
-    body.append('file', file)
-    body.append('kind', 'image')
-    const response = await authedFetch('/api/bespoke/media', { method: 'POST', body })
-    const payload = await response.json().catch(() => null)
-    if (!response.ok || !payload?.path) throw new Error(payload?.error ?? 'Unable to upload category image.')
-    return payload.path as string
-  }
+  const uploadImage = async (file: File) => uploadAwsImage(file, '/api/bespoke/media', { kind: 'image' })
   const save = async () => {
     if (saving || imageUploadState === 'uploading') return
     setSaving(true)
@@ -986,48 +907,7 @@ function PortfolioItemsPanel({ categories, items, onReload }: { categories: Port
     setOriginalForm({ ...item })
     setDialogOpen(true)
   }
-  const uploadMedia = async (file: File) => {
-
-
-      const awsPath = await tryUploadAwsImage(file, '/api/bespoke/media', {kind:'image'})
-      if (awsPath) { return awsPath }
-
-
-
-    const accessToken = await getAccessToken()
-    const body = new FormData()
-    body.append('file', file)
-    body.append('kind', 'image')
-
-    return await new Promise<string>((resolve, reject) => {
-      const xhr = new XMLHttpRequest()
-      xhr.open('POST', '/api/bespoke/media')
-      if (accessToken) xhr.setRequestHeader('authorization', `Bearer ${accessToken}`)
-
-      xhr.onerror = () => {
-        reject(new Error('Network error while uploading media.'))
-      }
-
-      xhr.onload = () => {
-        const payload = (() => {
-          try {
-            return xhr.responseText ? JSON.parse(xhr.responseText) : null
-          } catch {
-            return null
-          }
-        })()
-
-        if (xhr.status < 200 || xhr.status >= 300 || !payload?.path) {
-          reject(new Error(payload?.error ?? 'Unable to upload media.'))
-          return
-        }
-
-        resolve(payload.path as string)
-      }
-
-      xhr.send(body)
-    })
-  }
+  const uploadMedia = async (file: File) => uploadAwsImage(file, '/api/bespoke/media', { kind: 'image' })
   const isVideoMedia = form.media_type === 'video'
   const save = async () => {
     if (saving || imageUploadState === 'uploading' || thumbnailUploadState === 'uploading') return

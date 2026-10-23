@@ -43,6 +43,12 @@ export async function tryUploadAwsVideo(file: File, endpoint: string, fields: Re
   invalidateClientVideoLibrary()
   return payload.path
 }
+/** AWS-only video upload: the legacy (R2) provider no longer exists, so anything but AWS is an error. */
+export async function uploadAwsVideo(file: File, endpoint: string, fields: Record<string, string>): Promise<string> {
+  const path = await tryUploadAwsVideo(file, endpoint, fields)
+  if (path === null) throw new Error('Video service unavailable.')
+  return path
+}
 export async function fetchVideoLibrary(refresh = false): Promise<ClientVideoAsset[]> {
   const mode = await readClientVideoProvider()
   if (!refresh && cached?.namespace === mode.namespace && Date.now() - cached.at < 300000) return cached.items

@@ -1,5 +1,5 @@
 'use client'
-import { tryUploadAwsImage } from '@/lib/image-transport'
+import { uploadAwsImage } from '@/lib/image-transport'
 import { cmsFetch } from '@/lib/cms-transport'
 
 import Link from 'next/link'
@@ -26,27 +26,6 @@ type BlogProduct = {
   base_price?: number | null
 }
 
-async function prepareBlogImage(file: File) {
-  if (file.type === 'image/svg+xml') return file
-  if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)) {
-    throw new Error('Invalid image type.')
-  }
-
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
-  try {
-    const width = Math.min(bitmap.width, 2200)
-    const height = Math.max(1, Math.round(bitmap.height * (width / bitmap.width)))
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.84))
-    if (!blob) throw new Error('Unable to optimize image.')
-    return new File([blob], `${crypto.randomUUID()}.webp`, { type: 'image/webp' })
-  } finally {
-    bitmap.close()
-  }
-}
 type BlogContentBlock = {
   clientId: string
   id?: number | string
@@ -329,46 +308,7 @@ export function BlogEditorPage({ mode, id, categories, initialData }: { mode: 'c
 
   const uploadBlogMedia = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) throw new Error('File too large. Max size is 5MB.')
-
-
-      const awsPath = await tryUploadAwsImage(file, '/api/cms/uploads/blog', {})
-      if (awsPath) { return awsPath }
-
-
-
-
-    const { supabase } = await import('@/lib/supabase')
-    try {
-      const preparedFile = await prepareBlogImage(file)
-      const signResponse = await adminApiFetch('/api/cms/uploads/blog/sign', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ contentType: preparedFile.type, declaredSize: preparedFile.size }),
-      })
-      const signed = (await signResponse.json().catch(() => null)) as { bucket?: string; path?: string; token?: string; error?: string } | null
-      if (!signResponse.ok || !signed?.bucket || !signed.path || !signed.token) {
-        throw new Error(signed?.error ?? 'Unable to prepare upload.')
-      }
-
-      const { error } = await supabase.storage.from(signed.bucket)
-        .uploadToSignedUrl(signed.path, signed.token, preparedFile, { contentType: preparedFile.type })
-      if (error) throw error
-      return signed.path
-    } catch (directError) {
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await adminApiFetch('/api/cms/uploads/blog', {
-        method: 'POST',
-        body: formData,
-      })
-      const payload = (await response.json().catch(() => null)) as { path?: string; error?: string } | null
-      if (!response.ok || !payload?.path) {
-        throw new Error(payload?.error ?? (directError instanceof Error ? directError.message : 'Unable to upload image.'))
-      }
-      return payload.path
-    }
+    return uploadAwsImage(file, '/api/cms/uploads/blog', {})
   }
 
   const uploadImage = async (file: File) => {

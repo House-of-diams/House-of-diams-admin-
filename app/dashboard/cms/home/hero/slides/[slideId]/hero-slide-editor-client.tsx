@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation'
 import { useRef, useState, type ChangeEvent } from 'react'
 import { ArrowLeft, CheckCircle2, Upload } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { prepareHeroImage } from '@/lib/prepare-hero-image'
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 

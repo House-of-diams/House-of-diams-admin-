@@ -11,7 +11,6 @@ import { CmsSaveAction } from '@/components/cms-save-action'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { useEditGuard } from '@/hooks/use-unsaved-changes'
-import { prepareHeroImage } from '@/lib/prepare-hero-image'
 
 type SlideItem = {
   clientId: string
