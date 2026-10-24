@@ -17,6 +17,11 @@ function getClient() {
   return client ??= new S3Client({ region: process.env.AWS_REGION || 'us-east-1' })
 }
 
+// Uploaded images are named by a random UUID. The one exception is a hover-view frame, whose key is fixed by product, version and
+// frame number (products/hover/<product>/v<version>/<00-23>.webp) so the saved set can be checked against it.
+const UUID_IMAGE_KEY = /\/[a-zA-Z0-9_.-]*[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(webp|svg)$/
+const HOVER_FRAME_KEY = /^products\/hover\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/v[1-9][0-9]{0,6}\/(?:[01][0-9]|2[0-3])\.webp$/
+
 type Target = { bucket: string; baseUrl: string }
 type Send = (command: PutObjectCommand | HeadObjectCommand) => Promise<Partial<HeadObjectCommandOutput>>
 
@@ -25,7 +30,7 @@ export function createMediaUploader(send: Send) {
  return async (path: string, body: Buffer, contentType: string, target: Target, verify = true) => {
   if (!/^[a-zA-Z0-9_./-]+$/.test(path) || path.includes('..') || path.startsWith('/')) throw new Error('Invalid media key.')
   if (verify && (path.length > 512 || path.includes('//') || !/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_.-]+)+$/.test(path))) throw new Error('Invalid image key.')
-  if (verify && (!/\/[a-zA-Z0-9_.-]*[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(webp|svg)$/.test(path) || !['image/webp', 'image/svg+xml'].includes(contentType))) throw new Error('Invalid image key.')
+  if (verify && ((!UUID_IMAGE_KEY.test(path) && !HOVER_FRAME_KEY.test(path)) || !['image/webp', 'image/svg+xml'].includes(contentType))) throw new Error('Invalid image key.')
   if (!body.length) throw new Error('Empty media upload.')
   const checksum = createHash('sha256').update(body).digest('base64')
   await send(new PutObjectCommand({

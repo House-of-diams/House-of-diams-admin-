@@ -29,6 +29,7 @@ export function ProductHoverView({ saved, pending, onChange, uploadFrame, previe
   const [error, setError] = useState('')
   const [scrub, setScrub] = useState(Math.floor(HOVER_FRAME_COUNT / 2))
   const urlsRef = useRef<string[]>([])
+  const attemptedVersion = useRef(0)
 
   useEffect(() => () => { abort.current?.abort(); urlsRef.current.forEach(url => URL.revokeObjectURL(url)) }, [])
 
@@ -66,7 +67,9 @@ export function ProductHoverView({ saved, pending, onChange, uploadFrame, previe
     const controller = new AbortController()
     abort.current = controller
     // One above the highest version seen so far, so a new upload never reuses a folder that is live or pending.
-    const version = nextHoverVersion({ version: Math.max(saved?.version ?? 0, pending?.version ?? 0) })
+    // A retry after a partly failed upload also gets a fresh folder, because frames already stored under the old one can never be overwritten.
+    const version = nextHoverVersion({ version: Math.max(saved?.version ?? 0, pending?.version ?? 0, attemptedVersion.current) })
+    attemptedVersion.current = version
     setPhase({ name: 'uploading', done: 0 })
     try {
       const paths = await uploadHoverFrames(blobs, version, uploadFrame, done => setPhase({ name: 'uploading', done }), controller.signal)

@@ -86,6 +86,14 @@ test('selected object key/MIME/empty validation fails before sending any command
  for(const k of ['../'+key,'/'+key,'hero//'+key,'hero/known.webp',key+'?signature=x','hero/%2e%2e/x.webp','x'.repeat(513)+'/'+key])await assert.rejects(upload(k,Buffer.from('x'),'image/webp',target))
  await assert.rejects(upload(key,Buffer.alloc(0),'image/webp',target));await assert.rejects(upload(key,Buffer.from('x'),'video/mp4',target));assert.equal(count,0)
 })
+test('hover-view frame keys are accepted, and only that exact shape',async()=>{
+ const product='37538e3f-d40e-486e-8962-c257a33dc6d0',sent=[],upload=storage.createMediaUploader(async c=>{sent.push(c);return c.constructor.name==='HeadObjectCommand'?{ContentLength:1,ContentType:'image/webp',ChecksumSHA256:createHash('sha256').update('x').digest('base64')}:{}})
+ for(const frame of ['00','07','23'])assert.equal((await upload(`products/hover/${product}/v1/${frame}.webp`,Buffer.from('x'),'image/webp',target)).path,`products/hover/${product}/v1/${frame}.webp`)
+ const before=sent.length
+ for(const bad of [`products/hover/${product}/v1/24.webp`,`products/hover/${product}/v0/00.webp`,`products/hover/${product}/v1/0.webp`,`products/hover/${product}/v1/00.svg`,`products/hover/not-a-uuid/v1/00.webp`,`products/hover/${product}/v1/00.webp/x.webp`,`products/other/${product}/v1/00.webp`,`other/products/hover/${product}/v1/00.webp`,`products/hover/${product}/../v1/00.webp`])await assert.rejects(upload(bad,Buffer.from('x'),'image/webp',target),bad)
+ await assert.rejects(upload(`products/hover/${product}/v1/00.webp`,Buffer.from('x'),'video/mp4',target))
+ assert.equal(sent.length,before,'rejected keys send nothing to storage')
+})
 test('strict SVG accepts basic shapes, safe fragment use/gradient and rejects executable/XML/reference bypasses',()=>{
  for(const svg of ['<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0L1 1"/></svg>','<svg><defs><linearGradient id="a"><stop offset="1"/></linearGradient></defs><rect fill="url(#a)"/><use href="#a"/></svg>'])assert.equal(validation.validateAwsSvg(Buffer.from(svg)),true,svg)
  for(const svg of ['<svg><script>alert(1)</script></svg>','<svg onload="x"/>','<svg><use href=javascript:alert(1) /></svg>','<svg><use href="&#106;avascript:alert(1)"/></svg>','<svg><foreignObject/></svg>','<!DOCTYPE svg><svg/>','<svg><image href="https://evil/x"/></svg>','<svg><rect style="fill:red"/></svg>','<svg><use href="//evil"/></svg>','<svg><g></svg>','<svg/><svg/>','<svg><path fill="url(https://evil)"/></svg>','<svg><path d="x" d="y"/></svg>'])assert.equal(validation.validateAwsSvg(Buffer.from(svg)),false,svg)
