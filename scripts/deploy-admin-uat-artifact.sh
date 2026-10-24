@@ -25,7 +25,17 @@ sha256sum --check "$(basename "$archive").sha256"
 install -d -o root -g root -m 755 "$release"
 tar --extract --gzip --file "$archive" --directory "$release" --no-same-owner
 [[ $(cat "$release/RELEASE_COMMIT") = "$sha" && -f "$release/.next/BUILD_ID" ]] || exit 1
-cp "$previous/config/admin-uat-aws.env" "$release/config/admin-uat-aws.env"
+# The reviewed config shipped in the artifact is the source of truth. Settings that exist only in the running release's file are kept,
+# so a server-side addition is not lost, but a stale server value can no longer override what the repository declares.
+"$node" --input-type=module - "$previous/config/admin-uat-aws.env" "$release/config/admin-uat-aws.env" <<'JS'
+import fs from 'node:fs'; import {parseEnv} from 'node:util';
+const [previousFile,shippedFile]=process.argv.slice(2);
+const shipped=parseEnv(fs.readFileSync(shippedFile,'utf8')), previous=parseEnv(fs.readFileSync(previousFile,'utf8'));
+const kept=Object.keys(previous).filter(key=>!(key in shipped)), changed=Object.keys(shipped).filter(key=>key in previous&&previous[key]!==shipped[key]);
+const extra=kept.map(key=>key+'='+previous[key]).join('\n');
+if(extra)fs.appendFileSync(shippedFile,(fs.readFileSync(shippedFile,'utf8').endsWith('\n')?'':'\n')+extra+'\n');
+console.log('Runtime config: kept '+kept.length+' server-only setting(s) ['+kept.join(', ')+']; replaced '+changed.length+' stale server value(s) ['+changed.join(', ')+']');
+JS
 # Browser values are compiled in CI. Refuse activation if the server differs.
 "$node" --input-type=module - "$release" <<'JS'
 import fs from 'node:fs'; import {parseEnv} from 'node:util';
