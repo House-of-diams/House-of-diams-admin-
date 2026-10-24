@@ -8,6 +8,9 @@ type Envelope = { version: string; sealed: string }
 /** Adapter is opt-in only after server configuration, Redis EVAL and namespace are verified.
  * Uses existing REST service; never provisions or starts Redis. Values are AES-256-GCM sealed.
  */
+/** Longest a stored login may live: the 7-day ceiling of ADMIN_SESSION_MAX_SECONDS (lib/auth/config.ts). */
+export const MAX_SESSION_STORAGE_SECONDS = 7 * 24 * 60 * 60
+
 export function createSessionStore(env: NodeJS.ProcessEnv = process.env, fetcher: typeof fetch = fetch): SessionStore {
   const url = env.UPSTASH_REDIS_REST_URL
   const token = env.UPSTASH_REDIS_REST_TOKEN
@@ -65,7 +68,7 @@ export function createSessionStore(env: NodeJS.ProcessEnv = process.env, fetcher
     return body.result
   }
   function ttl(seconds: number) {
-    if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > 86400) throw new Error('Invalid storage TTL')
+    if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > MAX_SESSION_STORAGE_SECONDS) throw new Error('Invalid storage TTL')
     return seconds
   }
   const compare = "local v=redis.call('GET',KEYS[1]); if not v then return false end; local e=cjson.decode(v); if e.version~=ARGV[1] then return false end; "

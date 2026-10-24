@@ -463,3 +463,14 @@ test('explicit confidential basic authentication and unconfigured runtime endpoi
     assert.deepEqual(await response.json(), { error: 'Authentication unavailable' })
   }
 })
+
+test('the session store accepts a session as long as the longest allowed login (7 days) and nothing beyond it', async () => {
+  const storageEnv = { ADMIN_SESSION_STORAGE_VERIFIED: 'true', UPSTASH_REDIS_REST_URL: 'https://offline.upstash.io',
+    UPSTASH_REDIS_REST_TOKEN: 'offline-only', ADMIN_SESSION_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'), ADMIN_SESSION_NAMESPACE: 'hod-admin:offline' }
+  const sent = []
+  const store = createSessionStore(storageEnv, async (_url, init) => { const args = JSON.parse(init.body); sent.push(args); return Response.json({ result: args[0] === 'SET' ? 'OK' : null }) })
+  const data = { expiresAt: 1, version: 'x' }
+  for (const seconds of [1, 86400, 90000, 604800]) assert.equal(await store.create(`session:${String(seconds).padStart(43, 'a')}`, data, seconds), true, 'ttl ' + seconds)
+  assert.equal(sent.filter((args) => args[0] === 'SET').at(-1)[4], 604800, 'the full 7 days reaches the store')
+  for (const seconds of [0, -1, 604801, 1.5, Number.NaN]) await assert.rejects(store.create(`session:${'b'.repeat(43)}`, data, seconds), /Invalid storage TTL/, 'ttl ' + seconds)
+})
