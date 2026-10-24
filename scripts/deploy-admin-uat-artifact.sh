@@ -14,8 +14,11 @@ node=/opt/node-v24/bin/node
 exec 9>/run/lock/hod-admin-uat-deploy.lock
 flock -n 9 || { echo 'Another admin deployment is active'; exit 1; }
 previous=$(systemctl show "$service" -p WorkingDirectory --value)
-[[ "$previous" = "$base/"* && -f "$previous/config/admin-uat-aws.env" && ! -e "$release" ]] || exit 1
-[[ -x "$node" && -f "$archive" && -f "$archive.sha256" ]] || exit 1
+[[ "$previous" = "$base/"* ]] || { echo "Configured release $previous is not under $base"; exit 1; }
+[[ -f "$previous/config/admin-uat-aws.env" ]] || { echo "Active release has no config/admin-uat-aws.env: $previous"; exit 1; }
+[[ ! -e "$release" ]] || { echo "Release folder already exists: $release"; exit 1; }
+[[ -x "$node" ]] || { echo "Missing Node runtime: $node"; exit 1; }
+[[ -f "$archive" && -f "$archive.sha256" ]] || { echo "Uploaded archive is missing: $archive"; exit 1; }
 [[ $("$node" -p 'process.versions.node.split(".")[0]') = 24 ]] || exit 1
 cd /tmp
 sha256sum --check "$(basename "$archive").sha256"
@@ -84,8 +87,8 @@ done
   exit 1
 }
 pid=$(systemctl show "$service" -p MainPID --value)
-[[ $(readlink "/proc/$pid/cwd") = "$release" ]] || exit 1
-curl --fail --silent --max-time 20 https://manage.houseofdiams.com/api/health | grep -q '"ok":true'
+[[ $(readlink "/proc/$pid/cwd") = "$release" ]] || { echo "Service is running from $(readlink "/proc/$pid/cwd"), not the new release $release (another unit setting overrides the release drop-in)"; exit 1; }
+curl --fail --silent --max-time 20 https://manage.houseofdiams.com/api/health | grep -q '"ok":true' || { echo 'Public health check failed: https://manage.houseofdiams.com/api/health'; exit 1; }
 printf '%s\n' "$previous" > /opt/hod-admin/rollback-release.tmp
 mv /opt/hod-admin/rollback-release.tmp /opt/hod-admin/rollback-release
 echo "Admin UAT deployed: $sha ($run). Authenticated save/upload acceptance is still required."
