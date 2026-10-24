@@ -22,6 +22,8 @@ const articlePostSchema = z.object({
   author: optionalText, date_label: optionalText, read_time: optionalText, bg_key: optionalText, bg_color: optionalText,
   hero_image_path: optionalText, card_image_path: optionalText, hero_image_alt: optionalText,
   body_html: z.string().trim().min(1).max(1_000_000), is_published: z.boolean(), sort_order: z.coerce.number().int().min(-1_000_000).max(1_000_000),
+  // Search-result text; empty means the article title and intro are used.
+  seo_title: z.string().trim().max(120).optional(), seo_description: z.string().trim().max(500).optional(), seo_indexable: z.boolean().optional(),
 }).strict()
 
 export const articleSaveSchema = z.object({

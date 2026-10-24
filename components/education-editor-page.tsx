@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Bold, Heading2, Heading3, Italic, List, ListOrdered, Pilcrow, Plus, Quote, Trash2, Upload } from 'lucide-react'
 import { CmsSaveAction } from '@/components/cms-save-action'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { SeoFields } from '@/components/seo-fields'
 import { useToast } from '@/hooks/use-toast'
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes'
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react'
@@ -56,10 +57,13 @@ type EducationForm = {
   body_html: string
   is_published: boolean
   sort_order: number
+  seo_title: string
+  seo_description: string
+  seo_indexable: boolean
 }
 
 type Payload = {
-  post?: EducationForm & { id: number | string }
+  post?: StoredPost
   tags?: Array<{ id: number | string; tag: string; sort_order: number }>
   products?: Array<{
     id: number | string
@@ -185,6 +189,38 @@ const emptyForm: EducationForm = {
   body_html: '<p></p>',
   is_published: true,
   sort_order: 1,
+  seo_title: '',
+  seo_description: '',
+  seo_indexable: true,
+}
+
+type StoredPost = Partial<Record<keyof EducationForm, unknown>> & { id: number | string }
+
+/** Exactly the fields the save accepts; the stored record also carries id, dates and other columns. */
+function toForm(post: StoredPost): EducationForm {
+  const text = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback)
+  return {
+    slug: text(post.slug),
+    title: text(post.title),
+    title_html: text(post.title_html),
+    card_title: text(post.card_title),
+    subtitle: text(post.subtitle),
+    category: text(post.category),
+    author: text(post.author),
+    date_label: text(post.date_label),
+    read_time: text(post.read_time),
+    bg_key: text(post.bg_key, 'bg-0'),
+    bg_color: text(post.bg_color, '#EEF1F8'),
+    hero_image_path: text(post.hero_image_path),
+    card_image_path: text(post.card_image_path),
+    hero_image_alt: text(post.hero_image_alt),
+    body_html: text(post.body_html, '<p></p>'),
+    is_published: post.is_published !== false,
+    sort_order: typeof post.sort_order === 'number' ? post.sort_order : Number(post.sort_order) || 0,
+    seo_title: text(post.seo_title),
+    seo_description: text(post.seo_description),
+    seo_indexable: post.seo_indexable !== false,
+  }
 }
 
 function educationDraftFingerprint(form: EducationForm, tags: EducationTag[], products: EducationProduct[], blocks: EducationContentBlock[]) {
@@ -257,7 +293,7 @@ export function EducationEditorPage({ mode, id }: { mode: 'create' | 'edit'; id?
       const payload = (await response.json().catch(() => null)) as Payload | null
       if (!response.ok || !payload?.post) return setStatus(payload?.error ?? 'Unable to load education post.')
 
-      const nextForm = { ...payload.post, card_title: payload.post.card_title ?? '', card_image_path: payload.post.card_image_path ?? '', hero_image_alt: payload.post.hero_image_alt ?? '' }
+      const nextForm = toForm(payload.post)
       const nextTags = (payload.tags ?? []).map((tag) => ({ clientId: `tag-${tag.id}`, id: tag.id, value: tag.tag }))
       const nextProducts = relationProducts(payload.products ?? [])
       const nextBlocks = (payload.content_blocks ?? []).map((block, index) => ({
@@ -359,7 +395,7 @@ export function EducationEditorPage({ mode, id }: { mode: 'create' | 'edit'; id?
       if (!payload?.post || !payload.revision || !Array.isArray(payload.tags) || !Array.isArray(payload.products) || !Array.isArray(payload.content_blocks)) {
         throw new Error('Save response was interrupted. Retry to confirm the same save.')
       }
-      const nextForm = { ...payload.post, card_title: payload.post.card_title ?? '', card_image_path: payload.post.card_image_path ?? '', hero_image_alt: payload.post.hero_image_alt ?? '' }
+      const nextForm = toForm(payload.post)
       const nextTags = payload.tags.map((tag) => ({ clientId: `tag-${tag.id}`, id: tag.id, value: tag.tag }))
       const nextProducts = relationProducts(payload.products)
       const nextBlocks = payload.content_blocks.map((block, index) => ({ clientId: `block-${block.id}`, id: block.id, block_type: block.block_type, sort_order: block.sort_order ?? index + 1, heading: block.heading ?? '', body_html: block.body_html ?? '', image_path: block.image_path ?? '', image_alt: block.image_alt ?? '', image_caption: block.image_caption ?? '', is_enabled: block.is_enabled !== false }))
@@ -491,6 +527,25 @@ export function EducationEditorPage({ mode, id }: { mode: 'create' | 'edit'; id?
             <div><label className="mb-2 block text-sm font-semibold text-foreground">Display Order</label><input type="number" value={form.sort_order} onChange={(e) => setForm((prev) => ({ ...prev, sort_order: Number(e.target.value) || 0 }))} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" /></div>
             <label className="flex items-center gap-3 pt-8 text-sm font-semibold text-foreground"><input type="checkbox" checked={form.is_published} onChange={(e) => setForm((prev) => ({ ...prev, is_published: e.target.checked }))} className="h-4 w-4" />Show on website</label>
           </div>
+
+        <div className="space-y-4 rounded-lg border border-border bg-white p-6 shadow-xs">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Search results (SEO)</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Optional. Leave empty to use the Article Title and Short Intro.</p>
+          </div>
+          <SeoFields
+            idPrefix="education"
+            title={form.seo_title}
+            description={form.seo_description}
+            onTitleChange={(value) => setForm((prev) => ({ ...prev, seo_title: value }))}
+            onDescriptionChange={(value) => setForm((prev) => ({ ...prev, seo_description: value }))}
+            indexable={form.seo_indexable}
+            onIndexableChange={(value) => setForm((prev) => ({ ...prev, seo_indexable: value }))}
+            fallbackTitle={form.title}
+            fallbackDescription={form.subtitle}
+            path={form.slug ? `/education/${form.slug}` : '/education'}
+          />
+        </div>
         </div>
 
         <div className="space-y-4 rounded-lg border border-border bg-white p-6 shadow-xs">
