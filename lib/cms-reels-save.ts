@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { canonicalizeInstagramUrl } from './instagram-url'
+import { isCanonicalAwsVideoReference } from './video-reference'
 
 const instagramUrl = z.string().max(500).transform((value, ctx) => {
   const canonical = canonicalizeInstagramUrl(value)
@@ -9,6 +10,12 @@ const instagramUrl = z.string().max(500).transform((value, ctx) => {
   }
   return canonical
 })
+
+// An uploaded reel video: a permanent address on the media CDN, never a pasted or external one.
+const videoUrl = z.string().max(1000).refine(
+  (value) => isCanonicalAwsVideoReference(value) && /\.(mp4|mov|webm)$/i.test(value) && !value.slice('https://'.length).includes('//'),
+  'Upload the reel video with the uploader; pasted or external video addresses are not allowed.',
+)
 
 export const reelsSaveSchema = z.object({
   request_id: z.string().uuid(),
@@ -21,19 +28,24 @@ export const reelsSaveSchema = z.object({
   deleted_ids: z.array(z.string().uuid()).max(30),
   items: z.array(z.object({
     id: z.string().uuid().optional(),
-    instagram_url: instagramUrl,
+    // A reel is exactly one of these two (checked below); the key is simply left out for the kind it is not.
+    instagram_url: instagramUrl.optional(),
+    video_url: videoUrl.optional(),
     title: z.string().trim().max(100),
     is_enabled: z.boolean(),
     cover_image_url: z.string().trim().max(1000).url().refine((value) => /^https?:\/\//i.test(value), 'Use HTTP or HTTPS.').nullable().optional(),
   }).strict()).max(30),
 }).strict().superRefine((payload, ctx) => {
   const ids = payload.items.flatMap((item) => item.id ? [item.id] : [])
-  const urls = payload.items.map((item) => item.instagram_url)
+  if (payload.items.some((item) => (item.instagram_url === undefined) === (item.video_url === undefined))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Each reel needs either an Instagram URL or an uploaded video, not both.' })
+  }
+  const sources = payload.items.map((item) => item.instagram_url ?? item.video_url)
   if (new Set(ids).size !== ids.length || new Set(payload.deleted_ids).size !== payload.deleted_ids.length
     || payload.deleted_ids.some((id) => ids.includes(id))) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'A reel ID was duplicated or both retained and deleted.' })
   }
-  if (new Set(urls).size !== urls.length) {
+  if (new Set(sources).size !== sources.length) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Each reel URL must be unique.' })
   }
 })

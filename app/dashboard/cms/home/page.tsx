@@ -6,8 +6,9 @@ const HOME_SECTIONS = [
   { id: 'shop-by-category', label: 'Shop By Category', description: 'Choose and order category, subcategory, and option cards shown below the hero' },
   { id: 'discover-shapes', label: 'Discover Shapes', description: 'Homepage shape carousel images, titles, and descriptions' },
   { id: 'bestsellers', label: 'Best Sellers', description: 'Selected existing products shown in the best sellers grid' },
+  { id: 'offers', label: 'Offers', description: 'The home page offer image and button, and the Promo Codes & Offers page. Choose which offer is active' },
   { id: 'offer-section', label: 'Offer Section', description: 'Label, headings, description and button of the coupon offer banner above the footer' },
-  { id: 'reels', label: 'Instagram Reels', description: 'Public Instagram posts shown in the homepage marquee' },
+  { id: 'reels', label: 'Reels', description: 'Uploaded videos or public Instagram posts shown in the homepage marquee' },
 ]
 
 export default function HomePageEditor() {
