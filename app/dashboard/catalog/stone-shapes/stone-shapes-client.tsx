@@ -217,7 +217,7 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="font-jakarta text-lg font-semibold text-foreground">{editingId ? 'Edit Stone Shape' : 'Add Stone Shape'}</DialogTitle>
-            <DialogDescription>Manage the stone shape record and upload its image (SVG, PNG, WebP or JPEG).</DialogDescription>
+            <DialogDescription>Manage the stone shape record and upload its image (SVG, PNG, JPG, WebP or AVIF).</DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
             <div>
@@ -247,11 +247,11 @@ export function StoneShapesClient({ initialShapes }: { initialShapes: StoneShape
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">Shape Image</label>
               <div className="rounded-lg border-2 border-dashed border-border p-4 text-sm text-muted-foreground">
-                <p>Upload an SVG, PNG, WebP or JPEG image</p>
+                <p>Upload an SVG, PNG, JPG, WebP or AVIF image (up to 1 MB)</p>
                 <p className="mt-1 text-xs">Uploads to the `catalog/stone-shapes/` folder in your storage bucket.</p>
                 <input
                   type="file"
-                  accept=".svg,.png,.webp,.jpg,.jpeg,image/svg+xml,image/png,image/webp,image/jpeg"
+                  accept=".svg,.png,.webp,.jpg,.jpeg,.avif,image/svg+xml,image/png,image/webp,image/jpeg,image/avif"
                   disabled={uploading}
                   onChange={(e) => {
                     const file = e.target.files?.[0]
