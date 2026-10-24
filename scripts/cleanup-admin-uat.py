@@ -53,7 +53,8 @@ def main():
         active = Path(subprocess.check_output(['systemctl', 'show', 'hod-admin-uat.service', '-p', 'WorkingDirectory', '--value'], text=True).strip())
         pid = subprocess.check_output(['systemctl', 'show', 'hod-admin-uat.service', '-p', 'MainPID', '--value'], text=True).strip()
         if not pid.isdigit() or int(pid) < 1 or Path('/proc/' + pid + '/cwd').resolve() != active.resolve():
-            raise RuntimeError('Service configured/running release differs; no cleanup performed')
+            running = Path('/proc/' + pid + '/cwd').resolve() if pid.isdigit() and int(pid) > 0 else None
+            raise RuntimeError('Service configured/running release differs; no cleanup performed (configured=%s running=%s pid=%s)' % (active, running, pid))
         marker = Path('/opt/hod-admin/rollback-release')
         # Initial migration release is the known-good fallback before first managed success.
         rollback = Path(marker.read_text().strip()) if marker.exists() else base / '111f8c53d738d0b799b38bf0edd4cefa04654d52'

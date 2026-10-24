@@ -77,7 +77,12 @@ for attempt in $(seq 1 12); do
   fi
   sleep 5
 done
-[[ "$healthy" = true ]] || { echo 'Admin health check failed'; exit 1; }
+[[ "$healthy" = true ]] || {
+  echo 'Admin health check failed; recent service log follows'
+  systemctl status "$service" --no-pager --lines=0 || true
+  journalctl -u "$service" -n 60 --no-pager || true
+  exit 1
+}
 pid=$(systemctl show "$service" -p MainPID --value)
 [[ $(readlink "/proc/$pid/cwd") = "$release" ]] || exit 1
 curl --fail --silent --max-time 20 https://manage.houseofdiams.com/api/health | grep -q '"ok":true'
