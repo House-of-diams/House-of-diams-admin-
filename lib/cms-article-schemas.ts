@@ -24,6 +24,8 @@ const articlePostSchema = z.object({
   body_html: z.string().trim().min(1).max(1_000_000), is_published: z.boolean(), sort_order: z.coerce.number().int().min(-1_000_000).max(1_000_000),
   // Search-result text; empty means the article title and intro are used.
   seo_title: z.string().trim().max(120).optional(), seo_description: z.string().trim().max(500).optional(), seo_indexable: z.boolean().optional(),
+  // Education only: the hub the article is filed under (null = none). Ignored for blog posts.
+  hub_id: z.number().int().positive().nullable().optional(),
 }).strict()
 
 export const articleSaveSchema = z.object({

@@ -69,7 +69,8 @@ export async function saveCmsArticle(access: Access, kind: CmsArticleKind, postI
     return NextResponse.json({ error: 'This editor is out of date. Reload it before saving.' }, { status: 409 })
   }
 
-  const { seo_title: seoTitle, seo_description: seoDescription, seo_indexable: seoIndexable, ...articlePost } = parsed.data.post
+  const { seo_title: seoTitle, seo_description: seoDescription, seo_indexable: seoIndexable, hub_id: hubId, ...articlePost } = parsed.data.post
+  const hub = { provided: kind === 'education' && hubId !== undefined, id: hubId ?? null }
   const slugBase = kind === 'blog' ? createBlogSlug(articlePost.title) : createEducationSlug(articlePost.title)
   const post = {
     ...articlePost,
@@ -95,9 +96,9 @@ export async function saveCmsArticle(access: Access, kind: CmsArticleKind, postI
   // Same transaction as the article save; the snapshot is re-read so its revision includes the SEO fields.
   // Skipped when there is nothing to record: no SEO fields were sent and the article is not live.
   const savedId = (data as ArticleSnapshot | null)?.post?.id as number | string | undefined
-  const needsSeoStep = savedId !== undefined && (seoTitle !== undefined || seoDescription !== undefined || seoIndexable !== undefined || articlePost.is_published === true)
+  const needsSeoStep = savedId !== undefined && (seoTitle !== undefined || seoDescription !== undefined || seoIndexable !== undefined || hub.provided || articlePost.is_published === true)
   const saved = needsSeoStep && savedId !== undefined
-    ? await saveArticleSeo(access, kind, savedId, { seo_title: seoTitle ?? null, seo_description: seoDescription ?? null, seo_indexable: seoIndexable ?? null })
+    ? await saveArticleSeo(access, kind, savedId, { seo_title: seoTitle ?? null, seo_description: seoDescription ?? null, seo_indexable: seoIndexable ?? null }, hub)
     : (data as ArticleSnapshot)
   try {
     const result = await enrichArticleSnapshot(access, saved)
@@ -114,17 +115,21 @@ async function saveArticleSeo(
   postId: number | string,
   // null = not sent by the editor (keep the stored value); '' = cleared.
   seo: { seo_title: string | null; seo_description: string | null; seo_indexable: boolean | null },
+  // Education only. provided=false keeps the stored hub; provided=true with id=null takes the article out of its hub.
+  hub: { provided: boolean; id: number | null } = { provided: false, id: null },
 ): Promise<ArticleSnapshot> {
   const table = kind === 'blog' ? 'blog_posts' : 'education_posts'
   // published_at records the first time an article goes live, for search engines' "published" date.
+  const withHub = kind === 'education'
   await access.db.query(
     `UPDATE public.${table}
         SET seo_title = CASE WHEN $1::text IS NULL THEN seo_title ELSE NULLIF($1::text, '') END,
             seo_description = CASE WHEN $2::text IS NULL THEN seo_description ELSE NULLIF($2::text, '') END,
-            seo_indexable = COALESCE($3::boolean, seo_indexable),
+            seo_indexable = COALESCE($3::boolean, seo_indexable),${withHub ? `
+            hub_id = CASE WHEN $5::boolean THEN $6::bigint ELSE hub_id END,` : ''}
             published_at = CASE WHEN is_published AND published_at IS NULL THEN now() ELSE published_at END
       WHERE id = $4::bigint`,
-    [seo.seo_title, seo.seo_description, seo.seo_indexable, String(postId)],
+    [seo.seo_title, seo.seo_description, seo.seo_indexable, String(postId), ...(withHub ? [hub.provided, hub.id] : [])],
   )
   const { data } = await readCms(cmsReader(access), 'cms_article_snapshot_v1', { p_kind: kind, p_post_id: postId })
   return data as ArticleSnapshot

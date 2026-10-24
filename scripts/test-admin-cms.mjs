@@ -271,3 +271,26 @@ test('full bigint docs page relation/block IDs remain strings and sort orders st
  const max='9223372036854775807',f=fake();const r=await saveCmsDocs(access(f.db),'returns',{...env,page:{title:'Returns',eyebrow:'Legal',subtitle:'Returns',faq_category_id:max},blocks:[{id:max,heading:'Heading',description:'',body:'<p>Body</p>'}],deleted_block_ids:['9007199254740993']})
  assert.equal(r.status,200);assert.equal(JSON.parse(f.calls[0][1][4]).faq_category_id,max);assert.equal(JSON.parse(f.calls[0][1][5])[0].id,max);assert.deepEqual(f.calls[0][1][6],['9007199254740993'])
 })
+
+// --- Education articles filed under a hub ---
+const withHub=(hub_id,kind='education')=>({...article,post:{...article.post,...(hub_id===undefined?{}:{hub_id})}})
+const hubUpdate=f=>f.calls.find(c=>/UPDATE public\.education_posts/.test(c[0]))
+test('education article saves its hub in the same transaction, after the article',async()=>{
+ const f=fake();assert.equal((await saveCmsArticle(access(f.db),'education',1,withHub(5))).status,200)
+ const u=hubUpdate(f);assert.ok(u,'hub update runs');assert.ok(/hub_id/.test(u[0]));assert.ok(u[1].includes(5)||u[1].includes('5'))
+ assert.ok(f.calls.findIndex(c=>/cms_save_article_v1/.test(c[0]))<f.calls.indexOf(u))
+ assert.ok(!/5/.test(u[0].replace(/\$\d+/g,'')),'the hub id is a bound parameter')
+})
+test('clearing the hub sends null; not sending hub_id keeps the stored hub',async()=>{
+ const cleared=fake();await saveCmsArticle(access(cleared.db),'education',1,withHub(null))
+ const a=hubUpdate(cleared);assert.ok(a[1].includes(true)&&a[1].includes(null),'provided=true with a null hub')
+ const kept=fake();await saveCmsArticle(access(kept.db),'education',1,withHub(undefined))
+ const b=hubUpdate(kept);assert.ok(!b||!b[1].includes(true)||!/hub_id = CASE WHEN \$\d::boolean THEN/.test(b[0])||b[1].filter(v=>v===true).length===0,'hub untouched when not sent')
+})
+test('blog articles never touch a hub column (blog posts have none)',async()=>{
+ const f=fake();assert.equal((await saveCmsArticle(access(f.db),'blog',1,withHub(5))).status,200)
+ assert.ok(!f.calls.some(c=>/hub_id/.test(c[0])))
+})
+test('a malformed hub id is rejected before any SQL',async()=>{
+ for(const bad of [0,-1,1.5,'a','1; DROP TABLE x',[],{}, true]){const f=fake();assert.equal((await saveCmsArticle(access(f.db),'education',1,withHub(bad))).status,400,JSON.stringify(bad));assert.equal(f.calls.length,0)}
+})

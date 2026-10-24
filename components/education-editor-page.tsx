@@ -60,6 +60,7 @@ type EducationForm = {
   seo_title: string
   seo_description: string
   seo_indexable: boolean
+  hub_id: number | null
 }
 
 type Payload = {
@@ -192,6 +193,7 @@ const emptyForm: EducationForm = {
   seo_title: '',
   seo_description: '',
   seo_indexable: true,
+  hub_id: null,
 }
 
 type StoredPost = Partial<Record<keyof EducationForm, unknown>> & { id: number | string }
@@ -220,6 +222,7 @@ function toForm(post: StoredPost): EducationForm {
     seo_title: text(post.seo_title),
     seo_description: text(post.seo_description),
     seo_indexable: post.seo_indexable !== false,
+    hub_id: post.hub_id == null || Number(post.hub_id) <= 0 ? null : Number(post.hub_id),
   }
 }
 
@@ -269,6 +272,16 @@ export function EducationEditorPage({ mode, id }: { mode: 'create' | 'edit'; id?
       })
       .slice(0, 8)
   }, [availableProducts, productSearch, selectedProducts])
+
+  const [hubs, setHubs] = useState<Array<{ id: number; name: string; is_published: boolean }>>([])
+  useEffect(() => {
+    const loadHubs = async () => {
+      const response = await cmsFetch('/api/cms/education/hubs')
+      const payload = (await response.json().catch(() => null)) as { hubs?: Array<{ id: number; name: string; is_published: boolean }> } | null
+      if (response.ok) setHubs(payload?.hubs ?? [])
+    }
+    void loadHubs()
+  }, [])
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -527,6 +540,15 @@ export function EducationEditorPage({ mode, id }: { mode: 'create' | 'edit'; id?
             <div><label className="mb-2 block text-sm font-semibold text-foreground">Display Order</label><input type="number" value={form.sort_order} onChange={(e) => setForm((prev) => ({ ...prev, sort_order: Number(e.target.value) || 0 }))} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm" /></div>
             <label className="flex items-center gap-3 pt-8 text-sm font-semibold text-foreground"><input type="checkbox" checked={form.is_published} onChange={(e) => setForm((prev) => ({ ...prev, is_published: e.target.checked }))} className="h-4 w-4" />Show on website</label>
           </div>
+
+        <div className="space-y-2 rounded-lg border border-border bg-white p-6 shadow-xs">
+          <label className="block text-sm font-semibold text-foreground" htmlFor="education-hub">Hub</label>
+          <select id="education-hub" value={form.hub_id ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, hub_id: e.target.value ? Number(e.target.value) : null }))} className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm">
+            <option value="">No hub (address stays /education/&hellip;)</option>
+            {hubs.map((hub) => <option key={hub.id} value={hub.id}>{hub.name}{hub.is_published ? '' : ' (not published yet)'}</option>)}
+          </select>
+          <p className="text-xs text-muted-foreground">Once the hub is published, this article moves to /education/&lt;hub&gt;/&lt;article&gt;. The old address redirects automatically.</p>
+        </div>
 
         <div className="space-y-4 rounded-lg border border-border bg-white p-6 shadow-xs">
           <div>

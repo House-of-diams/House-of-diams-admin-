@@ -28,7 +28,7 @@ export async function cmsRequestHeaders(mutation = true): Promise<Headers> {
 }
 export async function cmsFetch(url: string, options: RequestInit = {}) {
   const pathname = url.split('?')[0]
-  const cms = /^\/api\/cms\/(?:about\/(?:founders|hero|timeline|values|wide-banner)|bespoke\/(?:manufacturing|process)|(?:blog|education)\/(?:hero|posts(?:\/[1-9][0-9]*)?)|contact\/(?:hero|info)|docs\/(?:terms|privacy-policy|shipping|returns)|home\/(?:bespoke-showcase|bestsellers|certifications|collection|collection-page|couples|discover-rings|discover-shapes|hero|hiphop|hiphop-showcase|offer-section|reels|shop-by-category|testimonials-cards)|checkout-result|promotion|service-banner|seo-settings|summary|support\/(?:announcement-bar|faq(?:\/categories)?)|references\/products)$/
+  const cms = /^\/api\/cms\/(?:about\/(?:founders|hero|timeline|values|wide-banner)|bespoke\/(?:manufacturing|process)|(?:blog|education)\/(?:hero|posts(?:\/[1-9][0-9]*)?)|contact\/(?:hero|info)|education\/hubs|docs\/(?:terms|privacy-policy|shipping|returns)|home\/(?:bespoke-showcase|bestsellers|certifications|collection|collection-page|couples|discover-rings|discover-shapes|hero|hiphop|hiphop-showcase|offer-section|reels|shop-by-category|testimonials-cards)|checkout-result|promotion|service-banner|seo-settings|summary|support\/(?:announcement-bar|faq(?:\/categories)?)|references\/products)$/
   const bespoke = /^\/api\/bespoke\/(?:hero|form-config|(?:submissions|portfolio-categories|portfolio-items)(?:\/[0-9a-f-]{36})?)$/i
   if ((!cms.test(pathname) && !bespoke.test(pathname)) || url.includes('#')) throw new Error('Invalid content data path.')
   try {

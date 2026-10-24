@@ -84,6 +84,7 @@ export function EducationListClient({ initialItems }: { initialItems: EducationL
             <p className="mt-2 text-xs text-muted-foreground">{status}</p>
           </div>
           <Link href="/dashboard/cms/education/hero" className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"><ImageIcon size={16} />Education Hero</Link>
+          <Link href="/dashboard/cms/education/hubs" className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary">Hubs</Link>
           <Link href="/dashboard/cms/education/new" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary/90">
             <Plus size={16} />
             Create Education
