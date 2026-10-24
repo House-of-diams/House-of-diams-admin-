@@ -58,9 +58,11 @@ export async function saveCatalogHierarchy(access: Access, kind: CatalogHierarch
     const loaded = await loadSnapshot(catalogReader(access), kind, parsedId.data)
     if (!loaded.ok) return catalogHierarchyErrorResponse(loaded.error, 'save')
     if (!loaded.snapshot.item) return NextResponse.json({ error: 'This catalog record no longer exists.' }, { status: 404 })
-    const excludedKeys = new Set(['id', '_revision', 'is_system_locked', 'category_lane'])
+    // Keep only the stored fields this form edits: the stored row carries every column,
+    // and columns added later (for example SEO fields) must not make the save invalid.
+    const editableKeys = new Set(Object.keys(schemas[kind].shape))
     const current = Object.fromEntries(
-      Object.entries(loaded.snapshot.item).filter(([key]) => !excludedKeys.has(key)),
+      Object.entries(loaded.snapshot.item).filter(([key]) => editableKeys.has(key)),
     )
     candidate = { ...current, ...candidate }
   }
