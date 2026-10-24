@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { sanitizeCmsHtml } from './cms-html'
 import { catalogMutation, catalogReader, readCatalog, type CatalogAccess, type CatalogReader } from './catalog-command'
 
 export type CatalogHierarchyKind = 'category' | 'subcategory' | 'option'
@@ -19,7 +20,15 @@ const category = z.object({
 const subcategory = z.object({ category_id: z.string().uuid(), name: required(), slug, sub_type: z.enum(['standard', 'auto_shape', 'manual_style', 'auto_metal', 'gender_split']), icon_svg_path: optional(), image_path: optional(), image_alt: optional(500), display_order: order, status }).strict()
 const option = z.object({ subcategory_id: z.string().uuid(), name: required(), slug, icon_svg_path: optional(), image_path: optional(), image_alt: optional(500), display_order: order, status }).strict()
 const schemas = { category, subcategory, option } as const
-const saveEnvelope = z.object({ request_id: z.string().uuid(), expected_revision: z.string().regex(/^[a-f0-9]{32}$/).nullable(), item: z.record(z.string(), z.unknown()) }).strict()
+// Search-engine copy for a catalog page. Kept apart from the item so the atomic DB save stays unchanged;
+// the values are written in the same transaction right after it. A missing key keeps the stored value.
+const seoText = (max: number) => z.string().max(max)
+const seoGuidePath = z.string().max(300).regex(/^(?:\/[a-z0-9][a-z0-9._~-]*)+\/?$/i, 'Use a page address on this site, such as /blog/my-guide.').refine((value) => !value.split('/').includes('..'), 'Use a page address on this site, such as /blog/my-guide.').or(z.literal(''))
+const seoSchema = z.object({
+  seo_title: seoText(120), seo_description: seoText(500), seo_h1: seoText(200),
+  seo_intro_html: seoText(10_000), seo_body_html: seoText(50_000), seo_guide_path: seoGuidePath, seo_indexable: z.boolean(),
+}).partial().strict()
+const saveEnvelope = z.object({ request_id: z.string().uuid(), expected_revision: z.string().regex(/^[a-f0-9]{32}$/).nullable(), item: z.record(z.string(), z.unknown()), seo: seoSchema.optional() }).strict()
 const deleteEnvelope = z.object({ request_id: z.string().uuid(), expected_revision: z.string().regex(/^[a-f0-9]{32}$/) }).strict()
 
 export type CatalogHierarchyRow = Record<string, unknown> & { id: string; _revision: string }
@@ -70,7 +79,21 @@ export async function saveCatalogHierarchy(access: Access, kind: CatalogHierarch
   if (!item.success) return NextResponse.json({ error: item.error.issues[0]?.message ?? 'Invalid catalog details.' }, { status: 400 })
   const { data, error } = await catalogMutation(access, 'catalog_hierarchy_save_v1', { p_request_id: envelope.data.request_id, p_expected_revision: envelope.data.expected_revision, p_kind: kind, p_id: parsedId === null ? null : parsedId.data, p_item: item.data })
   if (error) return catalogHierarchyErrorResponse(error, 'save')
-  const snapshot = data as Snapshot
+  let snapshot = data as Snapshot
+  const seo = envelope.data.seo
+  const savedId = snapshot.item?.id
+  if (seo && Object.keys(seo).length > 0 && typeof savedId === 'string') {
+    const html = (value: string | undefined) => (value === undefined ? null : sanitizeCmsHtml(value))
+    await access.catalog.saveSeo(kind, savedId, {
+      seo_title: seo.seo_title?.trim() ?? null, seo_description: seo.seo_description?.trim() ?? null, seo_h1: seo.seo_h1?.trim() ?? null,
+      seo_intro_html: html(seo.seo_intro_html), seo_body_html: html(seo.seo_body_html),
+      seo_guide_path: seo.seo_guide_path ?? null, seo_indexable: seo.seo_indexable ?? null,
+    })
+    // Re-read so the returned revision matches what is stored now (it covers the SEO columns).
+    const reloaded = await loadSnapshot(catalogReader(access), kind, savedId)
+    if (!reloaded.ok) return catalogHierarchyErrorResponse(reloaded.error, 'save')
+    snapshot = reloaded.snapshot
+  }
   return NextResponse.json({ ok: true, item: snapshot.item, revision: snapshot.revision }, { headers: { 'Cache-Control': 'no-store' } })
 }
 

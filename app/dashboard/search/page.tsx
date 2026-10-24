@@ -26,6 +26,7 @@ const SEARCH_ENTRIES: SearchEntry[] = [
   { title: 'Education', description: 'Create and manage educational articles, content blocks, and related products.', href: '/dashboard/cms/education', keywords: ['education', 'articles', 'learning', 'guides', 'cms'] },
   { title: 'Promotion Popup', description: 'Manage the storefront promotional popup modal.', href: '/dashboard/cms/promotion', keywords: ['promotion', 'popup', 'modal', 'offer'] },
   { title: 'Service Banner', description: 'Manage the standalone service image and dropdown blocks.', href: '/dashboard/cms/service-banner', keywords: ['service', 'banner', 'accordion', 'dropdown', 'cms'] },
+  { title: 'SEO', description: 'Search-result text for fixed pages, business details and verification codes.', href: '/dashboard/cms/seo', keywords: ['seo', 'search', 'google', 'meta', 'title', 'description', 'verification', 'organization'] },
   { title: 'Bespoke', description: 'Manage bespoke submissions and custom content.', href: '/dashboard/bespoke', keywords: ['bespoke', 'custom', 'submissions'] },
   { title: 'Settings', description: 'Admin settings and configuration.', href: '/dashboard/settings', keywords: ['settings', 'config', 'configuration'] },
 ]

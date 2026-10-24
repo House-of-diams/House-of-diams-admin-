@@ -17,6 +17,7 @@ import type { CatalogCategory, CatalogNavbarItem, CatalogOption, CatalogSubcateg
 import { slugify } from '@/lib/product-catalog'
 import { catalogMasterDeleteBody, catalogMasterSaveBody } from '@/lib/catalog-master-client'
 import { catalogHierarchyDeleteBody, catalogHierarchySaveBody } from '@/lib/catalog-hierarchy-client'
+import { CatalogSeoSection, catalogSeoFromItem, catalogSeoPayload, emptyCatalogSeo, type CatalogSeoState } from './catalog-seo-section'
 
 type CatalogTab = 'categories' | 'policies'
 
@@ -28,6 +29,8 @@ type CategoryFormState = {
   directUrl: string
   displayOrder: number
   status: 'Active' | 'Hidden'
+  seo: CatalogSeoState
+  seoInitial: CatalogSeoState
 }
 
 type SubcategoryFormState = {
@@ -37,6 +40,8 @@ type SubcategoryFormState = {
   iconSvgPath: string
   displayOrder: number
   status: 'Active' | 'Hidden'
+  seo: CatalogSeoState
+  seoInitial: CatalogSeoState
 }
 
 type OptionFormState = {
@@ -46,6 +51,8 @@ type OptionFormState = {
   iconSvgPath: string
   displayOrder: number
   status: 'Active' | 'Hidden'
+  seo: CatalogSeoState
+  seoInitial: CatalogSeoState
 }
 
 type PolicyFormState = {
@@ -95,6 +102,8 @@ function emptyCategoryForm(nextOrder: number): CategoryFormState {
     directUrl: '',
     displayOrder: nextOrder,
     status: 'Active',
+    seo: emptyCatalogSeo,
+    seoInitial: emptyCatalogSeo,
   }
 }
 
@@ -106,6 +115,8 @@ function emptySubcategoryForm(categoryId: string, nextOrder: number): Subcategor
     iconSvgPath: '',
     displayOrder: nextOrder,
     status: 'Active',
+    seo: emptyCatalogSeo,
+    seoInitial: emptyCatalogSeo,
   }
 }
 
@@ -117,6 +128,8 @@ function emptyOptionForm(subcategoryId: string, nextOrder: number): OptionFormSt
     iconSvgPath: '',
     displayOrder: nextOrder,
     status: 'Active',
+    seo: emptyCatalogSeo,
+    seoInitial: emptyCatalogSeo,
   }
 }
 
@@ -256,6 +269,8 @@ function CategoriesPanel({ categories, navbarItems, onChange }: { categories: Ca
       directUrl: item.direct_link_url?.trim() || (item.nav_type === 'direct_link' ? directUrlFromSlug(item.slug) : ''),
       displayOrder: item.display_order,
       status: item.status === 'hidden' ? 'Hidden' : 'Active',
+      seo: catalogSeoFromItem(item),
+      seoInitial: catalogSeoFromItem(item),
     })
     setIsPanelOpen(true)
   }
@@ -279,7 +294,7 @@ function CategoriesPanel({ categories, navbarItems, onChange }: { categories: Ca
         direct_link_url: formData.showInNav && formData.navType === 'Direct Link' ? directUrl : null,
         display_order: formData.displayOrder,
         status: formData.status === 'Hidden' ? 'hidden' : 'active',
-      }, selectedCategory?._revision ?? null),
+      }, selectedCategory?._revision ?? null, catalogSeoPayload(formData.seo, formData.seoInitial)),
     })
 
     if (response.ok) {
@@ -445,6 +460,7 @@ function CategoriesPanel({ categories, navbarItems, onChange }: { categories: Ca
         <Field label="Status">
           <ToggleRow options={['Active', 'Hidden']} value={formData.status} onChange={(value) => setFormData((prev) => ({ ...prev, status: value as CategoryFormState['status'] }))} disabled={isEditingLockedCategory} />
         </Field>
+        <CatalogSeoSection idPrefix="category" value={formData.seo} onChange={(seo) => setFormData((prev) => ({ ...prev, seo }))} name={formData.name} slug={formData.slug} disabled={isEditingLockedCategory} />
         <Actions
           onSave={() => {
             if (formData.showInNav && formData.navType === 'Direct Link' && !formData.directUrl.trim()) {
@@ -516,6 +532,8 @@ function SubcategoriesPanel({
       iconSvgPath: item.icon_svg_path ?? '',
       displayOrder: item.display_order,
       status: item.status === 'hidden' ? 'Hidden' : 'Active',
+      seo: catalogSeoFromItem(item),
+      seoInitial: catalogSeoFromItem(item),
     })
     setIsPanelOpen(true)
   }
@@ -536,7 +554,7 @@ function SubcategoriesPanel({
         icon_svg_path: formData.iconSvgPath || null,
         display_order: formData.displayOrder,
         status: formData.status === 'Hidden' ? 'hidden' : 'active',
-      }, subcategories.find((item) => item.id === selectedId)?._revision ?? null),
+      }, subcategories.find((item) => item.id === selectedId)?._revision ?? null, catalogSeoPayload(formData.seo, formData.seoInitial)),
     })
 
     if (response.ok) {
@@ -674,6 +692,7 @@ function SubcategoriesPanel({
           <ToggleRow options={['Active', 'Hidden']} value={formData.status} onChange={(value) => setFormData((prev) => ({ ...prev, status: value as SubcategoryFormState['status'] }))} />
         </Field>
         <p className="text-xs text-muted-foreground">Pick the parent category from the dropdown above before saving.</p>
+        <CatalogSeoSection idPrefix="subcategory" value={formData.seo} onChange={(seo) => setFormData((prev) => ({ ...prev, seo }))} name={formData.name} slug={formData.slug} />
         <Actions onSave={() => setSaveConfirmOpen(true)} onCancel={() => setIsPanelOpen(false)} />
       </FormDialog>
 
@@ -736,6 +755,8 @@ function OptionsPanel({
       iconSvgPath: item.icon_svg_path ?? '',
       displayOrder: item.display_order,
       status: item.status === 'hidden' ? 'Hidden' : 'Active',
+      seo: catalogSeoFromItem(item),
+      seoInitial: catalogSeoFromItem(item),
     })
     setIsPanelOpen(true)
   }
@@ -755,7 +776,7 @@ function OptionsPanel({
         icon_svg_path: formData.iconSvgPath || null,
         display_order: formData.displayOrder,
         status: formData.status === 'Hidden' ? 'hidden' : 'active',
-      }, options.find((item) => item.id === selectedId)?._revision ?? null),
+      }, options.find((item) => item.id === selectedId)?._revision ?? null, catalogSeoPayload(formData.seo, formData.seoInitial)),
     })
 
     if (response.ok) {
@@ -893,6 +914,7 @@ function OptionsPanel({
           <ToggleRow options={['Active', 'Hidden']} value={formData.status} onChange={(value) => setFormData((prev) => ({ ...prev, status: value as OptionFormState['status'] }))} />
         </Field>
         <p className="text-xs text-muted-foreground">Pick the parent subcategory from the dropdown above before saving.</p>
+        <CatalogSeoSection idPrefix="option" value={formData.seo} onChange={(seo) => setFormData((prev) => ({ ...prev, seo }))} name={formData.name} slug={formData.slug} />
         <Actions onSave={() => setSaveConfirmOpen(true)} onCancel={() => setIsPanelOpen(false)} />
       </FormDialog>
 

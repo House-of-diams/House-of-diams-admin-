@@ -50,6 +50,13 @@ export type CatalogResults = { [K in CatalogCommand]: K extends `${string}_delet
   : K extends `catalog_hierarchy_${string}` ? K extends `${string}_list_${string}` ? CatalogHierarchyRow[] : Snapshot<CatalogHierarchyRow>
   : K extends `${string}_list_${string}` ? CatalogMasterRow[] : Snapshot<CatalogMasterRow> }
 
+export type CatalogSeoKind = 'category' | 'subcategory' | 'option'
+export type CatalogSeoWrite = {
+  seo_title: string | null; seo_description: string | null; seo_h1: string | null
+  seo_intro_html: string | null; seo_body_html: string | null; seo_guide_path: string | null; seo_indexable: boolean | null
+}
+const catalogSeoTables: Record<CatalogSeoKind, string> = { category: 'catalog_categories', subcategory: 'catalog_subcategories', option: 'catalog_options' }
+
 export function createCatalogRepository(db: DbExecutor, actor?: AdminActor) {
   async function execute<K extends CatalogCommand>(name: K, input: CatalogArguments[K]): Promise<CatalogResults[K]> {
     const routine = catalogRoutines[name]
@@ -81,7 +88,23 @@ export function createCatalogRepository(db: DbExecutor, actor?: AdminActor) {
     }
     return result as CatalogResults[K]
   }
-  return { execute, async navbarItems(): Promise<CatalogNavbarItem[]> {
+  return { execute, async saveSeo(kind: CatalogSeoKind, id: string, seo: CatalogSeoWrite): Promise<void> {
+    // Table names come from this fixed map, never from the request. null = keep the stored value, '' = clear it.
+    const table = catalogSeoTables[kind]
+    if (!table) throw new Error('Unsupported catalog kind')
+    await db.query(
+      `UPDATE public.${table}
+          SET seo_title = CASE WHEN $1::text IS NULL THEN seo_title ELSE NULLIF($1::text, '') END,
+              seo_description = CASE WHEN $2::text IS NULL THEN seo_description ELSE NULLIF($2::text, '') END,
+              seo_h1 = CASE WHEN $3::text IS NULL THEN seo_h1 ELSE NULLIF($3::text, '') END,
+              seo_intro_html = CASE WHEN $4::text IS NULL THEN seo_intro_html ELSE NULLIF($4::text, '') END,
+              seo_body_html = CASE WHEN $5::text IS NULL THEN seo_body_html ELSE NULLIF($5::text, '') END,
+              seo_guide_path = CASE WHEN $6::text IS NULL THEN seo_guide_path ELSE NULLIF($6::text, '') END,
+              seo_indexable = COALESCE($7::boolean, seo_indexable)
+        WHERE id = $8::uuid`,
+      [seo.seo_title, seo.seo_description, seo.seo_h1, seo.seo_intro_html, seo.seo_body_html, seo.seo_guide_path, seo.seo_indexable, id],
+    )
+  }, async navbarItems(): Promise<CatalogNavbarItem[]> {
     const { rows } = await db.query<{ result: CatalogNavbarItem[] }>("SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY display_order),'[]'::jsonb) AS result FROM public.navbar_items r")
     if (rows.length !== 1 || !Array.isArray(rows[0].result)) throw new Error('Invalid navbar references')
     return rows[0].result

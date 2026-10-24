@@ -17,6 +17,7 @@ const CMS_TABS = [
   { label: 'Service Banner', href: '/dashboard/cms/service-banner', key: 'service-banner' },
   { label: 'Checkout Result', href: '/dashboard/cms/checkout-result', key: 'checkout-result' },
   { label: 'Promotion', href: '/dashboard/cms/promotion', key: 'promotion' },
+  { label: 'SEO', href: '/dashboard/cms/seo', key: 'seo' },
 ]
 
 export function CMSTabs() {

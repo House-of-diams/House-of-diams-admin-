@@ -47,6 +47,13 @@ export type CatalogCategory = {
   banner_enabled?: boolean
   display_order: number
   status: CatalogStatus
+  seo_title?: string | null
+  seo_description?: string | null
+  seo_h1?: string | null
+  seo_intro_html?: string | null
+  seo_body_html?: string | null
+  seo_guide_path?: string | null
+  seo_indexable?: boolean
 }
 
 export type CatalogNavbarItem = {
@@ -72,6 +79,13 @@ export type CatalogSubcategory = {
   image_alt?: string | null
   display_order: number
   status: CatalogStatus
+  seo_title?: string | null
+  seo_description?: string | null
+  seo_h1?: string | null
+  seo_intro_html?: string | null
+  seo_body_html?: string | null
+  seo_guide_path?: string | null
+  seo_indexable?: boolean
 }
 
 export type CatalogOption = {
@@ -86,6 +100,13 @@ export type CatalogOption = {
   image_alt?: string | null
   display_order: number
   status: CatalogStatus
+  seo_title?: string | null
+  seo_description?: string | null
+  seo_h1?: string | null
+  seo_intro_html?: string | null
+  seo_body_html?: string | null
+  seo_guide_path?: string | null
+  seo_indexable?: boolean
 }
 
 export type CatalogMetal = {

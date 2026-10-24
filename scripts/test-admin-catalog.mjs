@@ -302,3 +302,53 @@ test('request ID replays/revisions are forwarded unchanged; app never implements
   }
 })
 
+
+// --- Catalog SEO fields (categories, subcategories, options) ---
+const seoInput={seo_title:'Engagement Rings',seo_description:'Lab-grown engagement rings.',seo_h1:'Lab-Grown Engagement Rings',seo_intro_html:'<p>Intro</p>',seo_body_html:'<h2>Guide</h2><p>Body</p>',seo_guide_path:'/blog/guide',seo_indexable:true}
+const seoEnvelope=(item,seo,expected=null)=>({request_id:id(2),expected_revision:expected,item,seo})
+test('catalog SEO is saved with bound parameters after the atomic save, then the snapshot is re-read',async()=>{
+  const h=harness();const r=await h.handler(req('catalog/categories',seoEnvelope(category,seoInput)))
+  assert.equal(r.status,200);assert.equal(h.calls.length,3)
+  assert.match(h.calls[0][0],/catalog_hierarchy_save_v1/)
+  assert.match(h.calls[1][0],/UPDATE public\.catalog_categories/);assert.match(h.calls[2][0],/catalog_hierarchy_row_v1/)
+  assert.deepEqual(h.calls[1][1],['Engagement Rings','Lab-grown engagement rings.','Lab-Grown Engagement Rings','<p>Intro</p>','<h2>Guide</h2><p>Body</p>','/blog/guide',true,id(3)])
+  assert.ok(!h.calls[1][0].includes('Engagement'));assert.deepEqual(h.events.filter(e=>e[0]!=='auth'),[['begin'],['commit']])
+  assert.ok(!('seo_title' in JSON.parse(h.calls[0][1][5])),'SEO never travels inside the item passed to the DB function')
+})
+test('each hierarchy kind updates its own table only',async()=>{
+  for(const [resource,table,item] of [['subcategories','catalog_subcategories',{category_id:id(4),name:'N',slug:'n',sub_type:'standard',display_order:1,status:'active'}],['options','catalog_options',{subcategory_id:id(4),name:'N',slug:'n',display_order:1,status:'active'}]]){
+    const h=harness();assert.equal((await h.handler(req('catalog/'+resource,seoEnvelope(item,seoInput)))).status,200)
+    assert.match(h.calls[1][0],new RegExp(String.raw`UPDATE public\.${table}\s`))
+  }
+})
+test('PATCH without seo performs no SEO write; PATCH with seo keeps order save, update, re-read',async()=>{
+  const stored={...category,id:id(3),_revision:revision,is_system_locked:false,category_lane:'standard'}
+  const a=harness({run:()=>({item:stored,revision})});await a.handler(req('catalog/categories/'+id(3),{request_id:id(2),expected_revision:revision,item:{name:'Updated'}},'PATCH'),id(3))
+  assert.equal(a.calls.length,2)
+  const b=harness({run:()=>({item:stored,revision})});assert.equal((await b.handler(req('catalog/categories/'+id(3),seoEnvelope({name:'Updated'},{seo_title:'T'},revision),'PATCH'),id(3))).status,200)
+  assert.equal(b.calls.length,4);assert.match(b.calls[2][0],/UPDATE public\.catalog_categories/)
+  // Fields the editor did not send keep their stored value (null = keep), '' clears.
+  assert.deepEqual(b.calls[2][1],['T',null,null,null,null,null,null,id(3)])
+})
+test('stored rows that carry columns the form does not edit (e.g. SEO) do not break a save',async()=>{
+  const stored={...category,id:id(3),_revision:revision,is_system_locked:false,category_lane:'standard',seo_title:'x',seo_description:null,seo_h1:null,seo_intro_html:null,seo_body_html:null,seo_guide_path:null,seo_indexable:true,created_at:'2026-01-01'}
+  const h=harness({run:()=>({item:stored,revision})});const r=await h.handler(req('catalog/categories/'+id(3),{request_id:id(2),expected_revision:revision,item:{name:'Updated'}},'PATCH'),id(3))
+  assert.equal(r.status,200);const sent=JSON.parse(h.calls[1][1][5]);assert.equal(sent.name,'Updated')
+  for(const key of ['seo_title','created_at','id','_revision','is_system_locked','category_lane'])assert.ok(!(key in sent),key)
+})
+test('hostile or malformed SEO input is rejected before any SQL',async()=>{
+  const bad=[{...seoInput,seo_guide_path:'https://evil.example/x'},{...seoInput,seo_guide_path:'//evil.example'},{...seoInput,seo_guide_path:'javascript:alert(1)'},{...seoInput,seo_guide_path:'/a b'},{...seoInput,seo_guide_path:'/blog/../admin'},
+    {...seoInput,seo_title:'x'.repeat(121)},{...seoInput,seo_description:'x'.repeat(501)},{...seoInput,seo_h1:'x'.repeat(201)},{...seoInput,seo_body_html:'x'.repeat(50_001)},{...seoInput,seo_indexable:'yes'},{...seoInput,id:id(9)},{...seoInput,is_system_locked:false},{...seoInput,seo_title:1}]
+  for(const seo of bad){const h=harness();assert.equal((await h.handler(req('catalog/categories',seoEnvelope(category,seo)))).status,400,JSON.stringify(seo).slice(0,80));assert.equal(h.calls.length,0)}
+  const h=harness();assert.equal((await h.handler(req('catalog/categories',{...envelope({...category,seo_title:'smuggled'})}))).status,400);assert.equal(h.calls.length,0)
+})
+test('SEO HTML is sanitized on the server whatever the browser sent',async()=>{
+  const h=harness();const evil='<p onclick="x()">a</p><script>alert(1)</script><a href="javascript:alert(1)">b</a><img src=x onerror=alert(1)>'
+  assert.equal((await h.handler(req('catalog/categories',seoEnvelope(category,{...seoInput,seo_intro_html:evil,seo_body_html:evil})))).status,200)
+  for(const value of [h.calls[1][1][3],h.calls[1][1][4]])assert.doesNotMatch(value,/script|onclick|onerror|javascript:/i)
+})
+test('SEO write failure rolls the whole save back (no half-saved record)',async()=>{
+  const h=harness({run:sql=>{if(/UPDATE public\.catalog_categories/.test(sql))throw Object.assign(Error('denied'),{code:'42501'});return {item:row,revision}}})
+  const r=await h.handler(req('catalog/categories',seoEnvelope(category,seoInput)));assert.notEqual(r.status,200)
+  assert.deepEqual(h.events.filter(e=>e[0]!=='auth'),[['begin'],['rollback']])
+})
