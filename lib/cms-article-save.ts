@@ -93,9 +93,12 @@ export async function saveCmsArticle(access: Access, kind: CmsArticleKind, postI
   })
   if (error) return articleError(error, 'save')
   // Same transaction as the article save; the snapshot is re-read so its revision includes the SEO fields.
-  const saved = await saveArticleSeo(access, kind, (data as ArticleSnapshot).post.id as number | string, {
-    seo_title: seoTitle ?? null, seo_description: seoDescription ?? null, seo_indexable: seoIndexable ?? null,
-  })
+  // Skipped when there is nothing to record: no SEO fields were sent and the article is not live.
+  const savedId = (data as ArticleSnapshot | null)?.post?.id as number | string | undefined
+  const needsSeoStep = savedId !== undefined && (seoTitle !== undefined || seoDescription !== undefined || seoIndexable !== undefined || articlePost.is_published === true)
+  const saved = needsSeoStep && savedId !== undefined
+    ? await saveArticleSeo(access, kind, savedId, { seo_title: seoTitle ?? null, seo_description: seoDescription ?? null, seo_indexable: seoIndexable ?? null })
+    : (data as ArticleSnapshot)
   try {
     const result = await enrichArticleSnapshot(access, saved)
     return NextResponse.json({ ok: true, ...result, id: result.post.id, slug: result.post.slug }, { headers: { 'Cache-Control': 'no-store' } })

@@ -136,7 +136,7 @@ test('article save preserves block order/deletion/request reuse and sanitizes ex
  const values=f.calls[0][1];assert.equal(values[1],id(2));assert.equal(values[4],revision)
  assert.equal(JSON.parse(values[5]).title_html,'<strong>Title</strong>');assert.equal(JSON.parse(values[5]).body_html,'<p>Body</p>')
  assert.deepEqual(JSON.parse(values[8]).map(b=>b.body_html),['<p>First</p>','<p>Second</p>'])
- await saveCmsArticle(a,'blog',1,article);assert.deepEqual(f.calls[0],f.calls[1])
+ await saveCmsArticle(a,'blog',1,article);const saves=f.calls.filter(c=>c[0].includes('cms_save_article_v1'));assert.equal(saves.length,2);assert.deepEqual(saves[0],saves[1])
  assert.equal((await saveCmsArticle(a,'blog',null,article)).status,400)
 })
 test('docs retains block/deletion order with server HTML sanitation',async()=>{
