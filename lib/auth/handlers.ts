@@ -28,7 +28,10 @@ export function createAuthHandlers(deps: AuthDependencies) {
         const result = redirect(oidc.authorizationUrl(flow.state, flow.nonce, flow.verifier))
         result.headers.append('Set-Cookie', secureCookie(FLOW_COOKIE, cookie, 300))
         return result
-      } catch { return response({ error: 'Authentication unavailable' }, 503) }
+      } catch (error) {
+        console.error('[admin-auth] login start failed:', error instanceof Error ? error.message.slice(0, 120) : 'unknown error')
+        return response({ error: 'Authentication unavailable' }, 503)
+      }
     },
     async callback(request: Request) {
       const clear = (result: Response) => { result.headers.append('Set-Cookie', secureCookie(FLOW_COOKIE, '', 0)); return result }
@@ -53,7 +56,11 @@ export function createAuthHandlers(deps: AuthDependencies) {
         const result = redirect(`${config.origin}${safeReturnPath(flow.returnPath)}`)
         result.headers.append('Set-Cookie', secureCookie(SESSION_COOKIE, sessionCookie, config.sessionMaxSeconds))
         return clear(result)
-      } catch { return clear(response({ error: 'Login failed' }, 401)) }
+      } catch (error) {
+        // Server log only: the browser still gets the generic answer, but the operator can see which step failed.
+        console.error('[admin-auth] callback failed:', error instanceof Error ? error.message.slice(0, 120) : 'unknown error')
+        return clear(response({ error: 'Login failed' }, 401))
+      }
     },
     async session(request: Request) {
       try {

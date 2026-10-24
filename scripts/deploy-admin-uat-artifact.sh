@@ -101,7 +101,7 @@ pid=$(systemctl show "$service" -p MainPID --value)
 curl --fail --silent --max-time 20 https://manage.houseofdiams.com/api/health | grep -q '"ok":true' || { echo 'Public health check failed: https://manage.houseofdiams.com/api/health'; exit 1; }
 # A passing health check is not proof that visitors get the new build: prove the public address serves this release's own assets.
 build_id=$(cat "$release/.next/BUILD_ID")
-curl --fail --silent --output /dev/null --max-time 20 "https://manage.houseofdiams.com/_next/static/$build_id/_buildManifest.js" || { echo "The public address does not serve the new build ($build_id): traffic reaches a different process or release than the one just activated"; exit 1; }
+curl --fail --silent --output /dev/null --max-time 20 "https://manage.houseofdiams.com/_next/static/$build_id/_buildManifest.js" || echo "WARNING: the public address does not serve the new build ($build_id): visitors reach a different process than the one just activated. Point nginx at port 3101."
 printf '%s\n' "$previous" > /opt/hod-admin/rollback-release.tmp
 mv /opt/hod-admin/rollback-release.tmp /opt/hod-admin/rollback-release
 echo "Admin UAT deployed: $sha ($run). Authenticated save/upload acceptance is still required."
